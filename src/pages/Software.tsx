@@ -42,8 +42,8 @@ const Software = () => {
             <Link to="/software/booking">
               <Button size="lg" className="gap-2">Book a Consultation <ArrowRight className="h-4 w-4" /></Button>
             </Link>
-            <Link to="/software/academy">
-              <Button size="lg" variant="outline" className="gap-2"><GraduationCap className="h-4 w-4" /> Join Classes</Button>
+            <Link to="/training-center">
+              <Button size="lg" variant="outline" className="gap-2"><GraduationCap className="h-4 w-4" /> Training Center</Button>
             </Link>
           </div>
         </div>

@@ -15,6 +15,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "nav.logout": { en: "Logout", rw: "Sohoka", sw: "Toka", fr: "Se déconnecter", zh: "登出" },
   "nav.admin": { en: "Admin", rw: "Ubuyobozi", sw: "Msimamizi", fr: "Admin", zh: "管理" },
   "nav.software": { en: "Software", rw: "Software", sw: "Programu", fr: "Logiciels", zh: "软件" },
+  "nav.trainingCenter": { en: "Training Center", rw: "Ikigo cy'Amahugurwa", sw: "Kituo cha Mafunzo", fr: "Centre de formation", zh: "培训中心" },
   "nav.about": { en: "About", rw: "Ibyerekeye", sw: "Kuhusu", fr: "À propos", zh: "关于" },
   "nav.dashboard": { en: "Dashboard", rw: "Ikarita", sw: "Dashibodi", fr: "Tableau de bord", zh: "仪表盘" },
   "nav.insights": { en: "Insights", rw: "Ibyiyumvo", sw: "Uchambuzi", fr: "Aperçus", zh: "洞察" },
@@ -51,8 +52,8 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "services.supplyChainDesc": { en: "End-to-end shipments with customs, taxes and live tracking.", rw: "Gutwara ibintu kuva aho byaturutse kugeza aho bijya, n'ubugenzuzi, imisoro n'uburyo bwo gukurikirana.", sw: "Usafirishaji wa mwisho hadi mwisho pamoja na ada za forodha, kodi na ufuatiliaji wa moja kwa moja.", fr: "Expéditions de bout en bout avec douanes, taxes et suivi en direct.", zh: "端到端运输，含清关、税费和实时跟踪。" },
   "services.softwareBookingTitle": { en: "Software Booking", rw: "Gutanga Icyifuzo cya Software", sw: "Uhifadhi wa Programu", fr: "Réservation de logiciel", zh: "软件预订" },
   "services.softwareBookingDesc": { en: "Book a session with our developers for your next project.", rw: "Tegereza inama n'abatekinisiye bacu ku mushinga wawe utaha.", sw: "Weka kikao na watengenezaji wetu kwa mradi wako ujao.", fr: "Réservez une session avec nos développeurs pour votre prochain projet.", zh: "为您的下一个项目预订我们的开发人员会议。" },
-  "services.academyTitle": { en: "Tech Academy", rw: "Ishuri rya Tekinoloji", sw: "Chuo cha Teknolojia", fr: "Académie tech", zh: "科技学院" },
-  "services.academyDesc": { en: "Learn coding, design and digital skills from Isoko Academy.", rw: "Wige gutunganya porogaramu, igishushanyo n'ubumenyi bw'ikoranabuhanga muri Isoko Academy.", sw: "Jifunze uandishi wa programu, muundo na ujuzi wa kidijitali kutoka Isoko Academy.", fr: "Apprenez le codage, le design et les compétences numériques avec Isoko Academy.", zh: "从 ISOKO 学院学习编码、设计和数字技能。" },
+  "services.trainingTitle": { en: "Isoko Training Center", rw: "Ikigo cy'Amahugurwa cya Isoko", sw: "Kituo cha Mafunzo cha Isoko", fr: "Centre de formation Isoko", zh: "ISOKO 培训中心" },
+  "services.trainingDesc": { en: "Practical programs in coding, design and digital skills, with Isoko certificates.", rw: "Amasomo ngiro yo gutunganya porogaramu, igishushanyo n'ubumenyi bw'ikoranabuhanga, ahabwa impamyabumenyi za Isoko.", sw: "Programu za vitendo za uandishi wa programu, muundo na ujuzi wa kidijitali, pamoja na vyeti vya Isoko.", fr: "Des programmes pratiques en codage, design et compétences numériques, avec certificat Isoko.", zh: "编程、设计和数字技能实践课程，颁发 ISOKO 证书。" },
 
   // Logistics
   "logistics.title": { en: "Reliable Delivery Services", rw: "Serivisi z'Ikohereza Zizewe" },

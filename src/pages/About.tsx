@@ -51,7 +51,7 @@ const pillars = [
   {
     icon: Code2,
     title: "Software",
-    desc: "Custom websites, mobile apps and a coding academy delivered by our in-house tech team.",
+    desc: "Custom websites and mobile apps from our in-house tech team, plus the Isoko Training Center.",
   },
 ];
 
@@ -66,7 +66,7 @@ const milestones = [
   { year: "2023", text: "ISOKO GROUP founded in Kigali to unify logistics, commerce and digital services." },
   { year: "2024", text: "Marketplace and E-Library launched, onboarding the first verified sellers and authors." },
   { year: "2025", text: "Isoko Studioz produces its first original films, shorts and podcasts." },
-  { year: "2026", text: "Software division and academy added — building apps and training the next generation." },
+  { year: "2026", text: "Software division and Isoko Training Center added — building apps and training the next generation." },
 ];
 
 const About = () => {

@@ -62,9 +62,9 @@ const ServicesSection = () => {
     },
     {
       icon: GraduationCap,
-      title: t("services.academyTitle"),
-      description: t("services.academyDesc"),
-      path: "/software/academy",
+      title: t("services.trainingTitle"),
+      description: t("services.trainingDesc"),
+      path: "/training-center",
     },
   ];
 
