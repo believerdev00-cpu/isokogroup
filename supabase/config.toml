@@ -1,1 +1,8 @@
 project_id = "klcyyeeqxxfheurdhmay"
+
+[functions.training]
+# Built from training-api/ with `npm --prefix training-api run build`.
+# The API checks the Isoko access token itself; public pages (programs, applying,
+# status lookup, certificate checks) are used without signing in.
+verify_jwt = false
+entrypoint = "./functions/training/index.js"

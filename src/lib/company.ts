@@ -21,3 +21,10 @@ export const COMPANY_PAYMENT = {
 } as const;
 
 export const COMMISSION_RATE = 0.07; // 7% to company
+
+// Where customers reach Isoko staff (Travel, Consultancy, Data Analysis)
+export const ISOKO_CONTACT = {
+  whatsapp: "250788481648", // international format, no "+"
+  phone: "+250 788 481 648",
+  email: "isokogrou93@gmail.com",
+} as const;

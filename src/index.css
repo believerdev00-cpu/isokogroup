@@ -59,6 +59,18 @@
     --insight-success-foreground: 0 0% 100%;
     --insight-warn: 38 92% 50%;
     --insight-warn-foreground: 0 0% 10%;
+
+    /* Status colours (Training Center) */
+    --gold: 38 76% 45%;
+    --gold-foreground: 30 40% 12%;
+    --gold-soft: 42 80% 94%;
+    --success: 150 60% 30%;
+    --success-soft: 145 45% 93%;
+    --warning: 32 90% 38%;
+    --warning-soft: 40 95% 92%;
+    --info: 210 65% 38%;
+    --info-soft: 210 70% 95%;
+    --danger-soft: 0 75% 96%;
   }
 
   .dark {
@@ -101,6 +113,17 @@
     --insight-success-foreground: 0 0% 100%;
     --insight-warn: 38 92% 55%;
     --insight-warn-foreground: 0 0% 10%;
+
+    --gold: 40 80% 58%;
+    --gold-foreground: 30 40% 10%;
+    --gold-soft: 38 45% 16%;
+    --success: 148 55% 55%;
+    --success-soft: 150 40% 14%;
+    --warning: 36 90% 60%;
+    --warning-soft: 34 50% 15%;
+    --info: 210 80% 68%;
+    --info-soft: 212 45% 17%;
+    --danger-soft: 0 50% 16%;
   }
 }
 
@@ -298,4 +321,23 @@
 .animate-page-turn {
   animation: pageTurn 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   backface-visibility: hidden;
+}
+
+/* Training Center pages */
+@layer components {
+  .page-title {
+    @apply text-2xl font-bold tracking-tight sm:text-3xl;
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-muted-foreground sm:text-base;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }

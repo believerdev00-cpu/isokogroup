@@ -63,6 +63,12 @@ export default {
           DEFAULT: "hsl(var(--insight-warn))",
           foreground: "hsl(var(--insight-warn-foreground))",
         },
+        // Status colours used by the Training Center (badges, meters, notices)
+        gold: { DEFAULT: "hsl(var(--gold))", foreground: "hsl(var(--gold-foreground))", soft: "hsl(var(--gold-soft))" },
+        success: { DEFAULT: "hsl(var(--success))", soft: "hsl(var(--success-soft))" },
+        warning: { DEFAULT: "hsl(var(--warning))", soft: "hsl(var(--warning-soft))" },
+        info: { DEFAULT: "hsl(var(--info))", soft: "hsl(var(--info-soft))" },
+        danger: { DEFAULT: "hsl(var(--destructive))", soft: "hsl(var(--danger-soft))" },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

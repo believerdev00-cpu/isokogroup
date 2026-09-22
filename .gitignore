@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase CLI state and the generated Training Center function bundle
+supabase/.temp
+supabase/functions/training/index.js

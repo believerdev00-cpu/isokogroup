@@ -1,0 +1,36 @@
+{
+  "name": "isoko-training-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isoko Training Center API. Runs as the Supabase Edge Function 'training' (and under Node for local tests).",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "seed:local": "tsx src/scripts/seed-demo.ts"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "express-rate-limit": "8.7.0",
+    "jspdf": "4.2.1",
+    "multer": "2.4.0",
+    "nodemailer": "10.0.10",
+    "pg": "8.23.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.16.5",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.15.5",
+    "@types/supertest": "^6.0.3",
+    "esbuild": "^0.28.2",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

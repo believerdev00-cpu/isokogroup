@@ -12,6 +12,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useStaffAccess } from "@/features/staff/access";
 import logo from "@/assets/isoko-logo.jpeg";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotificationsBell from "@/components/NotificationsBell";
@@ -27,10 +28,14 @@ const Header = () => {
   const nextLang = lang === "en" ? "rw" : lang === "rw" ? "sw" : lang === "sw" ? "fr" : lang === "fr" ? "zh" : "en";
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
+  // Travel, Consultancy and Data Analysis staff (admins reach the workspace from Admin)
+  const { services: staffServices } = useStaffAccess();
+  const isServiceStaff = !isAdmin && staffServices.length > 0;
 
   const navItems: NavItem[] = useMemo(
     () => [
       { label: t("nav.home"), path: "/" },
+      { label: t("nav.services"), path: "/services" },
       { label: t("nav.logistics"), path: "/logistics" },
       { label: t("nav.packaging"), path: "/logistics/packaging" },
       { label: t("nav.marketplace"), path: "/marketplace" },
@@ -198,6 +203,11 @@ const Header = () => {
               <Link to="/seller">
                 <Button variant="outline" size="sm">{t("nav.seller")}</Button>
               </Link>
+              {isServiceStaff && (
+                <Link to="/staff">
+                  <Button variant="outline" size="sm">{t("nav.workspace")}</Button>
+                </Link>
+              )}
               {isAdmin && (
                 <Link to="/admin">
                   <Button variant="outline" size="sm">{t("nav.admin")}</Button>
@@ -268,6 +278,11 @@ const Header = () => {
                   <Link to="/seller" onClick={() => setMobileOpen(false)}>
                     <Button variant="outline" className="w-full">{t("nav.seller")}</Button>
                   </Link>
+                  {isServiceStaff && (
+                    <Link to="/staff" onClick={() => setMobileOpen(false)}>
+                      <Button variant="outline" className="w-full">{t("nav.workspace")}</Button>
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link to="/admin" onClick={() => setMobileOpen(false)}>
                       <Button variant="outline" className="w-full">{t("nav.admin")}</Button>

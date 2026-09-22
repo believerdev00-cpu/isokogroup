@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -17,7 +18,23 @@ import LogisticsSourcing from "./pages/LogisticsSourcing";
 import LogisticsSupplyChain from "./pages/LogisticsSupplyChain";
 import Software from "./pages/Software";
 import SoftwareBooking from "./pages/SoftwareBooking";
-import TrainingCenter from "./pages/TrainingCenter";
+// The Training Center is a whole app (public pages and portals); loaded on demand
+const TrainingApp = lazy(() => import("./training/TrainingApp"));
+
+// Travel Agency, Consultancy and Data Analysis: public pages, request forms, the
+// customer's private request pages, and the staff workspace
+const Services = lazy(() => import("./pages/Services"));
+const TravelHome = lazy(() => import("./features/travel/TravelHome"));
+const PlanTrip = lazy(() => import("./features/travel/PlanTrip"));
+const TripPage = lazy(() => import("./features/travel/TripPage"));
+const ConsultancyHome = lazy(() => import("./features/consultancy/ConsultancyHome"));
+const ConsultancyRequest = lazy(() => import("./features/consultancy/ConsultancyRequest"));
+const ConsultancyPage = lazy(() => import("./features/consultancy/ConsultancyPage"));
+const DataHome = lazy(() => import("./features/data/DataHome"));
+const DataRequest = lazy(() => import("./features/data/DataRequest"));
+const DataPage = lazy(() => import("./features/data/DataPage"));
+const StaffRoutes = lazy(() => import("./features/staff/StaffRoutes"));
+const page = (el: React.ReactNode) => <Suspense fallback={null}>{el}</Suspense>;
 import Marketplace from "./pages/Marketplace";
 import ELibrary from "./pages/ELibrary";
 import Entertainment from "./pages/Entertainment";
@@ -69,8 +86,19 @@ const App = () => (
                   <Route path="/entertainment" element={<ProtectedRoute><Entertainment /></ProtectedRoute>} />
                   <Route path="/software" element={<Software />} />
                   <Route path="/software/booking" element={<SoftwareBooking />} />
-                  <Route path="/training-center" element={<TrainingCenter />} />
+                  <Route path="/training-center/*" element={<Suspense fallback={null}><TrainingApp /></Suspense>} />
                   <Route path="/software/academy" element={<Navigate to="/training-center" replace />} />
+                  <Route path="/services" element={page(<Services />)} />
+                  <Route path="/travel" element={page(<TravelHome />)} />
+                  <Route path="/travel/plan" element={page(<PlanTrip />)} />
+                  <Route path="/travel/trip/:token" element={page(<TripPage />)} />
+                  <Route path="/consultancy" element={page(<ConsultancyHome />)} />
+                  <Route path="/consultancy/request" element={page(<ConsultancyRequest />)} />
+                  <Route path="/consultancy/r/:token" element={page(<ConsultancyPage />)} />
+                  <Route path="/data-analysis" element={page(<DataHome />)} />
+                  <Route path="/data-analysis/request" element={page(<DataRequest />)} />
+                  <Route path="/data-analysis/r/:token" element={page(<DataPage />)} />
+                  <Route path="/staff/*" element={page(<StaffRoutes />)} />
                   <Route path="/seller" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
                   <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                   <Route path="/my-orders" element={<ProtectedRoute><BuyerOrders /></ProtectedRoute>} />

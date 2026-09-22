@@ -1,4 +1,4 @@
-import { Truck, Package, ShoppingBag, BookOpen, Film, Code2, ArrowRight, ShoppingCart, Network, CalendarCheck, GraduationCap } from "lucide-react";
+import { Truck, Package, ShoppingBag, BookOpen, Film, Code2, ArrowRight, ShoppingCart, Network, CalendarCheck, GraduationCap, Plane, Briefcase, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 
@@ -76,6 +76,28 @@ const ServicesSection = () => {
           <h2 className="text-3xl md:text-4xl font-display font-bold">{t("services.title")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">{t("services.subtitle")}</p>
         </div>
+
+        {/* Client services: one entry point, so the grid below stays readable */}
+        <Link
+          to="/services"
+          data-aos="fade-up"
+          className="group mb-8 flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 p-6 text-white sm:flex-row sm:items-center"
+        >
+          <div className="flex -space-x-2" aria-hidden>
+            {[Plane, Briefcase, BarChart3].map((Icon, i) => (
+              <span key={i} className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-slate-900 bg-white/10">
+                <Icon className="h-5 w-5" />
+              </span>
+            ))}
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold">{t("nav.travel")} · {t("nav.consultancy")} · {t("nav.dataAnalysis")}</p>
+            <p className="text-sm text-white/75">Trips in Rwanda handled end to end, expert advice for your business, and your data turned into decisions.</p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-semibold">
+            {t("nav.services")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </span>
+        </Link>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service, i) => (
