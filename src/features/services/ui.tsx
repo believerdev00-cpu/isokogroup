@@ -241,7 +241,7 @@ export function SectionCard({ title, children, className, right }: { title?: str
   );
 }
 
-export function WhatsAppButton({ text, label = "WhatsApp Isoko", variant = "outline", className }: { text: string; label?: string; variant?: "outline" | "solid"; className?: string }) {
+export function WhatsAppButton({ text, label = "WhatsApp Isoko", variant = "outline", className, href }: { text: string; label?: string; variant?: "outline" | "solid"; className?: string; href?: string }) {
   return (
     <Button
       asChild
@@ -249,7 +249,7 @@ export function WhatsAppButton({ text, label = "WhatsApp Isoko", variant = "outl
       variant={variant === "outline" ? "outline" : "default"}
       className={cn("h-12 w-full text-base", variant === "solid" && "bg-[#1f9d55] text-white hover:bg-[#188047]", className)}
     >
-      <a href={whatsappLink(text)} target="_blank" rel="noopener noreferrer">
+      <a href={href ?? whatsappLink(text)} target="_blank" rel="noopener noreferrer">
         <MessageCircle className="mr-2 h-5 w-5" /> {label}
       </a>
     </Button>
@@ -279,8 +279,8 @@ export function NotFoundCard({ what, backTo, backLabel }: { what: string; backTo
 // ============== AFTER SUBMITTING ==============
 /** "Request received" with the reference, and where to follow the request. */
 export function RequestReceived({
-  service, title, message, reference, viewTo,
-}: { service: ServiceKey; title: string; message: string; reference: string; viewTo: string }) {
+  service, title, message, reference, viewTo, whatsappHref, notice,
+}: { service: ServiceKey; title: string; message: string; reference: string; viewTo: string; whatsappHref?: string; notice?: React.ReactNode }) {
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${viewTo}`);
@@ -302,7 +302,8 @@ export function RequestReceived({
       </div>
       <p className="mt-4 text-sm text-muted-foreground">Our specialist will contact you shortly.</p>
       <div className="mx-auto mt-8 max-w-sm space-y-3">
-        <WhatsAppButton variant="solid" text={`Hello Isoko, my request number is ${reference}.`} />
+        {notice}
+        <WhatsAppButton variant="solid" href={whatsappHref} text={`Hello Isoko, my request number is ${reference}.`} />
         <Button asChild variant="outline" size="lg" className="h-12 w-full text-base">
           <Link to={viewTo}>View Request</Link>
         </Button>

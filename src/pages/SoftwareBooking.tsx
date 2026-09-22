@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { z } from "zod";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { IctWhatsAppFloat, IctWhatsAppNotice } from "@/components/IctWhatsApp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,6 +89,8 @@ const SoftwareBooking = () => {
             <h1 className="text-3xl md:text-4xl font-display font-bold mt-2">Book a Consultation</h1>
             <p className="text-muted-foreground mt-2">Tell us about your project — we'll get back to you to schedule a meeting.</p>
           </div>
+
+          <IctWhatsAppNotice topic="a software project" className="mb-8" />
 
           {submitted ? (
             <div className="max-w-xl mx-auto rounded-xl border border-primary/30 bg-primary/5 p-8 text-center">
@@ -186,6 +189,7 @@ const SoftwareBooking = () => {
           )}
         </div>
       </section>
+      <IctWhatsAppFloat topic="a software project" />
       <Footer />
     </div>
   );

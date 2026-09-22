@@ -341,3 +341,110 @@
     display: none !important;
   }
 }
+
+/* ============== ISOKO MOTION SYSTEM ==============
+   One timing everywhere: 180ms for feedback, 320ms for transitions, 600ms for
+   reveals, all on the same ease-out curve. Service animations explain movement
+   (a route, a journey, a workflow) and never loop faster than a few seconds.
+   html.motion-lite (see src/lib/motion.ts) keeps feedback but stops
+   decorative, continuous animation. */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer utilities {
+  /* Cards that respond to the pointer without jumping around */
+  .card-interactive {
+    transition: transform 0.32s var(--ease-out), box-shadow 0.32s var(--ease-out), border-color 0.32s var(--ease-out);
+  }
+  .card-interactive:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 34px -14px hsl(var(--foreground) / 0.25);
+    border-color: hsl(var(--primary) / 0.35);
+  }
+  .card-interactive:active { transform: translateY(-1px) scale(0.99); }
+
+  .fade-in-up { animation: fade-in-up 0.5s var(--ease-out) both; }
+
+  /* Skeleton loading shimmer */
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted-foreground) / 0.12) 50%, hsl(var(--muted)) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+
+  /* Route drawn along a path, and a marker travelling on it */
+  .route-draw { stroke-dasharray: 6 8; animation: route-dash 1.2s linear infinite; }
+  .route-reveal { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: route-reveal 2.4s var(--ease-out) forwards; }
+  .route-marker { offset-rotate: 0deg; animation: route-move 6s var(--ease-out) infinite; }
+
+  /* A workflow whose steps light up in turn (packaging, approvals) */
+  .flow-step { animation: flow-step 4.8s var(--ease-out) infinite; }
+
+  /* Progress that fills when it appears */
+  .progress-fill { transform-origin: left; animation: progress-fill 1s var(--ease-out) both; }
+
+  /* Small bump when a count changes (cart, notifications) */
+  .bump { animation: bump 0.45s var(--ease-out); }
+
+  /* Book cover that opens a little on hover */
+  .book-3d { perspective: 900px; }
+  .book-3d .book-cover {
+    transform-origin: left center;
+    transition: transform 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out);
+    box-shadow: 4px 4px 14px -6px rgb(0 0 0 / 0.45);
+  }
+  .book-3d:hover .book-cover, .book-3d:focus-within .book-cover {
+    transform: rotateY(-24deg);
+    box-shadow: 16px 8px 24px -8px rgb(0 0 0 / 0.45);
+  }
+
+  /* Achievement: a ring of sparks around a badge, once */
+  .achievement-burst::before, .achievement-burst::after {
+    content: ""; position: absolute; inset: -14px; border-radius: 9999px;
+    border: 2px dashed hsl(var(--gold, 38 76% 45%) / 0.7);
+    animation: burst 1.2s var(--ease-out) both;
+  }
+  .achievement-burst::after { inset: -26px; animation-delay: 0.15s; border-style: dotted; }
+
+  /* New item in a live feed */
+  .feed-in { animation: feed-in 0.45s var(--ease-out) both; }
+}
+
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes route-dash { to { stroke-dashoffset: -28; } }
+@keyframes route-reveal { to { stroke-dashoffset: 0; } }
+@keyframes route-move {
+  0% { offset-distance: 0%; opacity: 0; }
+  8% { opacity: 1; }
+  85% { offset-distance: 100%; opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+@keyframes flow-step {
+  0%, 100% { opacity: 0.45; transform: scale(0.96); }
+  12%, 30% { opacity: 1; transform: scale(1); }
+  45% { opacity: 0.45; transform: scale(0.96); }
+}
+@keyframes progress-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes burst { from { opacity: 0.9; transform: scale(0.6) rotate(0deg); } to { opacity: 0; transform: scale(1.25) rotate(40deg); } }
+@keyframes feed-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* Lite motion: keep the interface calm and fast on this device */
+.motion-lite .animate-float-soft,
+.motion-lite .bg-animated-gradient,
+.motion-lite .animate-pulse-glow,
+.motion-lite .route-draw,
+.motion-lite .flow-step,
+.motion-lite .skeleton-shimmer { animation: none !important; }
+.motion-lite .route-marker { animation: none !important; offset-distance: 100%; }
+.motion-lite .route-reveal { animation: none !important; stroke-dashoffset: 0; }
+.motion-lite .flow-step { opacity: 1; transform: none; }
+.motion-lite .achievement-burst::before,
+.motion-lite .achievement-burst::after { display: none; }
+.motion-lite .card-interactive:hover { transform: none; }
+.motion-lite .book-3d:hover .book-cover { transform: none; }
+
+.motion-lite .animate-ping,
+.motion-lite .animate-pulse { animation: none !important; }

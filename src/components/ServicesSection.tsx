@@ -1,123 +1,57 @@
-import { Truck, Package, ShoppingBag, BookOpen, Film, Code2, ArrowRight, ShoppingCart, Network, CalendarCheck, GraduationCap, Plane, Briefcase, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { CATEGORIES, SERVICES } from "@/lib/services";
 
+// Homepage: the other services, as five clear categories instead of a wall of
+// cards. Each opens its section of the Service Hub.
 const ServicesSection = () => {
   const { t } = useI18n();
-
-  const services = [
-    {
-      icon: Truck,
-      title: t("nav.logistics"),
-      description: "Reliable pickup, delivery & courier services across Kigali and beyond.",
-      path: "/logistics",
-    },
-    {
-      icon: Package,
-      title: t("nav.packaging"),
-      description: "Branded paper bags and secure packaging for shops and businesses.",
-      path: "/logistics/packaging",
-    },
-    {
-      icon: ShoppingBag,
-      title: t("nav.marketplace"),
-      description: "Buy from trusted local sellers or open your own shop online.",
-      path: "/marketplace",
-    },
-    {
-      icon: BookOpen,
-      title: t("nav.elibrary"),
-      description: "Read curated books, guides and study material — anywhere, anytime.",
-      path: "/e-library",
-    },
-    {
-      icon: Film,
-      title: t("nav.entertainment"),
-      description: "Stream Isoko Studioz films, shorts and podcasts in one place.",
-      path: "/entertainment",
-    },
-    {
-      icon: Code2,
-      title: t("services.softwareTitle"),
-      description: t("services.softwareDesc"),
-      path: "/software",
-    },
-    {
-      icon: ShoppingCart,
-      title: t("services.sourcingTitle"),
-      description: t("services.sourcingDesc"),
-      path: "/logistics/sourcing",
-    },
-    {
-      icon: Network,
-      title: t("services.supplyChainTitle"),
-      description: t("services.supplyChainDesc"),
-      path: "/logistics/supply-chain",
-    },
-    {
-      icon: CalendarCheck,
-      title: t("services.softwareBookingTitle"),
-      description: t("services.softwareBookingDesc"),
-      path: "/software/booking",
-    },
-    {
-      icon: GraduationCap,
-      title: t("services.trainingTitle"),
-      description: t("services.trainingDesc"),
-      path: "/training-center",
-    },
-  ];
-
   return (
-    <section className="py-20 md:py-28">
+    <section className="py-16 md:py-24">
       <div className="container">
-        <div className="text-center mb-16 space-y-4" data-aos="fade-up">
-          <span className="text-sm font-semibold uppercase tracking-wider text-primary">{t("services.ourServices")}</span>
-          <h2 className="text-3xl md:text-4xl font-display font-bold">{t("services.title")}</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">{t("services.subtitle")}</p>
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4" data-aos="fade-up">
+          <div>
+            <h2 className="font-display text-3xl font-bold md:text-4xl">{t("home.explore")}</h2>
+            <p className="mt-2 text-muted-foreground">{t("home.exploreSub")}</p>
+          </div>
+          <Link to="/services" className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+            {t("home.allServices")} <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
 
-        {/* Client services: one entry point, so the grid below stays readable */}
-        <Link
-          to="/services"
-          data-aos="fade-up"
-          className="group mb-8 flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 p-6 text-white sm:flex-row sm:items-center"
-        >
-          <div className="flex -space-x-2" aria-hidden>
-            {[Plane, Briefcase, BarChart3].map((Icon, i) => (
-              <span key={i} className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-slate-900 bg-white/10">
-                <Icon className="h-5 w-5" />
-              </span>
-            ))}
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold">{t("nav.travel")} · {t("nav.consultancy")} · {t("nav.dataAnalysis")}</p>
-            <p className="text-sm text-white/75">Trips in Rwanda handled end to end, expert advice for your business, and your data turned into decisions.</p>
-          </div>
-          <span className="inline-flex items-center gap-1 text-sm font-semibold">
-            {t("nav.services")} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </span>
-        </Link>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service, i) => (
-            <Link
-              key={service.title}
-              to={service.path}
-              data-aos="fade-up"
-              data-aos-delay={Math.min(i * 60, 400)}
-              className="group relative rounded-xl border border-border bg-card p-6 hover-lift press"
-            >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                <service.icon className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{service.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-4">{service.description}</p>
-              <span className="inline-flex items-center text-sm font-medium text-primary gap-1 group-hover:gap-2 transition-all">
-                {t("services.learnMore")} <ArrowRight className="h-4 w-4" />
-              </span>
-            </Link>
-          ))}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {CATEGORIES.map((c, i) => {
+            const items = SERVICES.filter((s) => s.category === c.key);
+            return (
+              <Link
+                key={c.key}
+                to={`/services#${c.key}`}
+                data-aos="fade-up"
+                data-aos-delay={i * 70}
+                className="card-interactive group flex flex-col overflow-hidden rounded-2xl border bg-card"
+              >
+                <div className={cn("flex items-center gap-3 bg-gradient-to-br p-5 text-white", c.tint)}>
+                  <c.icon className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
+                  <span className="font-semibold leading-tight">{c.title}</span>
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <p className="text-sm text-muted-foreground">{c.blurb}</p>
+                  <ul className="mt-3 flex-1 space-y-1.5 text-sm">
+                    {items.slice(0, 4).map((s) => (
+                      <li key={s.id} className="flex items-center gap-2">
+                        <s.icon className="h-3.5 w-3.5 text-primary" /> {s.name}
+                      </li>
+                    ))}
+                  </ul>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                    {t("nav.services")} <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

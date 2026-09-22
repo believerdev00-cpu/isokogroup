@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { db, formatDate, formatDateRange, formatMoney, PAYMENT_METHOD_LABEL, todayIso, unwrap, type PaymentMethod } from "@/features/services/api";
 import type { Package } from "@/features/travel/data";
 import { AttentionTile, ContactButtons, EmptyState, Panel, Pill, StaffPage } from "../common";
+import { ActivityFeed } from "@/components/motion";
+import { CheckCircle2, Inbox as InboxIcon, Send } from "lucide-react";
 import { TravelNav, TripCard, TripStatusPill, type StaffTrip } from "./shared";
 
 export function useTrips() {
@@ -36,6 +38,20 @@ function usePendingPayments() {
 const OPEN_REQUEST = ["new", "planning", "changes_requested"];
 
 // ============== DASHBOARD ==============
+/** What happened lately across all trips, newest first (refreshes every minute). */
+function recentActivity(trips: StaffTrip[]) {
+  const events: { id: string; at: string; text: React.ReactNode; tone: string; icon: typeof Send }[] = [];
+  for (const t of trips) {
+    events.push({ id: `${t.id}-new`, at: t.created_at, text: <><b>{t.customer_name}</b> requested a trip ({formatDateRange(t.arrival_date, t.departure_date)})</>, tone: "bg-sky-500", icon: InboxIcon });
+    if (t.quote_sent_at) events.push({ id: `${t.id}-quote`, at: t.quote_sent_at, text: <>Quote sent to <b>{t.customer_name}</b>{t.quote_total != null && <> · {formatMoney(t.quote_total, t.currency)}</>}</>, tone: "bg-amber-500", icon: Send });
+    if (t.accepted_at) events.push({ id: `${t.id}-accepted`, at: t.accepted_at, text: <><b>{t.customer_name}</b> accepted the trip</>, tone: "bg-emerald-500", icon: CheckCircle2 });
+  }
+  return events
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 6)
+    .map((e) => ({ id: e.id, text: e.text, tone: e.tone, time: new Date(e.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) }));
+}
+
 export function TravelDashboard() {
   const trips = useTrips();
   const payments = usePendingPayments();
@@ -64,6 +80,10 @@ export function TravelDashboard() {
         <AttentionTile count={n?.arriving} label="Travelers arriving today" to="/staff/travel/trips?show=arriving" />
         <AttentionTile count={n?.leaving} label="Travelers leaving today" to="/staff/travel/trips?show=leaving" />
       </div>
+
+      <Panel title="Recent activity" className="mt-6">
+        <ActivityFeed items={recentActivity(all)} empty="No activity yet." />
+      </Panel>
 
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">New requests</h2>

@@ -208,10 +208,11 @@ const ELibrary = () => {
               </p>
             )}
             {filtered.map((book) => (
-              <div key={book.id} className="book-card group rounded-xl border border-border bg-card p-5 hover-lift">
-                <div className="relative aspect-[3/4] rounded-lg overflow-hidden mb-4 bg-muted">
+              <div key={book.id} className="book-card group card-interactive rounded-xl border border-border bg-card p-5">
+                <div className="book-3d mb-4">
+                <div className="book-cover relative aspect-[3/4] rounded-lg overflow-hidden bg-muted">
                   {book.cover_url ? (
-                    <img src={book.cover_url} alt={book.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img src={book.cover_url} alt={book.title} loading="lazy" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <BookOpen className="h-12 w-12 text-muted-foreground" />
@@ -220,6 +221,7 @@ const ELibrary = () => {
                   <button className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 text-muted-foreground hover:text-primary transition-colors">
                     <Bookmark className="h-4 w-4" />
                   </button>
+                </div>
                 </div>
                 <span className="text-xs text-primary font-medium">{book.category}</span>
                 <h3 className="font-semibold text-sm mt-1">{book.title}</h3>

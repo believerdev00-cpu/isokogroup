@@ -3,15 +3,17 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 import App from "./App.tsx";
 import "./index.css";
+import { initMotion, isLiteMotion } from "./lib/motion";
 
+initMotion();
+
+// Soft section reveals while scrolling; off when motion should be light
 AOS.init({
-  duration: 600,
+  duration: 500,
   easing: "ease-out-cubic",
   once: true,
-  offset: 60,
-  disable: () =>
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  offset: 40,
+  disable: isLiteMotion,
 });
 
 createRoot(document.getElementById("root")!).render(<App />);

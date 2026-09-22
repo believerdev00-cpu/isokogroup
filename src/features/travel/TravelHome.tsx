@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { db, formatMoney, unwrap } from "@/features/services/api";
 import { ServiceLayout, THEME } from "@/features/services/ui";
+import RouteMap, { PinMarker } from "@/components/motion/RouteMap";
 import { DESTINATIONS, SECTIONS, type Package } from "./data";
 
 // Rolling hills of the "land of a thousand hills", drawn as layered silhouettes.
@@ -45,7 +46,8 @@ export default function TravelHome() {
       {/* Hero */}
       <section className={cn("relative overflow-hidden text-white", THEME.travel.hero)}>
         <Hills className="absolute inset-x-0 bottom-0 h-40 w-full sm:h-56" />
-        <div className="container relative max-w-5xl py-20 sm:py-28">
+        <div className="container relative grid max-w-6xl items-center gap-10 py-20 sm:py-28 lg:grid-cols-[1.15fr_1fr]">
+          <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-300">Isoko Travel Agency</p>
           <h1 className="mt-4 max-w-3xl font-display text-4xl font-bold leading-tight sm:text-6xl">
             Your journey. <span className="text-amber-300">Our responsibility.</span>
@@ -64,6 +66,26 @@ export default function TravelHome() {
             <li className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> Local specialists in Rwanda</li>
             <li className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-amber-300" /> No account needed to ask</li>
           </ul>
+          </div>
+          {/* A week in Rwanda, from the airport and back */}
+          <div className="hidden rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur lg:block">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/70">A week in Rwanda</p>
+            <RouteMap
+              className="mt-2"
+              duration={9}
+              lineClass="text-amber-300"
+              dotClass="fill-amber-300"
+              labelClass="fill-white"
+              stops={[
+                { label: "Kigali Airport", x: 40, y: 120 },
+                { label: "Akagera", x: 140, y: 40 },
+                { label: "Musanze", x: 250, y: 135 },
+                { label: "Lake Kivu", x: 362, y: 60 },
+              ]}
+              marker={<PinMarker />}
+            />
+            <p className="mt-2 text-sm text-emerald-50/80">Pickup, hotels, transport and tours along the way, arranged by one team.</p>
+          </div>
         </div>
       </section>
 
@@ -95,7 +117,7 @@ export default function TravelHome() {
           <p className="mt-3 max-w-2xl text-muted-foreground sm:text-lg">Six places our guests love. Mention any of them when you plan your trip.</p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {DESTINATIONS.map((d) => (
-              <article key={d.name} className={cn("relative flex min-h-[190px] flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-6 text-white", d.tint)}>
+              <article key={d.name} className={cn("card-interactive relative flex min-h-[190px] flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-6 text-white", d.tint)}>
                 <Hills className="absolute inset-x-0 top-0 h-24 w-full rotate-180 opacity-60" />
                 <h3 className="relative font-display text-2xl font-bold">{d.name}</h3>
                 <p className="relative mt-1 text-sm text-white/85">{d.text}</p>
@@ -115,7 +137,7 @@ export default function TravelHome() {
           <p className="mt-3 max-w-2xl text-muted-foreground sm:text-lg">Prefer a starting point? Choose one and we'll shape it around your dates.</p>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
             {packages.data!.map((p) => (
-              <article key={p.id} className="flex flex-col rounded-2xl border bg-card p-6">
+              <article key={p.id} className="card-interactive flex flex-col rounded-2xl border bg-card p-6">
                 <p className={cn("text-sm font-semibold", THEME.travel.text)}>{p.days} days</p>
                 <h3 className="mt-1 font-display text-2xl font-bold">{p.name}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{p.summary}</p>

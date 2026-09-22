@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Circle, Truck, Package as PackageIcon, MapPin, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ProgressFill } from "@/components/motion";
 
 const FLOW = ["processing", "packed", "shipped", "in_transit", "out_for_delivery", "delivered"];
 
@@ -80,6 +81,16 @@ const TrackingTimeline = ({ trackingNumber, orderId }: Props) => {
         )}
       </div>
 
+      {/* Where the package is on its way: the truck moves to the current step */}
+      <div className="relative px-3 pt-7">
+        <ProgressFill value={(Math.max(currentIdx, 0) / (FLOW.length - 1)) * 100} label="Delivery progress" />
+        <Truck
+          className="absolute top-0 h-5 w-5 -translate-x-1/2 text-primary transition-[left] duration-1000 ease-out"
+          style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${Math.max(currentIdx, 0) / (FLOW.length - 1)})` }}
+          aria-hidden
+        />
+      </div>
+
       {/* Step bar */}
       <div className="flex items-center gap-1 overflow-x-auto pb-2">
         {FLOW.map((step, i) => {
@@ -88,7 +99,7 @@ const TrackingTimeline = ({ trackingNumber, orderId }: Props) => {
           return (
             <div key={step} className="flex items-center gap-1 shrink-0">
               <div className={`flex flex-col items-center gap-1 px-2 ${reached ? "text-primary" : "text-muted-foreground"}`}>
-                <Icon className="h-5 w-5" />
+                <Icon className={`h-5 w-5 ${i === currentIdx && step !== "delivered" ? "animate-pulse" : ""}`} />
                 <span className="text-[10px] uppercase">{step.replace(/_/g, " ")}</span>
               </div>
               {i < FLOW.length - 1 && (

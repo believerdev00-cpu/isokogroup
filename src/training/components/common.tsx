@@ -234,7 +234,7 @@ export function ProgressBar({ value, label }: { value: number | null; label?: st
   return (
     <div className="flex items-center gap-2">
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={v} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
-        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, v))}%` }} />
+        <div className="progress-fill h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, v))}%` }} />
       </div>
       <span className="tabular w-11 text-right text-xs font-semibold">{value === null ? "—" : `${Math.round(v)}%`}</span>
     </div>

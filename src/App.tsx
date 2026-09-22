@@ -1,4 +1,8 @@
 import { lazy, Suspense } from "react";
+import { MotionConfig } from "framer-motion";
+import { ServiceSearchProvider } from "@/components/ServiceSearch";
+import { PageSkeleton } from "@/components/motion";
+import { isLiteMotion } from "@/lib/motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -34,7 +38,7 @@ const DataHome = lazy(() => import("./features/data/DataHome"));
 const DataRequest = lazy(() => import("./features/data/DataRequest"));
 const DataPage = lazy(() => import("./features/data/DataPage"));
 const StaffRoutes = lazy(() => import("./features/staff/StaffRoutes"));
-const page = (el: React.ReactNode) => <Suspense fallback={null}>{el}</Suspense>;
+const page = (el: React.ReactNode) => <Suspense fallback={<PageSkeleton />}>{el}</Suspense>;
 import Marketplace from "./pages/Marketplace";
 import ELibrary from "./pages/ELibrary";
 import Entertainment from "./pages/Entertainment";
@@ -66,6 +70,8 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <ServiceSearchProvider>
+                <MotionConfig reducedMotion={isLiteMotion() ? "always" : "user"}>
                 <PageTransition>
                 <Routes>
                   <Route path="/" element={<Index />} />
@@ -86,7 +92,7 @@ const App = () => (
                   <Route path="/entertainment" element={<ProtectedRoute><Entertainment /></ProtectedRoute>} />
                   <Route path="/software" element={<Software />} />
                   <Route path="/software/booking" element={<SoftwareBooking />} />
-                  <Route path="/training-center/*" element={<Suspense fallback={null}><TrainingApp /></Suspense>} />
+                  <Route path="/training-center/*" element={<Suspense fallback={<PageSkeleton />}><TrainingApp /></Suspense>} />
                   <Route path="/software/academy" element={<Navigate to="/training-center" replace />} />
                   <Route path="/services" element={page(<Services />)} />
                   <Route path="/travel" element={page(<TravelHome />)} />
@@ -111,6 +117,8 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 </PageTransition>
+                </MotionConfig>
+                </ServiceSearchProvider>
               </BrowserRouter>
             </TooltipProvider>
           </SubscriptionProvider>

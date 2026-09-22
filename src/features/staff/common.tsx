@@ -12,6 +12,7 @@ import {
   customerWhatsapp, db, errorText, formatDate, formatMoney, PAYMENT_METHOD_LABEL, unwrap, type PaymentMethod, type ServiceKey,
 } from "@/features/services/api";
 import { useStaffDirectory } from "./access";
+import { CountUp } from "@/components/motion";
 
 // ============== PAGE SHELL ==============
 export function StaffPage({ title, subtitle, nav, actions, children }: { title: ReactNode; subtitle?: ReactNode; nav?: ReactNode; actions?: ReactNode; children: ReactNode }) {
@@ -65,12 +66,12 @@ export function AttentionTile({ count, label, to, tone = "default" }: { count: n
     <Link
       to={to}
       className={cn(
-        "flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 transition-shadow hover:shadow-md",
+        "card-interactive flex items-center justify-between gap-3 rounded-2xl border bg-card p-4",
         n > 0 && tone === "alert" && "border-amber-500/50 bg-amber-50 dark:bg-amber-950/30",
       )}
     >
       <span className="font-medium">{label}</span>
-      <span className={cn("font-display text-3xl font-bold tabular-nums", n === 0 && "text-muted-foreground/50")}>{count === undefined ? "–" : n}</span>
+      <span className={cn("text-3xl font-bold tabular-nums", n === 0 && "text-muted-foreground/50")}>{count === undefined ? "–" : <CountUp value={n} />}</span>
     </Link>
   );
 }

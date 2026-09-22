@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { IctWhatsAppFloat, IctWhatsAppNotice } from "@/components/IctWhatsApp";
 import { Button } from "@/components/ui/button";
 import { Code, Smartphone, Palette, Wrench, Layout, ArrowRight, CheckCircle2 } from "lucide-react";
 
@@ -44,6 +45,11 @@ const Software = () => {
             </Link>
           </div>
         </div>
+      </section>
+
+      {/* ICT requests are handled by the ICT team on WhatsApp */}
+      <section className="container max-w-4xl pt-10">
+        <IctWhatsAppNotice topic="software development" />
       </section>
 
       {/* Services */}
@@ -109,6 +115,7 @@ const Software = () => {
         </div>
       </section>
 
+      <IctWhatsAppFloat topic="software development" />
       <Footer />
     </div>
   );

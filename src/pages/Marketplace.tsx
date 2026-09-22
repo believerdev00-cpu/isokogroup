@@ -101,7 +101,7 @@ const Marketplace = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filtered.map((product, i) => (
-                <div key={product.id || i} className="group rounded-xl border border-border bg-card overflow-hidden hover-lift">
+                <div key={product.id || i} className="group card-interactive rounded-xl border border-border bg-card overflow-hidden">
                   <div className="aspect-square overflow-hidden">
                     <img src={product.image || "/placeholder.svg"} alt={product.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   </div>

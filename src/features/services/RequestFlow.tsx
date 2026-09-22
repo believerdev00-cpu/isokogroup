@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { errorText, MAX_FILE_MB, rpc, uploadClientFile, useOfferings } from "./api";
+import { ICT_CONSULTANCY_KEYS } from "@/lib/company";
+import { ictWhatsappLink, IctWhatsAppNotice } from "@/components/IctWhatsApp";
 import { ChoiceCard, Field, FlowColumn, FormError, PageLoading, PrimaryButton, RequestReceived, ServiceLayout, StepHeader, THEME } from "./ui";
 
 type Config = {
@@ -46,6 +48,11 @@ export default function RequestFlow({ config: c }: { config: Config }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ reference: string; token: string; failedFiles: string[] } | null>(null);
+
+  // IT & technology consulting belongs to the ICT team, reached on WhatsApp
+  const chosen = offerings.data?.find((o) => o.key === serviceKey);
+  const isIct = c.service === "consultancy" && !!serviceKey && (ICT_CONSULTANCY_KEYS as readonly string[]).includes(serviceKey);
+  const ictNotice = isIct ? <IctWhatsAppNotice topic={chosen?.name} className="mb-6" /> : null;
 
   const go = (s: number) => {
     setError(null);
@@ -103,6 +110,8 @@ export default function RequestFlow({ config: c }: { config: Config }) {
           message={c.receivedMessage}
           reference={result.reference}
           viewTo={`${c.viewPath}${result.token}`}
+          whatsappHref={isIct ? ictWhatsappLink(`${chosen?.name ?? "IT consulting"} (request ${result.reference})`) : undefined}
+          notice={isIct ? <IctWhatsAppNotice topic={chosen?.name} className="text-left" /> : undefined}
         />
       </ServiceLayout>
     );
@@ -142,6 +151,7 @@ export default function RequestFlow({ config: c }: { config: Config }) {
         {step === 2 && (
           <>
             <StepHeader service={c.service} step={2} total={total} title={c.describeTitle} onBack={() => go(1)} />
+            {ictNotice}
             <div className="space-y-4">
               <Textarea
                 aria-label={c.describeTitle}
@@ -200,6 +210,7 @@ export default function RequestFlow({ config: c }: { config: Config }) {
         {step === contactStep && (
           <>
             <StepHeader service={c.service} step={contactStep} total={total} title="How can we reach you?" onBack={() => go(contactStep - 1)} />
+            {ictNotice}
             <form className="space-y-4" onSubmit={submit}>
               <Field label="Name" htmlFor="name">
                 <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />

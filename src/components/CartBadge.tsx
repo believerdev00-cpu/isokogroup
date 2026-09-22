@@ -4,6 +4,7 @@ import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { Bump } from "@/components/motion";
 
 const CartBadge = () => {
   const { user } = useAuth();
@@ -44,9 +45,11 @@ const CartBadge = () => {
       <Button variant="ghost" size="icon" className="relative">
         <ShoppingCart className="h-4 w-4" />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1">
-            {count > 99 ? "99+" : count}
-          </span>
+          <Bump value={count} className="absolute -top-0.5 -right-0.5">
+            <span className="h-4 min-w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1">
+              {count > 99 ? "99+" : count}
+            </span>
+          </Bump>
         )}
       </Button>
     </Link>

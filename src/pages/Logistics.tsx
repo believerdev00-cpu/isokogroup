@@ -17,6 +17,9 @@ import {
   Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import RouteMap, { TruckMarker } from "@/components/motion/RouteMap";
+import { FlowSteps } from "@/components/motion";
+import { CheckCircle2, ClipboardList, PackageCheck } from "lucide-react";
 
 const quickServices = [
   {
@@ -67,7 +70,7 @@ const Logistics = () => {
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
-        <div className="container relative py-20 md:py-28">
+        <div className="container relative grid items-center gap-10 py-20 md:py-28 lg:grid-cols-[1.1fr_1fr]">
           <div className="max-w-3xl space-y-6 animate-slide-up">
             <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-primary">
               ISOKO Logistics
@@ -89,6 +92,27 @@ const Logistics = () => {
                 <Link to="/track">Track Shipment</Link>
               </Button>
             </div>
+          </div>
+
+          {/* How a delivery moves: request, pickup, route, delivered */}
+          <div className="rounded-3xl border bg-card/80 p-6 shadow-lg backdrop-blur fade-in-up" style={{ animationDelay: "150ms" }}>
+            <RouteMap
+              stops={[
+                { label: "Your address", x: 40, y: 130 },
+                { label: "Isoko hub", x: 170, y: 52 },
+                { label: "Customer", x: 360, y: 110 },
+              ]}
+              marker={<TruckMarker />}
+            />
+            <FlowSteps
+              className="mt-5"
+              steps={[
+                { icon: ClipboardList, label: "Request" },
+                { icon: PackageCheck, label: "Pickup" },
+                { icon: Truck, label: "On the way" },
+                { icon: CheckCircle2, label: "Delivered" },
+              ]}
+            />
           </div>
         </div>
       </section>

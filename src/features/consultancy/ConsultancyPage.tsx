@@ -6,7 +6,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { DOC_FILE_ACCEPT, DATA_FILE_ACCEPT, errorText, formatDate, formatMoney, openClientFile, rpc } from "@/features/services/api";
+import { DOC_FILE_ACCEPT, DATA_FILE_ACCEPT, errorText, formatDate, formatMoney, openClientFile, rpc, useOfferings } from "@/features/services/api";
+import { ICT_CONSULTANCY_KEYS } from "@/lib/company";
+import { ictWhatsappLink, IctWhatsAppNotice } from "@/components/IctWhatsApp";
 import { ClientFiles, FileList } from "@/features/services/ClientFiles";
 import {
   FlowColumn, FormError, NextStep, NotFoundCard, PageLoading, PaymentBox, PrimaryButton, SectionCard, ServiceLayout,
@@ -135,6 +137,7 @@ export default function ConsultancyPage() {
     refetchInterval: 60_000,
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["consult_request", token] });
+  const offerings = useOfferings("consultancy", true);
 
   if (q.isLoading) return <ServiceLayout><PageLoading /></ServiceLayout>;
   const v = q.data;
@@ -146,6 +149,9 @@ export default function ConsultancyPage() {
   const clientFiles = v.files.filter((f) => f.kind === "client");
   const fee = v.proposal?.status === "accepted" ? Number(v.proposal.fee) : 0;
   const next = NEXT[v.status];
+  // IT & technology requests are handled by the ICT team on WhatsApp
+  const offering = offerings.data?.find((o) => o.name === v.service_name);
+  const isIct = !!offering && (ICT_CONSULTANCY_KEYS as readonly string[]).includes(offering.key);
 
   return (
     <ServiceLayout>
@@ -224,7 +230,12 @@ export default function ConsultancyPage() {
           <p className="whitespace-pre-line text-sm">{v.description}</p>
         </SectionCard>
 
-        <WhatsAppButton label="Contact Isoko" text={`Hello Isoko Consultancy, about my request ${v.reference}:`} />
+        {isIct && <IctWhatsAppNotice topic={`${v.service_name} (request ${v.reference})`} />}
+        <WhatsAppButton
+          label="Contact Isoko"
+          href={isIct ? ictWhatsappLink(`${v.service_name} (request ${v.reference})`) : undefined}
+          text={`Hello Isoko Consultancy, about my request ${v.reference}:`}
+        />
       </FlowColumn>
     </ServiceLayout>
   );

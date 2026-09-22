@@ -10,6 +10,8 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import paperBags from "@/assets/paper-bags.jpeg";
+import { FlowSteps } from "@/components/motion";
+import { Palette, Package as PackageBox, ShoppingBasket, Truck as TruckIcon } from "lucide-react";
 
 type Product = { code: string; name: string; price: number; unit: string };
 type Category = { id: string; title: string; note?: string; products: Product[] };
@@ -201,6 +203,16 @@ const Packaging = () => {
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Browse our official price list, pick what you need, and submit your request.
             </p>
+            {/* How packaging is prepared, step by step */}
+            <FlowSteps
+              className="pt-4"
+              steps={[
+                { icon: ShoppingBasket, label: "Choose" },
+                { icon: Palette, label: "Brand" },
+                { icon: PackageBox, label: "Pack" },
+                { icon: TruckIcon, label: "Deliver" },
+              ]}
+            />
           </div>
 
           {/* Price catalogue */}

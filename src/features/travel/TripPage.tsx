@@ -13,6 +13,7 @@ import {
   FlowColumn, FormError, NextStep, NotFoundCard, PageLoading, PaymentBox, PrimaryButton, SectionCard, ServiceLayout,
   StageList, THEME, WhatsAppButton, type Stage,
 } from "@/features/services/ui";
+import { ProgressFill } from "@/components/motion";
 import { NEED_LABEL, SECTION_BY_KEY, SECTIONS, type TripItem, type TripView } from "./data";
 
 function useTrip(token: string) {
@@ -251,6 +252,14 @@ function nextStep(trip: TripView) {
   return { done: lastDone, next, todo };
 }
 
+/** How far through the trip today is, from arrival to departure. */
+function journeyPercent(trip: TripView) {
+  const day = (d: string) => new Date(`${d}T00:00:00`).getTime();
+  const total = day(trip.departure_date) - day(trip.arrival_date);
+  if (total <= 0) return 100;
+  return ((day(trip.today) - day(trip.arrival_date)) / total) * 100;
+}
+
 function ConfirmedTrip({ trip, token, refresh }: { trip: TripView; token: string; refresh: () => void }) {
   const t = trip.today;
   const during = t >= trip.arrival_date && t <= trip.departure_date;
@@ -274,6 +283,12 @@ function ConfirmedTrip({ trip, token, refresh }: { trip: TripView; token: string
       />
       <SectionCard title="Progress">
         <StageList service="travel" stages={progress(trip)} />
+        {during && (
+          <div className="mt-4">
+            <p className="mb-1.5 text-xs text-muted-foreground">Your journey</p>
+            <ProgressFill value={journeyPercent(trip)} barClass="bg-emerald-600" label="Journey progress" />
+          </div>
+        )}
       </SectionCard>
       <MyTripSections trip={trip} />
       <Documents trip={trip} token={token} onDone={refresh} />

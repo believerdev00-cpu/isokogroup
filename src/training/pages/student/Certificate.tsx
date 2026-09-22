@@ -48,7 +48,10 @@ function Issued({ cert }: { cert: Cert }) {
   return (
     <div className="overflow-hidden rounded-2xl border-2 border-gold/50 bg-card shadow-sm">
       <div className="bg-zinc-950 px-6 py-8 text-center text-zinc-100">
-        <Award className="mx-auto h-12 w-12 text-gold" aria-hidden />
+        {/* A one-time burst to celebrate completing the program */}
+        <span className="achievement-burst relative mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/15">
+          <Award className="h-10 w-10 text-gold" aria-hidden />
+        </span>
         <p className="mt-3 text-sm uppercase tracking-[0.2em] text-zinc-400">Congratulations</p>
         <p className="mt-1 text-2xl font-bold">{cert.program_name}</p>
         <p className="text-zinc-400">{cert.intake_name}</p>

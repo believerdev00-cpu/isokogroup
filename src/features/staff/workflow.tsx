@@ -26,12 +26,12 @@ export function StatusStepper<S extends string>({
               type="button"
               onClick={() => s !== current && onChange(s)}
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium",
+                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-300",
                 s === current ? "border-transparent bg-foreground text-background" : i < idx ? "text-foreground" : "text-muted-foreground",
               )}
               aria-current={s === current ? "step" : undefined}
             >
-              {i < idx && <Check className="h-3 w-3" />}
+              {i < idx && <Check className="h-3 w-3 fade-in-up" />}
               {labels[s]}
             </button>
           </li>

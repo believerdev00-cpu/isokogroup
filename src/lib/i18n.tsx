@@ -17,6 +17,9 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "nav.software": { en: "Software", rw: "Software", sw: "Programu", fr: "Logiciels", zh: "软件" },
   "nav.trainingCenter": { en: "Training Center", rw: "Ikigo cy'Amahugurwa", sw: "Kituo cha Mafunzo", fr: "Centre de formation", zh: "培训中心" },
   "nav.about": { en: "About", rw: "Ibyerekeye", sw: "Kuhusu", fr: "À propos", zh: "关于" },
+  "nav.track": { en: "Track", rw: "Kurikirana", sw: "Fuatilia", fr: "Suivi", zh: "追踪" },
+  "nav.account": { en: "Account", rw: "Konti", sw: "Akaunti", fr: "Compte", zh: "账户" },
+  "nav.search": { en: "Search services", rw: "Shakisha serivisi", sw: "Tafuta huduma", fr: "Rechercher un service", zh: "搜索服务" },
   "nav.services": { en: "Services", rw: "Serivisi", sw: "Huduma", fr: "Services", zh: "服务" },
   "nav.workspace": { en: "Workspace", rw: "Aho gukorera", sw: "Eneo la kazi", fr: "Espace de travail", zh: "工作区" },
   "nav.travel": { en: "Travel Agency", rw: "Ikigo cy'ingendo", sw: "Wakala wa Usafiri", fr: "Agence de voyage", zh: "旅行社" },
@@ -31,6 +34,13 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "nav.subscription": { en: "Subscription", rw: "Iyandikishe", sw: "Usajili", fr: "Abonnement", zh: "订阅" },
 
   // Hero
+  "home.title": { en: "Deliveries across Rwanda, handled end to end.", rw: "Kohereza ibintu mu Rwanda hose, tubyitaho kuva bitangiye kugeza birangiye.", sw: "Usafirishaji kote Rwanda, tunashughulikia kila hatua.", fr: "Des livraisons partout au Rwanda, prises en charge de bout en bout.", zh: "覆盖卢旺达全境的配送，全程为您负责。" },
+  "home.subtitle": { en: "Pickup, packaging and delivery with live tracking. And when you need more, every other Isoko service is one search away.", rw: "Gufata, gupakira no kugeza ibintu, ukurikirana aho bigeze. N'izindi serivisi zose za Isoko uzibona ushakishije rimwe.", sw: "Kuchukua, kufunga na kufikisha mizigo kwa ufuatiliaji wa moja kwa moja. Huduma nyingine zote za Isoko ziko karibu kwa utafutaji mmoja.", fr: "Enlèvement, emballage et livraison avec suivi en direct. Et tous les autres services Isoko sont à une recherche près.", zh: "取件、包装与配送，实时追踪。需要更多？Isoko 的所有服务一搜即得。" },
+  "home.requestDelivery": { en: "Request a delivery", rw: "Saba koherezwa", sw: "Omba usafirishaji", fr: "Demander une livraison", zh: "预约配送" },
+  "home.track": { en: "Track a shipment", rw: "Kurikirana ibyoherejwe", sw: "Fuatilia mzigo", fr: "Suivre un colis", zh: "追踪包裹" },
+  "home.explore": { en: "Explore Isoko services", rw: "Menya serivisi za Isoko", sw: "Gundua huduma za Isoko", fr: "Découvrir les services Isoko", zh: "探索 Isoko 服务" },
+  "home.exploreSub": { en: "Grouped so you find what you need in seconds.", rw: "Zishyize mu byiciro kugira ngo ubone icyo ukeneye vuba.", sw: "Zimepangwa ili upate unachohitaji kwa sekunde.", fr: "Classés pour trouver ce qu'il vous faut en quelques secondes.", zh: "分类清晰，几秒即可找到所需服务。" },
+  "home.allServices": { en: "All services", rw: "Serivisi zose", sw: "Huduma zote", fr: "Tous les services", zh: "全部服务" },
   "hero.badge": { en: "Welcome to ISOKO GROUP", rw: "Murakaza neza kuri ISOKO GROUP", sw: "Karibu ISOKO GROUP", fr: "Bienvenue chez ISOKO GROUP", zh: "欢迎来到ISOKO集团" },
   "hero.title1": { en: "All-in-One Platform for", rw: "Urubuga rwanyu rw'ibintu byose ku", sw: "Jukwaa lako la kila kitu kwa", fr: "Plateforme tout-en-un pour", zh: "一站式平台" },
   "hero.logistics": { en: "Logistics", rw: "Gutwara", sw: "Usafirishaji", fr: "Logistique", zh: "物流" },

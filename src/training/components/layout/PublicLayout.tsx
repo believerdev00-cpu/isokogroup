@@ -6,6 +6,7 @@ import { HOME_FOR, useAuth } from "@/training/lib/auth";
 import { useApi } from "@/training/lib/query";
 import type { Center } from "@/training/lib/types";
 import { cn } from "@/lib/utils";
+import { IctWhatsAppFloat, IctWhatsAppNotice } from "@/components/IctWhatsApp";
 
 const NAV = [
   { to: "/training-center", label: "Home", end: true },
@@ -70,8 +71,15 @@ export default function PublicLayout() {
       </div>
 
       <main id="main" className="flex-1">
+        {/* Training requests (software, computer and programming courses) go to the ICT team */}
+        {pathname === "/training-center/apply" && (
+          <div className="container max-w-4xl pt-6">
+            <IctWhatsAppNotice topic="a training program" />
+          </div>
+        )}
         <Outlet />
       </main>
+      <IctWhatsAppFloat topic="the Training Center" />
 
       <div className="border-t bg-muted/40">
         <div className="container flex flex-wrap gap-x-6 gap-y-2 py-4 text-sm text-muted-foreground">

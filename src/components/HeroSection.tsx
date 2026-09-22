@@ -1,68 +1,86 @@
 import { Link } from "react-router-dom";
+import { ArrowRight, CheckCircle2, MapPin, PackageCheck, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Truck, Package, ShoppingBag, BookOpen } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import RouteMap, { TruckMarker } from "@/components/motion/RouteMap";
+import { SearchTrigger } from "@/components/ServiceSearch";
+
+// The homepage leads with Isoko's main service, Logistics: one clear action
+// (request a delivery), one secondary (track), and a search for everything else.
+const STOPS = [
+  { label: "Pickup", x: 36, y: 128 },
+  { label: "Isoko hub", x: 150, y: 58 },
+  { label: "Kimironko", x: 262, y: 118 },
+  { label: "Delivered", x: 366, y: 48 },
+];
 
 const HeroSection = () => {
   const { t } = useI18n();
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-card text-foreground border-b border-border bg-animated-gradient">
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 rounded-full bg-primary blur-3xl animate-float-soft" />
-        <div className="absolute bottom-10 right-20 w-96 h-96 rounded-full bg-primary blur-3xl animate-float-soft" style={{ animationDelay: "1.5s" }} />
+    <section className="relative overflow-hidden border-b border-border">
+      <div className="pointer-events-none absolute inset-0 opacity-25" aria-hidden>
+        <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-primary blur-3xl animate-float-soft" />
+        <div className="absolute -right-10 bottom-0 h-80 w-80 rounded-full bg-primary/60 blur-3xl animate-float-soft" style={{ animationDelay: "1.5s" }} />
       </div>
 
-      <div className="container relative py-24 md:py-32 lg:py-40">
-        <div className="max-w-3xl space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground animate-fade-in">
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            {t("hero.badge")}
+      <div className="container relative grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.05fr_1fr]">
+        <div className="space-y-7">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground fade-in-up">
+            <span className="h-2 w-2 rounded-full bg-primary" /> {t("hero.badge")}
           </div>
-
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight animate-slide-up">
-            {t("hero.title1")} {" "}
-            <span className="text-primary">{t("hero.logistics")}</span>,{" "}
-            <span className="text-primary">{t("hero.marketplace")}</span> &{" "}
-            <span className="text-primary">{t("hero.knowledge")}</span>
+          <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl lg:text-6xl fade-in-up" style={{ animationDelay: "80ms" }}>
+            {t("home.title")}
           </h1>
-
-          {t("hero.subtitle").split(/\n\s*\n/).map((paragraph, index) => (
-            <p key={index} className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed animate-slide-up" style={{ animationDelay: "0.15s" }}>
-              {paragraph}
-            </p>
-          ))}
-
-          <div className="flex flex-wrap gap-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
-            <Link to="/login">
-              <Button size="lg" className="gap-2 text-base px-8">
-                {t("hero.getStarted")} <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/marketplace">
-              <Button size="lg" variant="outline" className="text-base px-8 font-semibold">
-                {t("hero.browseMarketplace")}
-              </Button>
-            </Link>
+          <p className="max-w-xl text-lg text-muted-foreground md:text-xl fade-in-up" style={{ animationDelay: "160ms" }}>
+            {t("home.subtitle")}
+          </p>
+          <div className="flex flex-wrap gap-3 fade-in-up" style={{ animationDelay: "240ms" }}>
+            <Button asChild size="lg" className="press h-12 gap-2 rounded-full px-7 text-base">
+              <Link to="/logistics/delivery">
+                <Truck className="h-5 w-5" /> {t("home.requestDelivery")}
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="h-12 gap-2 rounded-full px-7 text-base">
+              <Link to="/track">
+                <MapPin className="h-5 w-5" /> {t("home.track")}
+              </Link>
+            </Button>
           </div>
+          <div className="max-w-xl fade-in-up" style={{ animationDelay: "320ms" }}>
+            <SearchTrigger large />
+          </div>
+        </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 border-t border-border animate-slide-up" style={{ animationDelay: "0.45s" }}>
+        {/* A delivery on its way: shows what Isoko Logistics does at a glance */}
+        <div className="fade-in-up rounded-3xl border bg-card/80 p-5 shadow-xl backdrop-blur sm:p-6" style={{ animationDelay: "200ms" }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live delivery</p>
+              <p className="font-mono text-sm font-semibold">TRK-2604-8811</p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              In transit
+            </span>
+          </div>
+          <RouteMap stops={STOPS} marker={<TruckMarker />} className="mt-4" />
+          <ol className="mt-4 grid grid-cols-3 gap-2 text-xs">
             {[
-              { icon: Truck, label: t("hero.logistics"), desc: t("hero.fastDelivery") },
-              { icon: Package, label: t("nav.packaging"), desc: t("hero.securePacking") },
-              { icon: ShoppingBag, label: t("hero.marketplace"), desc: t("hero.buySell") },
-              { icon: BookOpen, label: t("nav.elibrary"), desc: t("hero.readOnline") },
-            ].map((item, i) => (
-              <div key={item.label} className="flex items-center gap-3" data-aos="fade-up" data-aos-delay={i * 80}>
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/20 animate-float-soft" style={{ animationDelay: `${i * 0.4}s` }}>
-                  <item.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{item.label}</p>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
-                </div>
-              </div>
+              { icon: PackageCheck, label: "Picked up", done: true },
+              { icon: Truck, label: "On the way", done: true },
+              { icon: CheckCircle2, label: "Delivered", done: false },
+            ].map((s) => (
+              <li key={s.label} className={`flex items-center gap-1.5 rounded-lg border px-2 py-2 ${s.done ? "border-primary/30 bg-primary/5 text-foreground" : "text-muted-foreground"}`}>
+                <s.icon className={`h-4 w-4 ${s.done ? "text-primary" : ""}`} /> {s.label}
+              </li>
             ))}
-          </div>
+          </ol>
+          <Link to="/logistics" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary">
+            How Isoko Logistics works <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>
