@@ -155,7 +155,7 @@ const SellerDashboard = () => {
   const totalCommission = commissions.reduce((sum, c) => sum + c.commission_amount, 0);
   const netEarnings = totalSales - totalCommission;
   const requestedOrderIds = new Set(payouts.map((p) => p.order_id).filter(Boolean));
-  const eligibleOrders = deliveredOrders.filter((o) => !requestedOrderIds.has(o.id));
+  const eligibleOrders = deliveredOrders.filter((o) => o.payment_status === "paid" && !requestedOrderIds.has(o.id));
 
   const requestPayout = async (order: any) => {
     if (!user) return;
@@ -167,23 +167,17 @@ const SellerDashboard = () => {
       toast({ title: "Account holder name required", description: "Enter the full name on your MoMo or bank account.", variant: "destructive" });
       return;
     }
-    const commission = Math.round(order.total_amount * COMMISSION_RATE);
-    const net = order.total_amount - commission;
-    const { error } = await (supabase as any).from("payout_requests").insert({
-      seller_id: user.id,
-      order_id: order.id,
-      gross_amount: order.total_amount,
-      commission_amount: commission,
-      net_amount: net,
-      payout_method: payoutMethod,
-      payout_destination: `${payoutAccountName.trim()} · ${payoutDestination.trim()}`,
-      status: "pending",
+    // The server works out the amounts from the order and its recorded commission
+    const { data, error } = await (supabase as any).rpc("request_payout", {
+      p_order_id: order.id,
+      p_payout_method: payoutMethod,
+      p_payout_destination: `${payoutAccountName.trim()} · ${payoutDestination.trim()}`,
     });
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Payout requested", description: `${net.toLocaleString()} RWF — admin will process it shortly.` });
+    toast({ title: "Payout requested", description: `${Number(data.net_amount).toLocaleString()} RWF — admin will process it shortly.` });
     fetchData();
   };
 

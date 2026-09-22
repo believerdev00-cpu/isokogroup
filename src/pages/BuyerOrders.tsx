@@ -9,7 +9,6 @@ import { CheckCircle, Package, Clock, Download, ExternalLink } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { notify } from "@/lib/notify";
 import TrackingTimeline from "@/components/TrackingTimeline";
 
 type Order = {
@@ -56,24 +55,12 @@ const BuyerOrders = () => {
   }, [user]);
 
   const confirmDelivery = async (order: Order) => {
-    const { error } = await (supabase as any)
-      .from("orders")
-      .update({
-        status: "delivered",
-        delivered_confirmed_at: new Date().toISOString(),
-      })
-      .eq("id", order.id);
+    // Marks the order delivered and notifies the seller on the server
+    const { error } = await (supabase as any).rpc("confirm_delivery", { p_order_id: order.id });
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
-    await notify({
-      userId: order.seller_id,
-      title: "Buyer confirmed delivery",
-      body: `Order #${order.id.slice(0, 8)} delivered. You can now request payout from the company.`,
-      type: "success",
-      link: "/seller",
-    });
     toast({ title: "Delivery confirmed", description: "Thanks! The seller has been notified." });
     load();
   };

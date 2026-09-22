@@ -399,6 +399,16 @@ const Admin = () => {
     fetchAll();
   };
 
+  const pendingSubscriptionPayments = subscriptions.filter((s) => s.payment_submitted_at);
+
+  const handleActivateSubscription = async (id: string) => {
+    // Activates for 30 days and notifies the user
+    const { error } = await (supabase as any).rpc("activate_subscription", { p_subscription_id: id });
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Subscription activated" });
+    fetchAll();
+  };
+
   const handleUpdateCommissionStatus = async (id: string, status: string) => {
     const { error } = await (supabase as any).from("commissions").update({ status }).eq("id", id);
     if (error) {
@@ -655,7 +665,39 @@ const Admin = () => {
             </TabsContent>
 
             {/* Users */}
-            <TabsContent value="users">
+            <TabsContent value="users" className="space-y-6">
+              {pendingSubscriptionPayments.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle>Subscription payments to confirm ({pendingSubscriptionPayments.length})</CardTitle></CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User</TableHead>
+                          <TableHead>Reference</TableHead>
+                          <TableHead>Submitted</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingSubscriptionPayments.map((s) => {
+                          const owner = profiles.find((p) => p.user_id === s.user_id);
+                          return (
+                            <TableRow key={s.id}>
+                              <TableCell className="font-medium">{owner?.full_name || s.user_id.slice(0, 8)}</TableCell>
+                              <TableCell className="font-mono">{s.payment_reference}</TableCell>
+                              <TableCell>{new Date(s.payment_submitted_at).toLocaleString()}</TableCell>
+                              <TableCell className="text-right">
+                                <Button size="sm" onClick={() => handleActivateSubscription(s.id)}>Confirm payment</Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
               <Card>
                 <CardHeader><CardTitle>{t("admin.users")} Management ({profiles.length})</CardTitle></CardHeader>
                 <CardContent>

@@ -3,15 +3,16 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Clock, CreditCard } from "lucide-react";
+import { CheckCircle, Clock } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SubscriptionPayment from "@/components/SubscriptionPayment";
 import { Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const Subscription = () => {
   const { user, loading: authLoading } = useAuth();
-  const { subscription, loading: subLoading, isActive, startTrial, activateSubscription } = useSubscription();
+  const { subscription, loading: subLoading, isActive, startTrial } = useSubscription();
   const { t } = useI18n();
   const { toast } = useToast();
 
@@ -30,15 +31,6 @@ const Subscription = () => {
       toast({ title: "Error", description: result.error.message, variant: "destructive" });
     } else {
       toast({ title: "Success!", description: "Your 1-week free trial has started. Enjoy all services!" });
-    }
-  };
-
-  const handleActivate = async () => {
-    const result = await activateSubscription();
-    if (result?.error) {
-      toast({ title: "Error", description: result.error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Subscription Activated!", description: "You now have 30 days of full access." });
     }
   };
 
@@ -119,23 +111,14 @@ const Subscription = () => {
                 {subscription.status === "expired" && (
                   <div className="text-center space-y-4">
                     <p className="text-muted-foreground">Your access has expired. Pay 200 RWF to continue for 30 days.</p>
-                    <Button className="w-full gap-2" size="lg" onClick={handleActivate}>
-                      <CreditCard className="h-4 w-4" />
-                      Pay 200 RWF — Renew Now
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Pay via Mobile Money, Card, or PayPal
-                    </p>
+                    <SubscriptionPayment label="I have paid — Renew" />
                   </div>
                 )}
 
                 {subscription.status === "trial" && (
                   <div className="text-center space-y-4">
                     <p className="text-muted-foreground">Enjoying the trial? Upgrade now to extend for 30 days.</p>
-                    <Button className="w-full gap-2" size="lg" onClick={handleActivate}>
-                      <CreditCard className="h-4 w-4" />
-                      Pay 200 RWF — Upgrade Now
-                    </Button>
+                    <SubscriptionPayment label="I have paid — Upgrade" />
                   </div>
                 )}
               </CardContent>

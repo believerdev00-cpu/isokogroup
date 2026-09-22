@@ -8,8 +8,7 @@ import { Trash2, ShoppingBag, Minus, Plus, Smartphone, Landmark, Zap } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { COMPANY_PAYMENT, COMMISSION_RATE } from "@/lib/company";
-import { notify } from "@/lib/notify";
+import { COMPANY_PAYMENT } from "@/lib/company";
 
 type CartRow = {
   id: string;
@@ -94,59 +93,15 @@ const Cart = () => {
     }
     setPlacing(true);
     try {
-      const groups: Record<string, CartRow[]> = {};
-      items.forEach((r) => {
-        const k = r.product.seller_id;
-        if (!groups[k]) groups[k] = [];
-        groups[k].push(r);
+      // The server reads prices from the products table, splits the cart into one
+      // order per seller, and records the commission and buyer notification.
+      const { error } = await (supabase as any).rpc("place_order", {
+        p_items: items.map((r) => ({ product_id: r.product_id, quantity: r.quantity })),
+        p_shipping_address: shipping,
+        p_payment_method: paymentMethod,
+        p_payment_reference: `${payerName.trim()} · ${paymentReference.trim()}`,
       });
-
-      for (const sellerId of Object.keys(groups)) {
-        const rows = groups[sellerId];
-        const orderTotal = rows.reduce((s, r) => s + r.product.price * r.quantity, 0);
-
-        const { data: order, error: oErr } = await (supabase as any)
-          .from("orders")
-          .insert({
-            buyer_id: user.id,
-            seller_id: sellerId,
-            total_amount: orderTotal,
-            shipping_address: shipping,
-            status: "pending",
-            payment_status: "awaiting_confirmation",
-            payment_method: paymentMethod,
-            payment_reference: `${payerName.trim()} · ${paymentReference.trim()}`,
-          })
-          .select()
-          .single();
-        if (oErr) throw oErr;
-
-        const orderItems = rows.map((r) => ({
-          order_id: order.id,
-          product_id: r.product_id,
-          quantity: r.quantity,
-          unit_price: r.product.price,
-        }));
-        const { error: iErr } = await (supabase as any).from("order_items").insert(orderItems);
-        if (iErr) throw iErr;
-
-        await (supabase as any).from("commissions").insert({
-          seller_id: sellerId,
-          order_id: order.id,
-          sale_amount: orderTotal,
-          commission_amount: Math.round(orderTotal * COMMISSION_RATE),
-          commission_rate: COMMISSION_RATE * 100,
-          status: "pending",
-        });
-
-        // Notify the buyer (themselves) of order creation
-        await notify({
-          userId: user.id,
-          title: "Order placed",
-          body: `Your order of ${orderTotal.toLocaleString()} RWF was submitted. We will confirm payment shortly.`,
-          link: "/my-orders",
-        });
-      }
+      if (error) throw error;
 
       await (supabase as any).from("cart_items").delete().eq("user_id", user.id);
       toast({ title: "Order placed!", description: "We'll confirm your payment and notify the seller to ship it." });

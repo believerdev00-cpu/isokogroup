@@ -11,6 +11,8 @@ export type Subscription = {
   expires_at: string;
   trial_ends_at: string | null;
   amount: number;
+  payment_reference?: string | null;
+  payment_submitted_at?: string | null;
 };
 
 type SubscriptionContextType = {
@@ -21,7 +23,7 @@ type SubscriptionContextType = {
   reason: "no_subscription" | "expired" | null;
   refresh: () => Promise<void>;
   startTrial: () => Promise<{ data: any; error: any } | undefined>;
-  activateSubscription: () => Promise<{ data: any; error: any } | undefined>;
+  submitPayment: (reference: string) => Promise<{ data: any; error: any } | undefined>;
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType>({} as SubscriptionContextType);
@@ -79,28 +81,20 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
   const startTrial = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .insert({ user_id: user.id, plan: "basic", amount: 200, status: "trial" })
-      .select()
-      .single();
+    // The server allows one trial per account
+    const { data, error } = await (supabase as any).rpc("start_trial");
     if (!error && data) setSubscription(data as Subscription);
     return { data, error };
   };
 
-  const activateSubscription = async () => {
-    if (!user || !subscription) return;
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .update({
-        status: "active",
-        starts_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-      .eq("id", subscription.id)
-      .select()
-      .single();
-    if (!error && data) setSubscription(data as Subscription);
+  // Records the MoMo/bank reference; an admin activates the plan once the
+  // payment is confirmed, so the subscription stays as it is until then.
+  const submitPayment = async (reference: string) => {
+    if (!user) return;
+    const { data, error } = await (supabase as any).rpc("submit_subscription_payment", {
+      p_reference: reference,
+    });
+    if (!error && data) setSubscription((prev) => (prev ? { ...prev, ...data, status: prev.status } : data));
     return { data, error };
   };
 
@@ -124,7 +118,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         reason,
         refresh: fetchSub,
         startTrial,
-        activateSubscription,
+        submitPayment,
       }}
     >
       {children}

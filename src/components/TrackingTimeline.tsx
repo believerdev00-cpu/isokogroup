@@ -20,8 +20,15 @@ const TrackingTimeline = ({ trackingNumber, orderId }: Props) => {
 
   const load = async () => {
     setLoading(true);
+    if (trackingNumber) {
+      // Public lookup: returns only the status fields, never addresses or driver phones
+      const { data } = await (supabase as any).rpc("track_shipment", { p_tracking_number: trackingNumber });
+      setShipment(data?.shipment ?? null);
+      setLogs(data?.logs ?? []);
+      setLoading(false);
+      return;
+    }
     let q = (supabase as any).from("shipments").select("*");
-    if (trackingNumber) q = q.eq("tracking_number", trackingNumber);
     if (orderId) q = q.eq("order_id", orderId);
     const { data: s } = await q.maybeSingle();
     setShipment(s);

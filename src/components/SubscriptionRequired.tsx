@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Lock, Clock, CreditCard, CheckCircle, Sparkles } from "lucide-react";
+import { Lock, Clock, CheckCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SubscriptionPayment from "@/components/SubscriptionPayment";
 import { useSubscription } from "@/lib/subscription";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,7 +24,7 @@ const SubscriptionRequired = ({ reason }: Props) => {
   const expired = reason === "expired";
   const [open, setOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const { startTrial, activateSubscription, subscription } = useSubscription();
+  const { startTrial, subscription } = useSubscription();
   const { toast } = useToast();
 
   const handleTrial = async () => {
@@ -34,18 +35,6 @@ const SubscriptionRequired = ({ reason }: Props) => {
       toast({ title: "Error", description: result.error.message, variant: "destructive" });
     } else {
       toast({ title: "Trial started!", description: "Enjoy 1 week of full access." });
-      setOpen(false);
-    }
-  };
-
-  const handlePay = async () => {
-    setProcessing(true);
-    const result = await activateSubscription();
-    setProcessing(false);
-    if (result?.error) {
-      toast({ title: "Error", description: result.error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Subscription active!", description: "30 days of full access unlocked." });
       setOpen(false);
     }
   };
@@ -135,16 +124,10 @@ const SubscriptionRequired = ({ reason }: Props) => {
                 <span className="font-semibold">Monthly Plan</span>
                 <span className="text-lg text-primary font-bold">200 RWF</span>
               </div>
-              <p className="text-xs text-muted-foreground">30 days of unlimited access. Mobile Money, Card, or PayPal.</p>
-              <Button
-                className="w-full gap-2 hover-glow"
-                onClick={handlePay}
-                disabled={processing || (!expired && !subscription)}
-              >
-                <CreditCard className="h-4 w-4" />
-                {processing ? "Processing..." : "Pay 200 RWF"}
-              </Button>
-              {!expired && !subscription && (
+              <p className="text-xs text-muted-foreground">30 days of unlimited access, activated once we confirm your payment.</p>
+              {subscription ? (
+                <SubscriptionPayment onSubmitted={() => setOpen(false)} />
+              ) : (
                 <p className="text-xs text-center text-muted-foreground">Start a trial first to unlock paid upgrade.</p>
               )}
             </div>
