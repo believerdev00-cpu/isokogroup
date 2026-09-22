@@ -229,9 +229,9 @@ const BecomeSeller = () => {
 
           <div className="rounded-xl border border-border bg-card p-8">
             <h2 className="text-xl font-semibold mb-2">
-              {existingApp?.status === "rejected" ? "Re-apply" : existingApp ? "Submit a new application" : t("seller.form")}
+              {existingApp?.status === "rejected" ? t("seller.reapply") : existingApp ? t("seller.submitNewApplication") : t("seller.form")}
             </h2>
-            <p className="text-sm text-muted-foreground mb-6">All fields are required. Please provide accurate information — applications with missing or invalid details will be rejected.</p>
+            <p className="text-sm text-muted-foreground mb-6">{t("seller.formInstructions")}</p>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">

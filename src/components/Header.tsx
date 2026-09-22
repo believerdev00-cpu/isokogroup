@@ -24,6 +24,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, lang, setLang } = useI18n();
+  const nextLang = lang === "en" ? "rw" : lang === "rw" ? "sw" : lang === "sw" ? "fr" : lang === "fr" ? "zh" : "en";
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
 
@@ -35,8 +36,8 @@ const Header = () => {
       { label: t("nav.marketplace"), path: "/marketplace" },
       { label: t("nav.elibrary"), path: "/e-library" },
       { label: t("nav.entertainment"), path: "/entertainment" },
-      { label: "Software", path: "/software" },
-      { label: "About", path: "/about" },
+      { label: t("nav.software"), path: "/software" },
+      { label: t("nav.about"), path: "/about" },
     ],
     [t]
   );
@@ -174,27 +175,27 @@ const Header = () => {
         <div className="hidden xl:flex items-center gap-1 shrink-0 ml-auto">
           <ThemeToggle />
           <button
-            onClick={() => setLang(lang === "en" ? "rw" : "en")}
+            onClick={() => setLang(nextLang)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-muted hover:bg-muted/80 transition-colors"
           >
             <Globe className="h-3.5 w-3.5" />
-            {lang === "en" ? "RW" : "EN"}
+            {lang === "en" ? "EN" : lang === "rw" ? "RW" : lang === "sw" ? "SW" : lang === "fr" ? "FR" : "ZH"}
           </button>
           <CartBadge />
           {user && <NotificationsBell />}
           {user ? (
             <>
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm">Dashboard</Button>
+                <Button variant="ghost" size="sm">{t("nav.dashboard")}</Button>
               </Link>
               <Link to="/insights">
-                <Button variant="ghost" size="sm">Insights</Button>
+                <Button variant="ghost" size="sm">{t("nav.insights")}</Button>
               </Link>
               <Link to="/my-orders">
-                <Button variant="ghost" size="sm">Orders</Button>
+                <Button variant="ghost" size="sm">{t("nav.myOrders")}</Button>
               </Link>
               <Link to="/seller">
-                <Button variant="outline" size="sm">Seller</Button>
+                <Button variant="outline" size="sm">{t("nav.seller")}</Button>
               </Link>
               {isAdmin && (
                 <Link to="/admin">
@@ -202,7 +203,7 @@ const Header = () => {
                 </Link>
               )}
               <Link to="/subscription">
-                <Button variant="outline" size="sm">Plan</Button>
+                <Button variant="outline" size="sm">{t("nav.subscription")}</Button>
               </Link>
               <Button size="sm" variant="ghost" onClick={handleLogout}>{t("nav.logout")}</Button>
             </>
@@ -247,24 +248,24 @@ const Header = () => {
             ))}
             <div className="flex items-center gap-2 px-4 py-2">
               <button
-                onClick={() => setLang(lang === "en" ? "rw" : "en")}
+                onClick={() => setLang(nextLang)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-muted"
               >
                 <Globe className="h-3.5 w-3.5" />
-                {lang === "en" ? "Kinyarwanda" : "English"}
+                {lang === "en" ? "English" : lang === "rw" ? "Kinyarwanda" : lang === "sw" ? "Kiswahili" : lang === "fr" ? "Français" : "中文"}
               </button>
             </div>
             <div className="flex flex-col gap-2 mt-4 px-4">
               {user ? (
                 <>
                   <Link to="/my-orders" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" className="w-full">My Orders</Button>
+                    <Button variant="outline" className="w-full">{t("nav.myOrders")}</Button>
                   </Link>
                   <Link to="/insights" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" className="w-full">Insights</Button>
+                    <Button variant="outline" className="w-full">{t("nav.insights")}</Button>
                   </Link>
                   <Link to="/seller" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" className="w-full">Seller Dashboard</Button>
+                    <Button variant="outline" className="w-full">{t("nav.seller")}</Button>
                   </Link>
                   {isAdmin && (
                     <Link to="/admin" onClick={() => setMobileOpen(false)}>
@@ -272,7 +273,7 @@ const Header = () => {
                     </Link>
                   )}
                   <Link to="/subscription" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" className="w-full">Subscription</Button>
+                    <Button variant="outline" className="w-full">{t("nav.subscription")}</Button>
                   </Link>
                   <Button className="w-full" onClick={() => { handleLogout(); setMobileOpen(false); }}>{t("nav.logout")}</Button>
                 </>

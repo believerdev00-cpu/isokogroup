@@ -20,15 +20,17 @@ const HeroSection = () => {
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight animate-slide-up">
-            {t("hero.title1")}{" "}
+            {t("hero.title1")} {" "}
             <span className="text-primary">{t("hero.logistics")}</span>,{" "}
             <span className="text-primary">{t("hero.marketplace")}</span> &{" "}
             <span className="text-primary">{t("hero.knowledge")}</span>
           </h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed animate-slide-up" style={{ animationDelay: "0.15s" }}>
-            {t("hero.subtitle")}
-          </p>
+          {t("hero.subtitle").split(/\n\s*\n/).map((paragraph, index) => (
+            <p key={index} className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed animate-slide-up" style={{ animationDelay: "0.15s" }}>
+              {paragraph}
+            </p>
+          ))}
 
           <div className="flex flex-wrap gap-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
             <Link to="/login">
