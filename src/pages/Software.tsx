@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Code, Smartphone, Palette, Wrench, Layout, GraduationCap, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Code, Smartphone, Palette, Wrench, Layout, ArrowRight, CheckCircle2 } from "lucide-react";
 
 const services = [
   { icon: Layout, title: "Web Design", desc: "Beautiful, conversion-focused designs tailored to your brand." },
@@ -36,14 +36,11 @@ const Software = () => {
             Build Your Dream Website or App With Us
           </h1>
           <p className="text-lg text-muted-foreground">
-            Book a consultation or join our development classes — we turn ideas into shipped products.
+            Book a consultation — we turn ideas into shipped products.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/software/booking">
               <Button size="lg" className="gap-2">Book a Consultation <ArrowRight className="h-4 w-4" /></Button>
-            </Link>
-            <Link to="/training-center">
-              <Button size="lg" variant="outline" className="gap-2"><GraduationCap className="h-4 w-4" /> Training Center</Button>
             </Link>
           </div>
         </div>

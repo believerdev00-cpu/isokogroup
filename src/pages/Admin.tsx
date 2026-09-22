@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import CouriersAdmin from "@/components/admin/CouriersAdmin";
+import TrainingCenterAdmin from "@/components/admin/TrainingCenterAdmin";
 import DeliveriesAnalytics from "@/components/admin/DeliveriesAnalytics";
 import DataAnalysis from "@/components/admin/DataAnalysis";
 import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
@@ -555,6 +556,7 @@ const Admin = () => {
               <TabsTrigger value="deliveries">Deliveries</TabsTrigger>
               <TabsTrigger value="library">Library</TabsTrigger>
               <TabsTrigger value="entertainment">Entertainment</TabsTrigger>
+              <TabsTrigger value="training">Training Center</TabsTrigger>
               <TabsTrigger value="payouts">Payouts</TabsTrigger>
               <TabsTrigger value="software">Software</TabsTrigger>
             </TabsList>
@@ -562,6 +564,7 @@ const Admin = () => {
             <TabsContent value="my"><MyOverview /></TabsContent>
             <TabsContent value="data"><InsightsWorkspace /></TabsContent>
             <TabsContent value="couriers"><CouriersAdmin /></TabsContent>
+            <TabsContent value="training"><TrainingCenterAdmin /></TabsContent>
             <TabsContent value="deliveries"><DeliveriesAnalytics /></TabsContent>
             <TabsContent value="drivers">
               <Card>

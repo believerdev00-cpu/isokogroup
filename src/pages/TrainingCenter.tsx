@@ -22,6 +22,14 @@ type Course = {
   duration: string | null;
 };
 
+type MyApplication = {
+  id: string;
+  course_title: string;
+  mode: string;
+  status: string;
+  created_at: string;
+};
+
 const schema = z.object({
   full_name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(255),
@@ -40,6 +48,7 @@ const steps = [
 
 const TrainingCenter = () => {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [mine, setMine] = useState<MyApplication[]>([]);
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -59,7 +68,18 @@ const TrainingCenter = () => {
     if (data) setCourses(data);
   };
 
+  const fetchMine = async () => {
+    if (!user) { setMine([]); return; }
+    const { data } = await (supabase as any)
+      .from("course_registrations")
+      .select("id, course_title, mode, status, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setMine((data ?? []) as MyApplication[]);
+  };
+
   useEffect(() => { fetchCourses(); }, []);
+  useEffect(() => { fetchMine(); }, [user?.id]);
   useEffect(() => { if (user?.email) setForm((f) => ({ ...f, email: f.email || user.email! })); }, [user]);
 
   const openFor = (c: Course) => {
@@ -88,6 +108,7 @@ const TrainingCenter = () => {
     }
     toast({ title: "Application submitted", description: "The Isoko Training Center team will contact you soon." });
     setOpen(false);
+    fetchMine();
   };
 
   return (
@@ -117,6 +138,26 @@ const TrainingCenter = () => {
               </div>
             ))}
           </div>
+
+          {mine.length > 0 && (
+            <div className="mb-14">
+              <h2 className="text-2xl font-display font-bold mb-4">My Applications</h2>
+              <div className="rounded-xl border border-border bg-card divide-y divide-border">
+                {mine.map((a) => (
+                  <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 p-4">
+                    <div>
+                      <p className="font-medium">{a.course_title}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{a.mode} · applied {new Date(a.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <span className={`capitalize px-2 py-1 rounded-full text-xs font-medium ${
+                      a.status === "rejected" ? "bg-destructive/15 text-destructive" :
+                      a.status === "pending" ? "bg-muted text-muted-foreground" : "bg-primary/15 text-primary"
+                    }`}>{a.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <h2 className="text-2xl font-display font-bold mb-6">Programs</h2>
 
