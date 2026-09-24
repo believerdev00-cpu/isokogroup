@@ -50,21 +50,46 @@ const GENDERS = [
   ["prefer_not_to_say", "Prefer not to say"],
 ] as const;
 
-const PHONE = /^[+\d][\d\s-]{6,19}$/;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const MIN_AGE = 14;
+
+/**
+ * A phone number we can really call: Rwandan mobiles (07X… or +250 7X…, 9 digits
+ * after the country code) or a full international number (+ and 8–15 digits).
+ */
+function validPhone(raw: string) {
+  const v = raw.trim().replace(/[\s-]/g, "");
+  if (/^0?7[2389]\d{7}$/.test(v)) return true;
+  if (/^\+?2507[2389]\d{7}$/.test(v)) return true;
+  return /^\+(?!250)[1-9]\d{7,14}$/.test(v);
+}
+const phoneDigits = (v: string) => v.replace(/\D/g, "").replace(/^(250|0)/, "");
+
+function yearsSince(isoDate: string) {
+  const d = new Date(`${isoDate}T00:00:00`);
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) age--;
+  return age;
+}
 const DOC_EXTS = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
 const MAX_MB = 8;
 
 // Same rules as the server, so people see problems before submitting.
 function validatePerson(p: Person, doc: File | null, requireDoc: boolean) {
   const e: Partial<Record<keyof Person | "document", string>> = {};
-  if (p.full_name.trim().length < 3) e.full_name = "Enter your full name";
-  if (p.date_of_birth && (p.date_of_birth > new Date().toISOString().slice(0, 10) || p.date_of_birth < "1900-01-01")) e.date_of_birth = "Enter a valid date of birth";
-  if (!PHONE.test(p.phone.trim())) e.phone = "Enter a valid phone number, e.g. +250 788 123 456";
-  if (!EMAIL.test(p.email.trim())) e.email = "Enter a valid email address";
-  if (p.address.trim().length < 2) e.address = "Enter your address";
-  if (p.emergency_contact_name.trim().length < 2) e.emergency_contact_name = "Enter an emergency contact";
-  if (!PHONE.test(p.emergency_contact_phone.trim())) e.emergency_contact_phone = "Enter a valid emergency contact phone";
+  if (p.full_name.trim().split(/\s+/).filter((w) => w.length >= 2).length < 2) e.full_name = "Enter your first and last name";
+  if (p.date_of_birth) {
+    const age = yearsSince(p.date_of_birth);
+    if (Number.isNaN(age) || age > 100 || p.date_of_birth > new Date().toISOString().slice(0, 10)) e.date_of_birth = "Enter a valid date of birth";
+    else if (age < MIN_AGE) e.date_of_birth = `Applicants must be at least ${MIN_AGE} years old`;
+  }
+  if (!validPhone(p.phone)) e.phone = "Enter a valid phone number, e.g. 0788 123 456 or +250 788 123 456";
+  if (!EMAIL.test(p.email.trim())) e.email = "Enter a valid email address, e.g. name@gmail.com";
+  if (p.address.trim().length < 3) e.address = "Enter your address, e.g. Gasabo, Kimironko";
+  if (p.emergency_contact_name.trim().length < 2) e.emergency_contact_name = "Enter the name of someone we can call";
+  if (!validPhone(p.emergency_contact_phone)) e.emergency_contact_phone = "Enter a valid phone number for your emergency contact";
+  else if (validPhone(p.phone) && phoneDigits(p.phone) === phoneDigits(p.emergency_contact_phone)) e.emergency_contact_phone = "Use someone else's number, not your own";
   if (p.previous_education.trim().length < 2) e.previous_education = "Tell us your highest education";
   if (p.additional_info.length > 2000) e.additional_info = "Keep this under 2000 characters";
   if (requireDoc && !doc) e.document = "Please attach your identification document";
@@ -75,6 +100,12 @@ function validatePerson(p: Person, doc: File | null, requireDoc: boolean) {
   }
   return e;
 }
+
+// The order the form shows its fields, to jump to the first one that needs fixing
+const FIELD_ORDER: (keyof Person | "document")[] = [
+  "full_name", "date_of_birth", "phone", "email", "address",
+  "emergency_contact_name", "emergency_contact_phone", "previous_education", "document", "additional_info",
+];
 
 function StepIndicator({ step }: { step: number }) {
   return (
@@ -190,11 +221,35 @@ export default function Apply() {
     if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined }));
   };
 
+  // Check a field as soon as it is left, once something was typed in it
+  const checkField = (k: keyof Person) => {
+    if (!person[k].trim()) return;
+    const msg = validatePerson(person, doc, false)[k];
+    setErrors((e) => ({ ...e, [k]: msg }));
+  };
+
+  // Leaving mid-application loses what was typed, so the browser asks first
+  const dirty = !done && (step === 3 || step === 4) && Object.values(person).some((v) => v.trim());
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   const continueFromDetails = () => {
     const e = validatePerson(person, doc, requireDoc);
     setErrors(e);
-    if (Object.values(e).some(Boolean)) {
-      toast.error("Please correct the highlighted fields");
+    const firstBad = FIELD_ORDER.find((k) => e[k]);
+    if (firstBad) {
+      const count = Object.values(e).filter(Boolean).length;
+      toast.error(count === 1 ? "Please correct the highlighted field" : `Please correct the ${count} highlighted fields`);
+      const el = document.getElementById(firstBad);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.focus({ preventScroll: true });
       return;
     }
     go(4);
@@ -235,6 +290,7 @@ export default function Apply() {
     id: k,
     value: person[k],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => set(k)(e.target.value),
+    onBlur: () => checkField(k),
     "aria-invalid": errors[k] ? true : undefined,
     "aria-describedby": errors[k] ? `${k}-error` : undefined,
   });
@@ -358,7 +414,7 @@ export default function Apply() {
                     <fieldset className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2 sm:p-5">
                       <legend className="px-1 text-sm font-semibold">About you</legend>
                       <Field label="Full name" htmlFor="full_name" required error={errors.full_name} className="sm:col-span-2">
-                        <Input {...fieldProps("full_name")} autoComplete="name" />
+                        <Input {...fieldProps("full_name")} autoComplete="name" placeholder="First and last name" />
                       </Field>
                       <Field label="Date of birth" htmlFor="date_of_birth" error={errors.date_of_birth}>
                         <Input {...fieldProps("date_of_birth")} type="date" max={new Date().toISOString().slice(0, 10)} autoComplete="bday" />
@@ -370,7 +426,7 @@ export default function Apply() {
                         </NativeSelect>
                       </Field>
                       <Field label="Phone" htmlFor="phone" required error={errors.phone}>
-                        <Input {...fieldProps("phone")} type="tel" inputMode="tel" autoComplete="tel" placeholder="+250 788 123 456" />
+                        <Input {...fieldProps("phone")} type="tel" inputMode="tel" autoComplete="tel" placeholder="0788 123 456" />
                       </Field>
                       <Field label="Email" htmlFor="email" required error={errors.email} hint="We'll send your confirmation here.">
                         <Input {...fieldProps("email")} type="email" autoComplete="email" />
@@ -386,7 +442,7 @@ export default function Apply() {
                         <Input {...fieldProps("emergency_contact_name")} />
                       </Field>
                       <Field label="Phone" htmlFor="emergency_contact_phone" required error={errors.emergency_contact_phone}>
-                        <Input {...fieldProps("emergency_contact_phone")} type="tel" inputMode="tel" />
+                        <Input {...fieldProps("emergency_contact_phone")} type="tel" inputMode="tel" placeholder="0788 123 456" />
                       </Field>
                     </fieldset>
 

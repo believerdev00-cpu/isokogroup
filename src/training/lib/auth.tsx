@@ -49,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const accountId = session?.user.id ?? null;
 
+  // Another account's data must never stay on screen. Resetting (rather than
+  // clearing) drops it but keeps open pages subscribed, so they fetch again
+  // instead of waiting forever on a query that no longer exists.
+  const forgetCachedData = useCallback(() => void queryClient.resetQueries(), [queryClient]);
+
   const refresh = useCallback(async () => {
     try {
       setUser(await api.get<Me | null>("/auth/me"));
@@ -63,28 +68,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (accountId ? api.get<Me | null>("/auth/me").catch(() => null) : Promise.resolve(null)).then((me) => {
       if (cancelled) return;
-      queryClient.clear();
+      // On the first load nothing belongs to another account yet
+      if (loadedFor !== undefined) forgetCachedData();
       setUser(me);
       setLoadedFor(accountId);
     });
     return () => {
       cancelled = true;
     };
-  }, [accountId, sessionLoading, queryClient]);
+    // loadedFor is read only to tell the first load apart; it must not re-run this
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, sessionLoading, forgetCachedData]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) throw new ApiError(error.message === "Invalid login credentials" ? "Incorrect email or password" : error.message, 401);
     const me = await api.get<Me | null>("/auth/me");
     if (!me) throw new ApiError("You're signed in to Isoko, but this account has no Training Center access yet.", 403, "no_role");
-    queryClient.clear();
+    forgetCachedData();
     setUser(me);
     return me;
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    queryClient.clear();
+    forgetCachedData();
     setUser(null);
   };
 

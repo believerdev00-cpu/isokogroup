@@ -6,7 +6,9 @@ import { HOME_FOR, useAuth } from "@/training/lib/auth";
 import { useApi } from "@/training/lib/query";
 import type { Center } from "@/training/lib/types";
 import { cn } from "@/lib/utils";
-import { IctWhatsAppFloat, IctWhatsAppNotice } from "@/components/IctWhatsApp";
+import { IctWhatsAppFloat, ictWhatsappLink } from "@/components/IctWhatsApp";
+import { ICT_CONTACT } from "@/lib/company";
+import { MessageCircle } from "lucide-react";
 
 const NAV = [
   { to: "/training-center", label: "Home", end: true },
@@ -71,15 +73,23 @@ export default function PublicLayout() {
       </div>
 
       <main id="main" className="flex-1">
-        {/* Training requests (software, computer and programming courses) go to the ICT team */}
+        {/* Questions about applying go to the ICT team on WhatsApp */}
         {pathname === "/training-center/apply" && (
           <div className="container max-w-4xl pt-6">
-            <IctWhatsAppNotice topic="a training program" />
+            <a
+              href={ictWhatsappLink("a training program")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <MessageCircle className="h-4 w-4 text-[#1f9d55]" aria-hidden />
+              Questions about a program? WhatsApp us on <span className="font-semibold text-foreground">{ICT_CONTACT.display}</span>
+            </a>
           </div>
         )}
         <Outlet />
       </main>
-      <IctWhatsAppFloat topic="the Training Center" />
+      <IctWhatsAppFloat topic="the Training Center" compact />
 
       <div className="border-t bg-muted/40">
         <div className="container flex flex-wrap gap-x-6 gap-y-2 py-4 text-sm text-muted-foreground">

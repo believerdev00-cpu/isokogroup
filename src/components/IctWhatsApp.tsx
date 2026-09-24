@@ -40,17 +40,21 @@ export function IctWhatsAppNotice({ topic, className }: { topic?: string; classN
 }
 
 /** A floating WhatsApp button that stays visible on ICT service pages. */
-export function IctWhatsAppFloat({ topic }: { topic?: string }) {
+export function IctWhatsAppFloat({ topic, compact = false }: { topic?: string; compact?: boolean }) {
   return (
     <a
       href={ictWhatsappLink(topic)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`Chat with the ICT team on WhatsApp, ${ICT_CONTACT.display}`}
-      className="press fixed bottom-5 right-5 z-40 inline-flex h-14 items-center gap-2 rounded-full bg-[#1f9d55] px-4 font-semibold text-white shadow-xl hover:bg-[#188047] sm:px-5"
+      title={`WhatsApp ${ICT_CONTACT.display}`}
+      className={cn(
+        "press fixed bottom-5 right-5 z-40 inline-flex h-14 items-center gap-2 rounded-full bg-[#1f9d55] font-semibold text-white shadow-xl hover:bg-[#188047]",
+        compact ? "w-14 justify-center" : "px-4 sm:px-5",
+      )}
     >
       <MessageCircle className="h-6 w-6" aria-hidden />
-      <span className="hidden sm:inline">ICT team on WhatsApp</span>
+      {!compact && <span className="hidden sm:inline">ICT team on WhatsApp</span>}
     </a>
   );
 }
