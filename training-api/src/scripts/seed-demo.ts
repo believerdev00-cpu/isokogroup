@@ -46,7 +46,8 @@ const PEOPLE = [
 
 async function main() {
   if (config.isProduction) throw new Error("Refusing to load demo data in production");
-  if (await queryOne("SELECT 1 FROM programs LIMIT 1")) throw new Error("The database already has programs; demo data is only for an empty database");
+  // Migrations add some programs, so an empty database is one without intakes
+  if (await queryOne("SELECT 1 FROM intakes LIMIT 1")) throw new Error("The database already has intakes; demo data is only for an empty database");
   const d = await today();
 
   await createUserAccount({ email: "admin@isoko.test", password: PASSWORD, role: "admin", full_name: "Isoko Admin" });
