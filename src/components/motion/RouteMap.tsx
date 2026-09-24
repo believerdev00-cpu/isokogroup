@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { isLiteMotion } from "@/lib/motion";
+import deliveryTruck from "@/assets/delivery-truck-marker.png";
 
 type Stop = { label: string; x: number; y: number };
 
@@ -8,13 +9,15 @@ type Stop = { label: string; x: number; y: number };
  * A route between places with a marker travelling along it: a delivery on its
  * way (Logistics) or a journey through Rwanda (Travel). Drawn in SVG so it
  * scales without cost; in lite motion the marker simply sits at the end.
+ * With `road` the route is drawn as an asphalt road for a vehicle to drive on.
  */
 export default function RouteMap({
-  stops, marker, className, lineClass = "text-primary", dotClass = "fill-primary", labelClass = "fill-foreground", duration = 7,
+  stops, marker, road = false, className, lineClass = "text-primary", dotClass = "fill-primary", labelClass = "fill-foreground", duration = 7,
 }: {
   stops: Stop[];
   /** What travels: an SVG node drawn around (0,0) */
   marker: ReactNode;
+  road?: boolean;
   className?: string;
   lineClass?: string;
   dotClass?: string;
@@ -35,9 +38,22 @@ export default function RouteMap({
   const end = stops[stops.length - 1];
 
   return (
-    <svg viewBox="0 0 400 180" className={cn("h-auto w-full", className)} role="img" aria-label={`Route: ${stops.map((s) => s.label).join(" to ")}`}>
-      <path id={`route-${id}`} d={d} fill="none" stroke="currentColor" strokeOpacity={0.18} strokeWidth={10} strokeLinecap="round" className={lineClass} />
-      <path d={d} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className={cn(lineClass, "route-draw")} />
+    <svg viewBox="0 0 400 180" overflow="visible" className={cn("h-auto w-full", className)} role="img" aria-label={`Route: ${stops.map((s) => s.label).join(" to ")}`}>
+      {road ? (
+        <g fill="none" strokeLinecap="round">
+          {/* Kerb, asphalt, white edge lines and a dashed centre line */}
+          <path id={`route-${id}`} d={d} stroke="#71717a" strokeWidth={24} />
+          <path d={d} stroke="#2e2e33" strokeWidth={22} />
+          <path d={d} stroke="#f4f4f5" strokeWidth={18} />
+          <path d={d} stroke="#2e2e33" strokeWidth={16} />
+          <path d={d} stroke="#facc15" strokeWidth={1.4} strokeDasharray="7 6" strokeLinecap="butt" />
+        </g>
+      ) : (
+        <>
+          <path id={`route-${id}`} d={d} fill="none" stroke="currentColor" strokeOpacity={0.18} strokeWidth={10} strokeLinecap="round" className={lineClass} />
+          <path d={d} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className={cn(lineClass, "route-draw")} />
+        </>
+      )}
       {stops.map((s, i) => (
         <g key={s.label}>
           <circle cx={s.x} cy={s.y} r={i === 0 || i === stops.length - 1 ? 7 : 5} className={dotClass} />
@@ -59,15 +75,8 @@ export default function RouteMap({
   );
 }
 
-/** A small truck marker (Logistics). */
-export const TruckMarker = () => (
-  <g transform="translate(-14 -22)">
-    <rect x="0" y="4" width="18" height="12" rx="2" className="fill-primary" />
-    <path d="M18 8h6l4 4v4h-10z" className="fill-primary" />
-    <circle cx="6" cy="18" r="3" className="fill-foreground" />
-    <circle cx="22" cy="18" r="3" className="fill-foreground" />
-  </g>
-);
+/** An Isoko-branded delivery truck driving on the road (Logistics). */
+export const TruckMarker = () => <image href={deliveryTruck} x={-55} y={-44} width={110} height={49} preserveAspectRatio="xMidYMax meet" />;
 
 /** A small plane/car marker for travel journeys. */
 export const PinMarker = ({ className = "fill-amber-400" }: { className?: string }) => (

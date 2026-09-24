@@ -103,6 +103,7 @@ const Logistics = () => {
                 { label: "Customer", x: 360, y: 110 },
               ]}
               marker={<TruckMarker />}
+              road
             />
             <FlowSteps
               className="mt-5"

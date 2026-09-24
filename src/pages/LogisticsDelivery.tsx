@@ -10,9 +10,11 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import truck1 from "@/assets/truck-1.png";
-import truck2 from "@/assets/truck-2.png";
-import truck3 from "@/assets/truck-3.png";
+// Isoko-branded trucks; the "left" images face left for the reverse lanes
+import truck1 from "@/assets/truck-1-isoko.png";
+import truck1Left from "@/assets/truck-1-left-isoko.png";
+import truck2Left from "@/assets/truck-2-left-isoko.png";
+import truck3 from "@/assets/truck-3-isoko.png";
 
 const features = [
   { icon: Truck, title: "logistics.requestDelivery", desc: "Submit delivery requests with pickup and drop-off details." },
@@ -69,9 +71,9 @@ const LogisticsDelivery = () => {
       <section className="relative py-20 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-0 overflow-hidden opacity-30 dark:opacity-20">
           <img src={truck1} alt="" loading="lazy" className="absolute top-[8%] left-0 h-20 md:h-28 w-auto animate-truck-slide" style={{ animationDelay: "0s" }} />
-          <img src={truck2} alt="" loading="lazy" className="absolute top-[35%] left-0 h-24 md:h-32 w-auto animate-truck-slide-reverse" style={{ animationDelay: "-6s" }} />
+          <img src={truck2Left} alt="" loading="lazy" className="absolute top-[35%] left-0 h-24 md:h-32 w-auto animate-truck-slide-reverse" style={{ animationDelay: "-6s" }} />
           <img src={truck3} alt="" loading="lazy" className="absolute top-[62%] left-0 h-20 md:h-28 w-auto animate-truck-slide" style={{ animationDelay: "-12s", animationDuration: "22s" }} />
-          <img src={truck1} alt="" loading="lazy" className="absolute top-[85%] left-0 h-16 md:h-24 w-auto animate-truck-slide-reverse" style={{ animationDelay: "-3s", animationDuration: "28s" }} />
+          <img src={truck1Left} alt="" loading="lazy" className="absolute top-[85%] left-0 h-16 md:h-24 w-auto animate-truck-slide-reverse" style={{ animationDelay: "-3s", animationDuration: "28s" }} />
         </div>
         <div className="container relative z-10">
           <div className="flex items-center justify-between mb-6">

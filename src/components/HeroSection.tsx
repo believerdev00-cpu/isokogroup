@@ -66,7 +66,7 @@ const HeroSection = () => {
               In transit
             </span>
           </div>
-          <RouteMap stops={STOPS} marker={<TruckMarker />} className="mt-4" />
+          <RouteMap stops={STOPS} marker={<TruckMarker />} road className="mt-4" />
           <ol className="mt-4 grid grid-cols-3 gap-2 text-xs">
             {[
               { icon: PackageCheck, label: "Picked up", done: true },

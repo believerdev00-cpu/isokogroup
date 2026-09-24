@@ -107,8 +107,8 @@ export default {
           "100%": { transform: "translateX(120vw)" },
         },
         "truck-slide-reverse": {
-          "0%": { transform: "translateX(120vw) scaleX(-1)" },
-          "100%": { transform: "translateX(-20%) scaleX(-1)" },
+          "0%": { transform: "translateX(120vw)" },
+          "100%": { transform: "translateX(-20%)" },
         },
       },
       animation: {
