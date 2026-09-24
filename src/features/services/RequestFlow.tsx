@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { FileUp, Paperclip, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
@@ -43,6 +44,7 @@ export default function RequestFlow({ config: c }: { config: Config }) {
   const [later, setLater] = useState(false);
   const [name, setName] = useState((user?.user_metadata?.full_name as string) ?? "");
   const [organization, setOrganization] = useState("");
+  const [noOrganization, setNoOrganization] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState(user?.email ?? "");
   const [busy, setBusy] = useState(false);
@@ -216,7 +218,25 @@ export default function RequestFlow({ config: c }: { config: Config }) {
                 <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
               </Field>
               <Field label="Organization" htmlFor="org" optional>
-                <Input id="org" autoComplete="organization" value={organization} onChange={(e) => setOrganization(e.target.value)} maxLength={160} />
+                <Input
+                  id="org"
+                  autoComplete="organization"
+                  placeholder={noOrganization ? "No organization" : "Company, NGO, school…"}
+                  value={organization}
+                  onChange={(e) => setOrganization(e.target.value)}
+                  disabled={noOrganization}
+                  maxLength={160}
+                />
+                <label className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
+                  <Checkbox
+                    checked={noOrganization}
+                    onCheckedChange={(v) => {
+                      setNoOrganization(v === true);
+                      if (v === true) setOrganization("");
+                    }}
+                  />
+                  I don't have an organization
+                </label>
               </Field>
               <Field label="Phone" htmlFor="phone">
                 <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required maxLength={40} />
