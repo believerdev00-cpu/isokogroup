@@ -1,10 +1,11 @@
-import { BedDouble, Car, Compass, HeartHandshake, PlaneLanding, PlaneTakeoff, type LucideIcon } from "lucide-react";
+import { BedDouble, Car, Compass, HeartHandshake, Home, PlaneLanding, PlaneTakeoff, type LucideIcon } from "lucide-react";
 
-export type Need = "airport_pickup" | "hotel" | "transport" | "activities" | "airport_dropoff" | "plan_everything";
+export type Need = "airport_pickup" | "hotel" | "bnb" | "transport" | "activities" | "airport_dropoff" | "plan_everything";
 
 export const NEEDS: { key: Need; label: string; description: string; icon: LucideIcon }[] = [
   { key: "airport_pickup", label: "Airport Pickup", description: "We meet you at the airport.", icon: PlaneLanding },
   { key: "hotel", label: "Hotel", description: "A hotel that fits your budget.", icon: BedDouble },
+  { key: "bnb", label: "B&B", description: "A cosy bed & breakfast or guesthouse.", icon: Home },
   { key: "transport", label: "Transport", description: "A private car and driver.", icon: Car },
   { key: "activities", label: "Tours & Activities", description: "Parks, gorillas, city tours and more.", icon: Compass },
   { key: "airport_dropoff", label: "Airport Drop-off", description: "We take you back for your flight.", icon: PlaneTakeoff },
