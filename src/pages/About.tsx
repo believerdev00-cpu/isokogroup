@@ -21,6 +21,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import logo from "@/assets/isoko-logo.jpeg";
+import JourneyTimeline from "@/components/about/JourneyTimeline";
 
 const pillars = [
   {
@@ -60,13 +61,6 @@ const values = [
   { icon: HeartHandshake, title: "Community", desc: "We build for Rwandans first: local sellers, local couriers, local stories." },
   { icon: Sparkles, title: "Quality", desc: "From packaging to film production, we obsess over the details our clients see." },
   { icon: Users, title: "Opportunity", desc: "We open doors for small businesses, students and creators to grow online." },
-];
-
-const milestones = [
-  { year: "2023", text: "ISOKO GROUP founded in Kigali to unify logistics, commerce and digital services." },
-  { year: "2024", text: "Marketplace and E-Library launched, onboarding the first verified sellers and authors." },
-  { year: "2025", text: "Isoko Studioz produces its first original films, shorts and podcasts." },
-  { year: "2026", text: "Software division and Isoko Training Center added — building apps and training the next generation." },
 ];
 
 const About = () => {
@@ -229,24 +223,7 @@ const About = () => {
           </div>
         </section>
 
-        {/* Timeline */}
-        <section className="py-16 md:py-20">
-          <div className="container max-w-3xl">
-            <div className="text-center mb-12 space-y-3">
-              <span className="text-sm font-semibold uppercase tracking-wider text-primary">Our Journey</span>
-              <h2 className="text-3xl md:text-4xl font-display font-bold">From idea to group</h2>
-            </div>
-            <ol className="relative border-l border-border ml-3 space-y-8">
-              {milestones.map((m) => (
-                <li key={m.year} className="ml-6">
-                  <span className="absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full bg-primary ring-4 ring-background" />
-                  <p className="font-display text-xl font-bold text-primary">{m.year}</p>
-                  <p className="text-muted-foreground leading-relaxed mt-1">{m.text}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
+        <JourneyTimeline />
 
         {/* Contact */}
         <section className="py-16 md:py-20 bg-card border-t border-border">
