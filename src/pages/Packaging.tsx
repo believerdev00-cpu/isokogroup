@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,9 +9,11 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import paperBags from "@/assets/paper-bags.jpeg";
-import { FlowSteps } from "@/components/motion";
-import { Palette, Package as PackageBox, ShoppingBasket, Truck as TruckIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PackagingSteps, PHOTO_CREDITS } from "@/components/packaging/PackagingSteps";
+import { ArrowRight, Check, Minus, Phone, Plus, Search, X } from "lucide-react";
 
 type Product = { code: string; name: string; price: number; unit: string };
 type Category = { id: string; title: string; note?: string; products: Product[] };
@@ -133,6 +135,8 @@ const categories: Category[] = [
 
 const fmt = (n: number) => `${n.toLocaleString()} RWF`;
 
+const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
 const Packaging = () => {
   const { user } = useAuth();
   const { t } = useI18n();
@@ -146,6 +150,19 @@ const Packaging = () => {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedCode, setSelectedCode] = useState<string>("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [search, setSearch] = useState("");
+  const [formInView, setFormInView] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  // The bottom bar is only needed while the request form is off screen
+  useEffect(() => {
+    const el = formRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setFormInView(entry.isIntersecting), { threshold: 0.15 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const selected = useMemo(() => {
     if (!selectedCode) return null;
@@ -156,7 +173,36 @@ const Packaging = () => {
     return null;
   }, [selectedCode]);
 
-  const itemsTotal = selected ? selected.price * (parseInt(qty) || 0) : 0;
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return categories
+      .filter((c) => q || activeCategory === "all" || c.id === activeCategory)
+      .map((c) => ({
+        ...c,
+        products: q ? c.products.filter((p) => `${p.code} ${p.name} ${c.title}`.toLowerCase().includes(q)) : c.products,
+      }))
+      .filter((c) => c.products.length > 0);
+  }, [activeCategory, search]);
+
+  const quantity = parseInt(qty) || 0;
+  const itemsTotal = selected ? selected.price * quantity : 0;
+  const stepQty = (delta: number) => setQty(String(Math.max(1, quantity + delta)));
+
+  const choose = (code: string) => {
+    setSelectedCode((cur) => (cur === code ? "" : code));
+    setQty("1");
+  };
+
+  const pickCategory = (id: string) => {
+    setSearch("");
+    setActiveCategory(id);
+  };
+
+  const customRequest = (type = "") => {
+    setSelectedCode("");
+    if (type) setPackagingType(type);
+    scrollToId("pkg-form");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,112 +237,161 @@ const Packaging = () => {
   return (
     <div className="min-h-screen">
       <Header />
-      <section className="relative py-20 overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
-          <img src={paperBags} alt="" className="w-full h-full object-cover opacity-20 dark:opacity-10" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background" />
-        </div>
-        <div className="container relative z-10">
-          <div className="text-center mb-12 space-y-4">
-            <span className="text-sm font-semibold uppercase tracking-wider text-primary">{t("nav.packaging")}</span>
-            <h1 className="text-4xl md:text-5xl font-display font-bold">Request Packaging</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Browse our official price list, pick what you need, and submit your request.
+
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-border">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
+        <div className="container relative grid items-center gap-10 py-12 md:py-16 lg:grid-cols-2">
+          <div className="space-y-5 fade-in-up">
+            <span className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{t("nav.packaging")}</span>
+            <h1 className="text-4xl font-display font-bold leading-tight md:text-5xl">Request Packaging</h1>
+            <p className="max-w-lg text-lg text-muted-foreground">
+              Envelopes, bags, sacks, boxes and eco-friendly packaging at official ISOKO prices, prepared and delivered for you.
             </p>
-            {/* How packaging is prepared, step by step */}
-            <FlowSteps
-              className="pt-4"
-              steps={[
-                { icon: ShoppingBasket, label: "Choose" },
-                { icon: Palette, label: "Brand" },
-                { icon: PackageBox, label: "Pack" },
-                { icon: TruckIcon, label: "Deliver" },
-              ]}
-            />
-          </div>
-
-          {/* Price catalogue */}
-          <div className="space-y-10 max-w-6xl mx-auto mb-12">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl md:text-3xl font-display font-bold">Packaging Price List</h2>
-              <p className="text-muted-foreground text-sm">
-                Official ISOKO catalogue. Click any item to add it to your request.
-              </p>
+            <div className="flex flex-wrap gap-3">
+              <Button size="lg" className="hover-glow gap-2" onClick={() => scrollToId("catalogue")}>
+                See prices <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => customRequest()}>
+                Custom request
+              </Button>
             </div>
-            {categories.map((cat) => (
-              <div key={cat.id}>
-                <div className="flex items-baseline justify-between mb-3 px-1">
-                  <h3 className="text-lg md:text-xl font-display font-bold">{cat.title}</h3>
-                  {cat.note && <span className="text-xs text-muted-foreground">{cat.note}</span>}
-                </div>
-                <div className="overflow-hidden rounded-xl border border-border bg-card">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-                      <tr>
-                        <th className="text-left px-4 py-2 font-medium">Code</th>
-                        <th className="text-left px-4 py-2 font-medium">Product</th>
-                        <th className="text-right px-4 py-2 font-medium">Selling price</th>
-                        <th className="px-4 py-2"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cat.products.map((p) => {
-                        const isSel = selectedCode === p.code;
-                        return (
-                          <tr
-                            key={p.code}
-                            className={`border-t border-border transition-colors ${isSel ? "bg-primary/10" : "hover:bg-muted/30"}`}
-                          >
-                            <td className="px-4 py-2 font-mono text-xs">{p.code}</td>
-                            <td className="px-4 py-2">{p.name}</td>
-                            <td className="px-4 py-2 text-right font-semibold text-primary whitespace-nowrap">
-                              {fmt(p.price)} <span className="text-xs text-muted-foreground font-normal">/ {p.unit}</span>
-                            </td>
-                            <td className="px-4 py-2 text-right">
-                              <Button
-                                size="sm"
-                                variant={isSel ? "default" : "outline"}
-                                onClick={() => {
-                                  setSelectedCode(p.code);
-                                  document.getElementById("pkg-form")?.scrollIntoView({ behavior: "smooth" });
-                                }}
-                              >
-                                {isSel ? "Selected" : "Select"}
-                              </Button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
           </div>
 
-          <div id="pkg-form" className="max-w-xl mx-auto rounded-xl border border-border bg-card p-8 scroll-mt-24">
-            <h2 className="text-2xl font-display font-bold mb-6 text-center">Submit Packaging Request</h2>
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              {selected && (
-                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">{selected.category}</p>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold">{selected.name}</p>
-                    <span className="font-bold text-primary whitespace-nowrap">
-                      {fmt(selected.price)} / {selected.unit}
-                    </span>
+          <div className="relative overflow-hidden rounded-3xl border border-border shadow-2xl fade-in-up" style={{ animationDelay: "150ms" }}>
+            <img src={paperBags} alt="ISOKO paper bags in black, white and kraft" className="aspect-[16/10] w-full object-cover" />
+            {/* ISOKO watermark across the photo */}
+            <span aria-hidden className="pointer-events-none absolute inset-x-0 top-[18%] flex -rotate-12 select-none justify-center font-display text-6xl font-black tracking-[0.35em] text-white/25 mix-blend-overlay sm:text-8xl">
+              ISOKO
+            </span>
+            <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-white/10 bg-black/60 px-2 py-3 text-white backdrop-blur-md sm:inset-x-4 sm:bottom-4 sm:p-4">
+              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wider text-white/70">How it works</p>
+              <PackagingSteps />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Price list */}
+      <section id="catalogue" className="scroll-mt-24 py-12 md:py-16">
+        <div className="container max-w-6xl">
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-3xl font-display font-bold">Price list</h2>
+              <p className="text-sm text-muted-foreground">Choose an item to add it to your request.</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Select value={search ? "all" : activeCategory} onValueChange={pickCategory}>
+                <SelectTrigger aria-label="Category" className="h-10 rounded-full sm:w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="relative sm:w-64">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  aria-label="Search packaging"
+                  placeholder="Search name or code…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-10 rounded-full pl-9 pr-9"
+                />
+                {search && (
+                  <button type="button" aria-label="Clear search" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {visible.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border py-12 text-center">
+              <p className="font-semibold">Nothing matches "{search}".</p>
+              <p className="mt-1 text-sm text-muted-foreground">Try another word, or send a custom request.</p>
+              <div className="mt-4 flex justify-center gap-2">
+                <Button variant="outline" onClick={() => pickCategory("all")}>Show all</Button>
+                <Button onClick={() => customRequest()}>Custom request</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {visible.map((cat) => (
+                <div key={cat.id}>
+                  <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
+                    <h3 className="font-display text-lg font-bold">{cat.title}</h3>
+                    {cat.note && <span className="text-xs text-muted-foreground">{cat.note}</span>}
                   </div>
-                  <div className="flex items-center gap-3 pt-2">
-                    <Label htmlFor="qty" className="text-xs">Qty ({selected.unit})</Label>
-                    <Input id="qty" type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} className="h-8 w-24" />
-                    <span className="text-sm text-muted-foreground ml-auto">
-                      Total: <span className="font-semibold text-foreground">{fmt(itemsTotal)}</span>
-                    </span>
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    {cat.products.map((p) => {
+                      const isSel = selectedCode === p.code;
+                      const showCode = p.name !== p.code;
+                      return (
+                        <button
+                          key={p.code}
+                          type="button"
+                          aria-pressed={isSel}
+                          onClick={() => choose(p.code)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                            isSel ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/60",
+                          )}
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold">{p.name}</span>
+                            {showCode && <span className="block font-mono text-xs text-muted-foreground">{p.code}</span>}
+                          </span>
+                          <span className="whitespace-nowrap text-right">
+                            <span className="font-bold text-primary">{p.price.toLocaleString()}</span>
+                            <span className="text-xs text-muted-foreground"> RWF/{p.unit}</span>
+                          </span>
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors",
+                              isSel ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                            )}
+                          >
+                            {isSel ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-              )}
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Credits the photo licences ask for */}
+      <div className="container max-w-6xl pb-8">
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer select-none">Photo credits</summary>
+          <p className="mt-2">Packaging photos from Wikimedia Commons, with the ISOKO brand added:</p>
+          <ul className="mt-1 space-y-0.5">
+            {PHOTO_CREDITS.map((c) => (
+              <li key={c.url}>
+                <a href={c.url} target="_blank" rel="noreferrer" className="underline hover:text-foreground">{c.title}</a> by {c.author}, {c.license}
+              </li>
+            ))}
+          </ul>
+        </details>
+      </div>
+
+      {/* Request form with the order summary beside it */}
+      <section className="border-t border-border bg-card/40 py-12 md:py-16">
+        <div id="pkg-form" ref={formRef} className="container grid max-w-6xl scroll-mt-28 gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="rounded-3xl border border-border bg-card p-6 md:p-8">
+            <h2 className="text-2xl font-display font-bold md:text-3xl">Your request</h2>
+            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="pkg-full-name">Full Name</Label>
                   <Input id="pkg-full-name" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
@@ -310,19 +405,19 @@ const Packaging = () => {
                 <Label htmlFor="items">{selected ? "Extra notes (optional)" : "What needs packaging?"}</Label>
                 <Input
                   id="items"
-                  placeholder={selected ? "Any specific instructions" : "e.g., 200 jars of honey"}
+                  placeholder={selected ? "e.g. print our logo on it" : "e.g., 200 jars of honey"}
                   value={items}
                   onChange={(e) => setItems(e.target.value)}
                   required={!selected}
                 />
               </div>
-              {!selected && (
-                <div className="space-y-2">
-                  <Label htmlFor="pkg-type">Packaging type</Label>
-                  <Input id="pkg-type" placeholder="Kraft / polythene / branded box…" value={packagingType} onChange={(e) => setPackagingType(e.target.value)} />
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {!selected && (
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="pkg-type">Packaging type</Label>
+                    <Input id="pkg-type" placeholder="Kraft / polythene / branded box / basket…" value={packagingType} onChange={(e) => setPackagingType(e.target.value)} />
+                  </div>
+                )}
                 {!selected && (
                   <div className="space-y-2">
                     <Label htmlFor="qty-plain">Quantity</Label>
@@ -334,13 +429,81 @@ const Packaging = () => {
                   <Input id="pickup-date" type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} />
                 </div>
               </div>
-              <Button className="w-full" size="lg" disabled={loading}>
-                {loading ? "Submitting..." : "Submit Request"}
+              <Button className="w-full gap-2 hover-glow" size="lg" disabled={loading}>
+                {loading ? "Submitting..." : <>Submit Request <ArrowRight className="h-4 w-4" /></>}
               </Button>
+              <p className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+                <Phone className="h-3.5 w-3.5" /> We call you to confirm the price and date before anything is prepared.
+              </p>
             </form>
           </div>
+
+          <aside className="rounded-3xl border border-border bg-card p-6 lg:sticky lg:top-28 lg:self-start">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Your order</p>
+            {selected ? (
+              <div className="mt-4 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{selected.category}</p>
+                    <p className="font-semibold">{selected.name}</p>
+                  </div>
+                  <button type="button" aria-label="Remove item" onClick={() => setSelectedCode("")} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="qty" className="text-sm">Quantity ({selected.unit})</Label>
+                  <div className="flex items-center rounded-xl border border-border">
+                    <button type="button" aria-label="Less" onClick={() => stepQty(-1)} className="flex h-9 w-9 items-center justify-center hover:text-primary">
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <Input
+                      id="qty"
+                      type="number"
+                      min="1"
+                      value={qty}
+                      onChange={(e) => setQty(e.target.value)}
+                      className="h-9 w-16 border-0 text-center shadow-none focus-visible:ring-0"
+                    />
+                    <button type="button" aria-label="More" onClick={() => stepQty(1)} className="flex h-9 w-9 items-center justify-center hover:text-primary">
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-baseline justify-between border-t border-border pt-4">
+                  <span className="text-sm text-muted-foreground">{fmt(selected.price)} / {selected.unit}</span>
+                  <span className="text-2xl font-display font-bold text-primary">{fmt(itemsTotal)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <p className="text-sm text-muted-foreground">No item chosen. Describe what you need, or pick one from the price list.</p>
+                <Button variant="outline" className="w-full" onClick={() => scrollToId("catalogue")}>
+                  See prices
+                </Button>
+              </div>
+            )}
+          </aside>
         </div>
       </section>
+
+      {/* The picked item stays in reach until the form is on screen */}
+      {selected && !formInView && (
+        <div className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 fade-in-up">
+          <div className="flex w-full max-w-xl items-center gap-3 rounded-2xl border border-primary/40 bg-card/95 p-3 pl-4 shadow-2xl backdrop-blur">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{selected.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {qty} {selected.unit} · <span className="font-semibold text-primary">{fmt(itemsTotal)}</span>
+              </p>
+            </div>
+            <Button className="shrink-0 gap-1.5" onClick={() => scrollToId("pkg-form")}>
+              Continue <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );
