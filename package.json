@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:db": "node supabase/tests/run-sql-tests.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {
