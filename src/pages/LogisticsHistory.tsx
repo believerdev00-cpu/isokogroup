@@ -6,6 +6,9 @@ import { ArrowLeft, Package as PackageIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { openSecureFile } from "@/features/services/api";
 
 type LogisticsRequest = {
   id: string;
@@ -17,6 +20,7 @@ type LogisticsRequest = {
   full_name: string | null;
   phone: string | null;
   item_type: string | null;
+  proof_url: string | null;
   created_at: string;
 };
 
@@ -113,6 +117,14 @@ const LogisticsHistory = () => {
                       <span className="font-medium">{r.full_name} {r.phone ? `(${r.phone})` : ""}</span>
                     </div>
                   </div>
+                  {r.proof_url && (
+                    <Button
+                      variant="outline" size="sm" className="mt-4"
+                      onClick={() => openSecureFile("delivery-proofs", r.proof_url!).catch((e) => toast.error(e.message))}
+                    >
+                      View proof of delivery
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

@@ -67,9 +67,9 @@ const DriverDashboard = () => {
       const path = `${user!.id}/${id}-${Date.now()}.${file.name.split(".").pop()}`;
       const { error: upErr } = await supabase.storage.from("delivery-proofs").upload(path, file);
       if (upErr) throw upErr;
-      const { data: signed } = await supabase.storage.from("delivery-proofs").createSignedUrl(path, 60 * 60 * 24 * 365);
+      // The path, not a link: the customer and admins open it through file-access
       await updateStatus(id, "delivered", {
-        proof_url: signed?.signedUrl || path,
+        proof_url: path,
         delivered_at: new Date().toISOString(),
       });
     } catch (e: any) {

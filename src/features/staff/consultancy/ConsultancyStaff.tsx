@@ -24,7 +24,7 @@ const TONE: Record<Status, "new" | "done" | "wait" | "off" | "work"> = {
 };
 
 type Req = {
-  id: string; reference: string; access_token: string; service_key: string; service_name: string; description: string;
+  id: string; reference: string; access_token: string; files_key: string; service_key: string; service_name: string; description: string;
   client_name: string; organization: string | null; phone: string; email: string; status: Status; assigned_to: string | null;
   start_date: string | null; expected_completion: string | null; staff_notes: string; change_request: string | null;
   change_requested_at: string | null; created_at: string;
@@ -255,7 +255,7 @@ function FilesPanel({ req }: { req: Req }) {
   };
   const share = async (f: CFile) => {
     try {
-      const shared_path = await shareWithClient("consultancy", req.access_token, f.path);
+      const shared_path = await shareWithClient("consultancy", req.files_key, f.path);
       const { error } = await db.from("consult_files").update({ shared_path, shared_at: new Date().toISOString() }).eq("id", f.id);
       if (error) throw new Error(error.message);
       toast.success("Shared with the client");
@@ -349,7 +349,7 @@ export function ConsultancyDetail() {
             <p className="text-sm text-muted-foreground">{r.phone}</p>
             <p className="break-all text-sm text-muted-foreground">{r.email}</p>
             <div className="mt-3"><ContactButtons phone={r.phone} email={r.email} name={r.client_name} reference={r.reference} /></div>
-            <div className="mt-2"><CustomerLinkButton path={`/consultancy/r/${r.access_token}`} /></div>
+            <div className="mt-2"><CustomerLinkButton path={`/consultancy/r/${r.access_token}`} service="consultancy" requestId={r.id} /></div>
           </Panel>
           <Panel title="Project">
             <div className="space-y-3">

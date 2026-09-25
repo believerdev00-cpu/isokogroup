@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import {
-  customerWhatsapp, db, errorText, formatDate, unwrap, type ServiceKey,
+  customerWhatsapp, db, errorText, formatDate, rpc, unwrap, type ServiceKey,
 } from "@/features/services/api";
 import { useStaffDirectory } from "./access";
 import { CountUp } from "@/components/motion";
@@ -124,22 +124,32 @@ export function ContactButtons({ phone, email, name, reference, compact = false 
 }
 
 /** A link staff can send the customer to follow their request. */
-export function CustomerLinkButton({ path }: { path: string }) {
+/** Copy the customer's private link, or replace it (e.g. if it was shared by mistake). */
+export function CustomerLinkButton({ path, service, requestId }: { path: string; service: ServiceKey; requestId: string }) {
+  const qc = useQueryClient();
+  const copy = async (p: string, done: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${p}`);
+      toast.success(done);
+    } catch {
+      toast.error("Couldn't copy");
+    }
+  };
+  const reset = async () => {
+    if (!window.confirm("Replace this customer's link? The current link stops working at once. The customer gets the new one by email or WhatsApp, and keeps their files.")) return;
+    try {
+      const token = await rpc<string>("reset_customer_link", { p_service: service, p_id: requestId });
+      await copy(path.replace(/[^/]+$/, token), "New link sent to the customer and copied");
+      qc.invalidateQueries();
+    } catch (e) {
+      toast.error(errorText(e));
+    }
+  };
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(`${window.location.origin}${path}`);
-          toast.success("Customer link copied");
-        } catch {
-          toast.error("Couldn't copy");
-        }
-      }}
-    >
-      Copy customer link
-    </Button>
+    <div className="flex flex-wrap gap-1">
+      <Button variant="ghost" size="sm" onClick={() => copy(path, "Customer link copied")}>Copy customer link</Button>
+      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={reset}>Reset link</Button>
+    </div>
   );
 }
 

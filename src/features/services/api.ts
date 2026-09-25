@@ -134,21 +134,43 @@ export async function uploadStaffFile(service: ServiceKey, requestId: string, fi
   return path;
 }
 
-/** Gives the customer a copy of a staff file (a deliverable), in their shared folder. */
-export async function shareWithClient(service: ServiceKey, token: string, internalPath: string) {
+/** Gives the customer a copy of a staff file (a deliverable), in their request's shared folder. */
+export async function shareWithClient(service: ServiceKey, filesKey: string, internalPath: string) {
   const name = internalPath.split("/").pop()!;
-  const dest = `${service}/${token}/shared/${Date.now()}-${name.replace(/^\d+-/, "")}`;
+  const dest = `${service}/${filesKey}/shared/${Date.now()}-${name.replace(/^\d+-/, "")}`;
   const { error } = await supabase.storage.from(BUCKET).copy(internalPath, dest);
   if (error) throw new Error(`Could not share the file: ${error.message}`);
   return dest;
 }
 
-/** Opens a stored file (staff). */
-export async function openFile(path: string, download?: string) {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 300, download ? { download } : undefined);
-  if (error || !data) throw new Error("Could not open the file");
-  window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+export type SecureBucket = "service-files" | "id-documents" | "delivery-proofs";
+
+/**
+ * Opens a protected file (customer uploads, ID documents, delivery proofs) for
+ * the signed-in person. The file-access Edge Function checks they may open it,
+ * records it in the audit log and returns a two-minute link.
+ */
+export async function openSecureFile(bucket: SecureBucket, path: string, download?: string) {
+  const tab = window.open("", "_blank");
+  try {
+    const { data, error } = await supabase.functions.invoke("file-access", { body: { bucket, path, download } });
+    if (error) {
+      const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      throw new Error(detail?.error ?? "Could not open the file");
+    }
+    const url = new URL((data as { url: string }).url, import.meta.env.VITE_SUPABASE_URL).toString();
+    if (tab) {
+      tab.opener = null;
+      tab.location.href = url;
+    } else window.location.href = url;
+  } catch (e) {
+    tab?.close();
+    throw e;
+  }
 }
+
+/** Opens a stored file of a request (staff). */
+export const openFile = (path: string, download?: string) => openSecureFile("service-files", path, download);
 
 // ============== OFFERINGS ==============
 export type Offering = { id: string; service: "consultancy" | "data"; key: string; name: string; description: string; is_active: boolean; sort: number };

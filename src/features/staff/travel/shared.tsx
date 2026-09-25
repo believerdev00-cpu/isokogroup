@@ -6,7 +6,7 @@ import { NEED_LABEL, STATUS_LABEL, type Need, type TripStatus } from "@/features
 import { ContactButtons, Pill, SubNav } from "../common";
 
 export type StaffTrip = {
-  id: string; reference: string; access_token: string; destination: string; travelling_from: string | null;
+  id: string; reference: string; access_token: string; files_key: string; destination: string; travelling_from: string | null;
   arrival_date: string; departure_date: string; travelers: number; needs: Need[]; package_id: string | null;
   customer_name: string; customer_phone: string; customer_email: string; message: string | null;
   status: TripStatus; quote_total: number | null; currency: string; quote_sent_at: string | null; accepted_at: string | null;

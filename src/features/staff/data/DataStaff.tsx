@@ -24,7 +24,7 @@ const TONE: Record<Status, "new" | "done" | "wait" | "off" | "work"> = {
 };
 
 type Req = {
-  id: string; reference: string; access_token: string; service_name: string; description: string; data_later: boolean;
+  id: string; reference: string; access_token: string; files_key: string; service_name: string; description: string; data_later: boolean;
   client_name: string; organization: string | null; phone: string; email: string; status: Status; assigned_to: string | null;
   start_date: string | null; deadline: string | null; fee: number | null; currency: string; staff_notes: string;
   client_feedback: string | null; client_feedback_at: string | null; created_at: string;
@@ -182,7 +182,7 @@ function DeliverableRow({ d, req, refresh }: { d: Deliverable; req: Req; refresh
   };
   const shareDone = async () => {
     try {
-      const shared_path = d.file_path ? await shareWithClient("data", req.access_token, d.file_path) : null;
+      const shared_path = d.file_path ? await shareWithClient("data", req.files_key, d.file_path) : null;
       await patch({ status: "done", completed_at: new Date().toISOString(), shared_path }, d.file_path ? "Marked complete and shared with the client" : "Marked complete");
     } catch (e) {
       toast.error(errorText(e));
@@ -293,7 +293,7 @@ export function DataDetail() {
             <p className="text-sm text-muted-foreground">{r.phone}</p>
             <p className="break-all text-sm text-muted-foreground">{r.email}</p>
             <div className="mt-3"><ContactButtons phone={r.phone} email={r.email} name={r.client_name} reference={r.reference} /></div>
-            <div className="mt-2"><CustomerLinkButton path={`/data-analysis/r/${r.access_token}`} /></div>
+            <div className="mt-2"><CustomerLinkButton path={`/data-analysis/r/${r.access_token}`} service="data" requestId={r.id} /></div>
           </Panel>
           <Panel title="Project">
             <div className="space-y-3">

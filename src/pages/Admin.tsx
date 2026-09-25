@@ -26,6 +26,7 @@ import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
 import MyOverview from "@/components/admin/MyOverview";
 import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
 import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
+import { openSecureFile } from "@/features/services/api";
 import type { BillableTable } from "@/features/finance/api";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
@@ -454,43 +455,18 @@ const Admin = () => {
     fetchAll();
   };
 
-  const getSignedIdUrl = async (path: string) => {
-    const { data, error } = await supabase.storage
-      .from("id-documents")
-      .createSignedUrl(path, 60 * 5); // 5 min
-    if (error || !data?.signedUrl) {
-      toast({ title: "Could not load document", description: error?.message || "Unknown error", variant: "destructive" });
-      return null;
-    }
-    return data.signedUrl;
-  };
-
-  const handleViewId = async (path: string | null) => {
+  // ID documents open through file-access: checked, recorded in the audit log, two-minute link
+  const openIdDocument = async (path: string | null, download?: string) => {
     if (!path) { toast({ title: "No document uploaded", variant: "destructive" }); return; }
-    const url = await getSignedIdUrl(path);
-    if (url) window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-  const handleDownloadId = async (path: string | null, applicantName: string) => {
-    if (!path) { toast({ title: "No document uploaded", variant: "destructive" }); return; }
-    const url = await getSignedIdUrl(path);
-    if (!url) return;
     try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const ext = path.split(".").pop() || "bin";
-      const a = document.createElement("a");
-      const objectUrl = URL.createObjectURL(blob);
-      a.href = objectUrl;
-      a.download = `id-${applicantName.replace(/[^a-z0-9]+/gi, "_")}.${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(objectUrl);
+      await openSecureFile("id-documents", path, download);
     } catch (e: any) {
-      toast({ title: "Download failed", description: e?.message || "Unknown error", variant: "destructive" });
+      toast({ title: "Could not open the document", description: e?.message, variant: "destructive" });
     }
   };
+  const handleViewId = (path: string | null) => openIdDocument(path);
+  const handleDownloadId = (path: string | null, applicantName: string) =>
+    openIdDocument(path, `id-${applicantName.replace(/[^a-z0-9]+/gi, "_")}.${path?.split(".").pop() || "bin"}`);
 
   return (
     <div className="min-h-screen">

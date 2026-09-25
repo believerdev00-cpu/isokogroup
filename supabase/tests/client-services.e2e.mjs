@@ -52,6 +52,12 @@ async function clientDownload(client, service, token, path) {
   if (error) return null;
   return (await fetch(new globalThis.URL(data.url, URL))).text();
 }
+// Staff open customer uploads only through the file-access Edge Function (checked and recorded)
+async function staffOpen(client, path) {
+  const { data, error } = await client.functions.invoke("file-access", { body: { bucket: "service-files", path } });
+  if (error) return null;
+  return (await fetch(new globalThis.URL(data.url, URL))).text();
+}
 
 console.log("Travel Agency");
 const traveler = anon();
@@ -98,7 +104,7 @@ assert.ok(docPath.startsWith(`travel/${trip.token}/client/`)); ok("customer uplo
 await fails(traveler.storage.from("service-files").upload(`travel/${trip.token}/client/direct.pdf`, file("x.pdf", "application/pdf")), null, "customers can't write to Storage directly");
 assert.equal(must(await anon().storage.from("service-files").list(`travel/${trip.token}/client`), "anon list").length, 0); ok("nobody can list customer folders without an account");
 assert.equal(must(await consultant.client.storage.from("service-files").list(`travel/${trip.token}/client`), "consultant list").length, 0); ok("other services' staff can't list travel folders");
-assert.ok(must(await travelStaff.client.storage.from("service-files").list(`travel/${trip.token}/client`), "staff list").length > 0); ok("travel staff can");
+assert.equal(must(await travelStaff.client.storage.from("service-files").list(`travel/${trip.token}/client`), "staff list").length, 0); ok("travel staff can't browse customer uploads in Storage either");
 {
   const { error } = await traveler.functions.invoke("service-files", { body: { action: "upload", service: "travel", token: "a".repeat(64), filename: "x.pdf" } });
   assert.ok(error); ok("a made-up link can't upload");
@@ -106,9 +112,13 @@ assert.ok(must(await travelStaff.client.storage.from("service-files").list(`trav
 assert.equal(await clientDownload(traveler, "travel", trip.token, docPath), "hello"); ok("customer re-opens their own document");
 assert.equal(await clientDownload(anon(), "travel", "b".repeat(64), docPath), null); ok("another link can't open it");
 must(await traveler.rpc("travel_document_uploaded", { p_token: trip.token, p_document_id: view.documents[0].id, p_path: docPath }), "doc uploaded");
-const signed = must(await travelStaff.client.storage.from("service-files").createSignedUrl(docPath, 60), "staff signed url");
-assert.equal(await (await fetch(signed.signedUrl)).text(), "hello"); ok("travel staff open the passport");
-await fails(consultant.client.storage.from("service-files").createSignedUrl(docPath, 60), null, "other services' staff can't open it");
+await fails(travelStaff.client.storage.from("service-files").createSignedUrl(docPath, 60), null, "staff can't open the passport straight from Storage");
+assert.equal(await staffOpen(travelStaff.client, docPath), "hello"); ok("travel staff open the passport through file-access");
+assert.equal(await staffOpen(consultant.client, docPath), null); ok("other services' staff can't open it");
+const { data: opened } = await admin.from("audit_log").select("actor_id").eq("action", "file.opened").eq("entity_id", docPath);
+assert.ok(opened.some((a) => a.actor_id === travelStaff.id)); ok("opening the passport is in the audit log");
+const { data: downloads } = await admin.from("audit_log").select("id").eq("action", "file.downloaded").eq("entity_id", docPath);
+assert.ok(downloads.length > 0); ok("so is the customer's own download");
 
 await fails(traveler.rpc("travel_submit_payment", { p_token: trip.token, p_amount: 5000, p_method: "momo", p_reference: `MP-${run}-X` }), /left to pay/, "customer can't report more than the $1,700 balance");
 must(await traveler.rpc("travel_submit_payment", { p_token: trip.token, p_amount: 700, p_method: "momo", p_reference: `MP-${run}` }), "pay");
@@ -125,6 +135,10 @@ ok("payment reported by customer, confirmed by staff: paid $700 of $1,700");
 await fails(travelStaff.client.rpc("finance_refund_payment", { p_payment_id: pay.id, p_amount: 100, p_reason: "test" }), /finance/i, "travel staff can't refund");
 must(await travelStaff.client.from("travel_trips").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", staffTrip.id), "complete");
 ok("trip completed");
+const newToken = must(await travelStaff.client.rpc("reset_customer_link", { p_service: "travel", p_id: staffTrip.id }), "reset link");
+assert.equal(must(await traveler.rpc("travel_trip_view", { p_token: trip.token }), "old view"), null);
+assert.equal(await clientDownload(traveler, "travel", trip.token, docPath), null); ok("after a link reset the old link opens nothing");
+assert.equal(await clientDownload(traveler, "travel", newToken, docPath), "hello"); ok("the new link reaches the same files");
 
 console.log("Consultancy");
 const client = anon();
@@ -169,8 +183,7 @@ must(await org.rpc("data_client_file", { p_token: dr.token, p_path: dataPath, p_
 const mine = must(await org.rpc("my_service_requests"), "mine");
 assert.ok(mine.some((m) => m.reference === dr.reference)); ok("the signed-in customer finds the project in their requests");
 const proj = must(await analyst.client.from("data_requests").select("*").eq("reference", dr.reference).single(), "analyst project");
-const csv = must(await analyst.client.storage.from("service-files").createSignedUrl(dataPath, 60), "analyst signed");
-assert.match(await (await fetch(csv.signedUrl)).text(), /answer/); ok("analyst downloads the client's data");
+assert.match(await staffOpen(analyst.client, dataPath), /answer/); ok("analyst opens the client's data through file-access");
 must(await analyst.client.from("data_requests").update({ status: "data_received", assigned_to: analyst.id, fee: 500, deadline: inDays(14) }).eq("id", proj.id), "receive");
 const reportInternal = `data/internal/${proj.id}/${Date.now()}-report.pdf`;
 must(await analyst.client.storage.from("service-files").upload(reportInternal, file("report.pdf", "application/pdf", "analysis report")), "upload report");

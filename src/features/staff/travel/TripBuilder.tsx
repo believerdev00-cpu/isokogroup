@@ -345,7 +345,7 @@ export default function TripBuilder() {
             <p className="text-sm text-muted-foreground">{t.customer_phone}</p>
             <p className="break-all text-sm text-muted-foreground">{t.customer_email}</p>
             <div className="mt-3"><ContactButtons phone={t.customer_phone} email={t.customer_email} name={t.customer_name} reference={t.reference} /></div>
-            <div className="mt-2"><CustomerLinkButton path={`/travel/trip/${t.access_token}`} /></div>
+            <div className="mt-2"><CustomerLinkButton path={`/travel/trip/${t.access_token}`} service="travel" requestId={t.id} /></div>
           </Panel>
           <Panel title="Requested">
             <ul className="flex flex-wrap gap-1.5">

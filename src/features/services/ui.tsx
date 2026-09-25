@@ -268,7 +268,10 @@ export function NotFoundCard({ what, backTo, backLabel }: { what: string; backTo
   return (
     <FlowColumn className="text-center">
       <h1 className="font-display text-2xl font-bold">{what} not found</h1>
-      <p className="mt-2 text-muted-foreground">Check that you opened the full link we sent you, or contact Isoko.</p>
+      <p className="mt-2 text-muted-foreground">
+        Check that you opened the full link we sent you. Links stop working some months after a request is closed, or when
+        Isoko sends you a new one. Contact Isoko and we'll send you a working link.
+      </p>
       <Button asChild variant="outline" className="mt-6">
         <Link to={backTo}>{backLabel}</Link>
       </Button>
