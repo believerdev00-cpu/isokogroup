@@ -26,6 +26,8 @@ import DataAnalysis from "@/components/admin/DataAnalysis";
 import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
 import MyOverview from "@/components/admin/MyOverview";
 import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
+import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
+import type { BillableTable } from "@/features/finance/api";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
 const COLORS = ["hsl(0, 85%, 50%)", "hsl(0, 0%, 20%)", "hsl(0, 85%, 65%)", "hsl(0, 0%, 45%)", "hsl(0, 85%, 80%)"];
@@ -78,6 +80,7 @@ const Admin = () => {
 
   // Reject dialog state
   const [rejectingApp, setRejectingApp] = useState<any | null>(null);
+  const [paymentsFor, setPaymentsFor] = useState<{ table: BillableTable; id: string; title: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectSubmitting, setRejectSubmitting] = useState(false);
   const MAX_REASON = 500;
@@ -166,14 +169,8 @@ const Admin = () => {
   };
 
   const handleConfirmPayment = async (order: any) => {
-    const { error } = await (supabase as any)
-      .from("orders")
-      .update({
-        payment_status: "paid",
-        payment_confirmed_at: new Date().toISOString(),
-        status: order.status === "pending" ? "processing" : order.status,
-      })
-      .eq("id", order.id);
+    // The buyer's reported payment becomes a payment; the order follows it
+    const { error } = await (supabase as any).rpc("confirm_order_payment", { p_order_id: order.id });
     if (error) {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
@@ -440,6 +437,18 @@ const Admin = () => {
     const price = parseInt(input, 10);
     if (Number.isNaN(price) || price < 0) { toast({ title: "Invalid price", variant: "destructive" }); return; }
     await updateSoftwareBooking(b.id, { agreed_price: price }, "Agreed price set");
+  };
+
+  // Deposit (50%) or the rest, computed on the server from the agreed price
+  const handleSoftwareInstallment = async (b: any, part: "deposit" | "final") => {
+    const reference = window.prompt("Payment reference (Mobile Money or bank). Leave empty for cash.", "");
+    if (reference === null) return;
+    const { error } = await (supabase as any).rpc("software_record_installment", {
+      p_booking_id: b.id, p_part: part, p_method: reference.trim() ? "other" : "cash", p_reference: reference.trim(),
+    });
+    if (error) { toast({ title: "Could not record the payment", description: error.message, variant: "destructive" }); return; }
+    await updateSoftwareBooking(b.id, { status: part === "deposit" ? "in_progress" : "completed" },
+      part === "deposit" ? "50% recorded — project in progress" : "Final payment recorded — completed");
   };
 
   const handleApproveApplication = async (app: any) => {
@@ -927,11 +936,15 @@ const Admin = () => {
                                 <option value="delivered">Delivered</option>
                                 <option value="cancelled">Cancelled</option>
                               </select>
-                              {o.payment_status !== "paid" && (
+                              {o.payment_status === "awaiting_confirmation" && (
                                 <Button size="sm" variant="outline" className="h-7 text-xs gap-1 w-full" onClick={() => handleConfirmPayment(o)}>
                                   <CheckCircle className="h-3 w-3" /> Confirm payment
                                 </Button>
                               )}
+                              <Button size="sm" variant="ghost" className="h-7 text-xs w-full"
+                                onClick={() => setPaymentsFor({ table: "orders", id: o.id, title: `Order #${o.id.slice(0, 8)}` })}>
+                                Payments
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1419,24 +1432,22 @@ const Admin = () => {
                                     Approve
                                   </Button>
                                 )}
-                                {!b.deposit_paid && (
+                                {b.agreed_price && !b.deposit_paid && (
                                   <Button size="sm" variant="outline" className="h-7 text-xs"
-                                    onClick={() => updateSoftwareBooking(b.id, {
-                                      deposit_paid: true,
-                                      deposit_paid_at: new Date().toISOString(),
-                                      status: "in_progress",
-                                    }, "Marked 50% paid — project in progress")}>
+                                    onClick={() => handleSoftwareInstallment(b, "deposit")}>
                                     Mark 50% Paid
                                   </Button>
                                 )}
                                 {b.deposit_paid && !b.final_paid && (
                                   <Button size="sm" variant="outline" className="h-7 text-xs"
-                                    onClick={() => updateSoftwareBooking(b.id, {
-                                      final_paid: true,
-                                      final_paid_at: new Date().toISOString(),
-                                      status: "completed",
-                                    }, "Final payment received — completed")}>
+                                    onClick={() => handleSoftwareInstallment(b, "final")}>
                                     Mark Final Paid
+                                  </Button>
+                                )}
+                                {b.agreed_price && (
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs"
+                                    onClick={() => setPaymentsFor({ table: "software_bookings", id: b.id, title: `Software · ${b.full_name}` })}>
+                                    Payments
                                   </Button>
                                 )}
                                 {b.status !== "completed" && b.status !== "cancelled" && (
@@ -1461,6 +1472,16 @@ const Admin = () => {
       <Footer />
 
       {/* Reject application dialog with optional reason */}
+      <Dialog open={!!paymentsFor} onOpenChange={(open) => { if (!open) { setPaymentsFor(null); fetchAll(); } }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{paymentsFor?.title}</DialogTitle>
+            <DialogDescription>Payments, refunds and adjustments. Every change is kept in the ledger and the audit log.</DialogDescription>
+          </DialogHeader>
+          {paymentsFor && <PaymentsPanel entityTable={paymentsFor.table} entityId={paymentsFor.id} />}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!rejectingApp} onOpenChange={(open) => { if (!open) { setRejectingApp(null); setRejectReason(""); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

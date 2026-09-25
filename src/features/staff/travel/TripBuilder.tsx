@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { db, errorText, formatDate, formatDateRange, formatMoney, formatTime, openFile, unwrap } from "@/features/services/api";
 import { NEED_LABEL, SECTIONS, type Section, type TripStatus } from "@/features/travel/data";
-import { AssignSelect, ContactButtons, CustomerLinkButton, NotesPanel, Panel, PaymentsPanel, Pill, StaffPage } from "../common";
+import { AssignSelect, ContactButtons, CustomerLinkButton, NotesPanel, Panel, Pill, StaffPage } from "../common";
+import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
 import { TravelNav, TripStatusPill, type StaffTrip } from "./shared";
 
 type Item = {
@@ -334,7 +335,7 @@ export default function TripBuilder() {
           <QuotePanel trip={t} items={list} refresh={refresh} />
           <DocumentsPanel trip={t} />
           {(t.status === "confirmed" || t.status === "completed") && (
-            <PaymentsPanel table="travel_payments" fk="trip_id" parentId={t.id} total={t.quote_total == null ? null : Number(t.quote_total)} currency={t.currency} />
+            <PaymentsPanel entityTable="travel_trips" entityId={t.id} />
           )}
         </div>
 

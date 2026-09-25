@@ -6,3 +6,8 @@ project_id = "klcyyeeqxxfheurdhmay"
 # status lookup, certificate checks) are used without signing in.
 verify_jwt = false
 entrypoint = "./functions/training/index.js"
+
+[functions.payments-webhook]
+# Payment providers can't send an Isoko access token; each webhook is checked
+# by the provider's signature instead (see functions/payments-webhook).
+verify_jwt = false

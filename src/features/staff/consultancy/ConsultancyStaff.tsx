@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { db, errorText, formatDate, formatMoney, openFile, shareWithClient, unwrap, uploadStaffFile } from "@/features/services/api";
-import { AssignSelect, AttentionTile, ContactButtons, CustomerLinkButton, EmptyState, NotesPanel, Panel, PaymentsPanel, Pill, StaffPage, SubNav, TasksPanel } from "../common";
+import { AssignSelect, AttentionTile, ContactButtons, CustomerLinkButton, EmptyState, NotesPanel, Panel, Pill, StaffPage, SubNav, TasksPanel } from "../common";
+import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
+import { usePendingSubmissions } from "@/features/finance/api";
 import { OfferingsManager, StatusStepper } from "../workflow";
 
 type Status = "new" | "contacted" | "assessment" | "proposal_sent" | "approved" | "in_progress" | "completed" | "declined";
@@ -64,10 +66,7 @@ function RequestRow({ r }: { r: Req }) {
 
 export function ConsultancyDashboard() {
   const reqs = useRequests();
-  const pending = useQuery({
-    queryKey: ["staff_payments", "consultancy"],
-    queryFn: async () => unwrap<{ id: string }[]>(await db.from("consult_payments").select("id").eq("status", "pending")),
-  });
+  const pending = usePendingSubmissions("consultancy");
   const all = reqs.data ?? [];
   const count = (f: (r: Req) => boolean) => (reqs.data ? all.filter(f).length : undefined);
   const attention = all.filter((r) => r.status === "new" || (r.status === "assessment" && r.change_request)).slice(0, 8);
@@ -341,7 +340,7 @@ export function ConsultancyDetail() {
           <ProposalPanel req={r} refresh={refresh} />
           {isProject && <TasksPanel table="consult_tasks" requestId={r.id} />}
           <FilesPanel req={r} />
-          {isProject && <PaymentsPanel table="consult_payments" fk="request_id" parentId={r.id} total={accepted ? Number(accepted.fee) : null} currency={accepted?.currency ?? "USD"} />}
+          {isProject && <PaymentsPanel entityTable="consult_requests" entityId={r.id} />}
         </div>
         <aside className="space-y-4">
           <Panel title="Client">

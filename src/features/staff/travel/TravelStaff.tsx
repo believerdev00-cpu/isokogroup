@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { db, formatDate, formatDateRange, formatMoney, PAYMENT_METHOD_LABEL, todayIso, unwrap, type PaymentMethod } from "@/features/services/api";
+import { db, errorText, formatDate, formatDateRange, formatMoney, PAYMENT_METHOD_LABEL, rpc, todayIso, unwrap } from "@/features/services/api";
+import { usePendingSubmissions } from "@/features/finance/api";
 import type { Package } from "@/features/travel/data";
 import { AttentionTile, ContactButtons, EmptyState, Panel, Pill, StaffPage } from "../common";
 import { ActivityFeed } from "@/components/motion";
@@ -23,17 +24,7 @@ export function useTrips() {
   });
 }
 
-type PendingPayment = { id: string; amount: number; method: PaymentMethod; reference: string; created_at: string; trip: { id: string; reference: string; customer_name: string; currency: string } };
-function usePendingPayments() {
-  return useQuery({
-    queryKey: ["staff_payments", "travel"],
-    queryFn: async () =>
-      unwrap<PendingPayment[]>(
-        await db.from("travel_payments").select("id, amount, method, reference, created_at, trip:travel_trips(id, reference, customer_name, currency)").eq("status", "pending").order("created_at"),
-      ),
-    refetchInterval: 60_000,
-  });
-}
+const usePendingPayments = () => usePendingSubmissions("travel");
 
 const OPEN_REQUEST = ["new", "planning", "changes_requested"];
 
@@ -231,16 +222,18 @@ export function TravelCustomers() {
 export function TravelPayments() {
   const payments = usePendingPayments();
   const qc = useQueryClient();
-  const decide = async (id: string, status: "confirmed" | "rejected") => {
-    const { data: auth } = await db.auth.getUser();
-    const { error } = await db.from("travel_payments").update({ status, confirmed_at: new Date().toISOString(), confirmed_by: auth.user?.id }).eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success(status === "confirmed" ? "Payment confirmed" : "Payment rejected");
-    qc.invalidateQueries({ queryKey: ["staff_payments"] });
+  const confirm = async (id: string) => {
+    try {
+      await rpc("finance_verify_submission", { p_submission_id: id });
+      toast.success("Payment confirmed");
+      qc.invalidateQueries({ queryKey: ["finance_pending"] });
+    } catch (e) {
+      toast.error(errorText(e));
+    }
   };
   const list = payments.data ?? [];
   return (
-    <StaffPage title="Payments" subtitle="Payments customers reported. Confirm once the money has arrived." nav={<TravelNav />}>
+    <StaffPage title="Payments" subtitle="Payments customers reported. Confirm once the money has arrived; to reject one or confirm a different amount, open the trip." nav={<TravelNav />}>
       {payments.isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : list.length === 0 ? (
@@ -250,14 +243,13 @@ export function TravelPayments() {
           {list.map((p) => (
             <li key={p.id} className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-4">
               <div className="min-w-0 flex-1">
-                <p className="text-lg font-bold tabular-nums">{formatMoney(p.amount, p.trip.currency)}</p>
+                <p className="text-lg font-bold tabular-nums">{formatMoney(p.amount, p.currency)}</p>
                 <p className="text-sm text-muted-foreground">
-                  {p.trip.customer_name} · {p.trip.reference} · {PAYMENT_METHOD_LABEL[p.method]} · Ref {p.reference} · {formatDate(p.created_at, { day: "numeric", month: "short" })}
+                  {p.label} · {PAYMENT_METHOD_LABEL[p.method]} · Ref {p.reference} · {formatDate(p.created_at, { day: "numeric", month: "short" })} · Balance {formatMoney(p.balance, p.currency)}
                 </p>
               </div>
-              <Button asChild variant="ghost" size="sm"><Link to={`/staff/travel/trip/${p.trip.id}`}>Trip</Link></Button>
-              <Button onClick={() => decide(p.id, "confirmed")}>Confirm</Button>
-              <Button variant="outline" onClick={() => decide(p.id, "rejected")}>Reject</Button>
+              <Button asChild variant="outline"><Link to={`/staff/travel/trip/${p.entity_id}`}>Open trip</Link></Button>
+              <Button onClick={() => confirm(p.id)}>Money arrived</Button>
             </li>
           ))}
         </ul>

@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { db, errorText, formatDate, formatMoney, openFile, shareWithClient, todayIso, unwrap, uploadStaffFile } from "@/features/services/api";
 import { DELIVERABLE_LABEL } from "@/features/data/constants";
-import { AssignSelect, AttentionTile, ContactButtons, CustomerLinkButton, EmptyState, NotesPanel, Panel, PaymentsPanel, Pill, StaffPage, SubNav, TasksPanel } from "../common";
+import { AssignSelect, AttentionTile, ContactButtons, CustomerLinkButton, EmptyState, NotesPanel, Panel, Pill, StaffPage, SubNav, TasksPanel } from "../common";
+import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
+import { usePendingSubmissions } from "@/features/finance/api";
 import { OfferingsManager, StatusStepper } from "../workflow";
 
 type Status = "new" | "data_received" | "reviewing" | "analysis" | "draft_report" | "client_review" | "completed" | "cancelled";
@@ -69,10 +71,7 @@ function ProjectRow({ r }: { r: Req & { data_files?: { count: number }[] } }) {
 
 export function DataDashboard() {
   const projects = useProjects();
-  const pending = useQuery({
-    queryKey: ["staff_payments", "data"],
-    queryFn: async () => unwrap<{ id: string }[]>(await db.from("data_payments").select("id").eq("status", "pending")),
-  });
+  const pending = usePendingSubmissions("data");
   const all = projects.data ?? [];
   const count = (f: (r: Req) => boolean) => (projects.data ? all.filter(f).length : undefined);
   const today = todayIso();
@@ -285,7 +284,7 @@ export function DataDetail() {
           <ClientData req={r} />
           <DeliverablesPanel req={r} />
           <TasksPanel table="data_tasks" requestId={r.id} />
-          <PaymentsPanel table="data_payments" fk="request_id" parentId={r.id} total={r.fee == null ? null : Number(r.fee)} currency={r.currency} />
+          <PaymentsPanel entityTable="data_requests" entityId={r.id} />
         </div>
         <aside className="space-y-4">
           <Panel title="Client">

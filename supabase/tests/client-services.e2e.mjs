@@ -110,11 +110,19 @@ const signed = must(await travelStaff.client.storage.from("service-files").creat
 assert.equal(await (await fetch(signed.signedUrl)).text(), "hello"); ok("travel staff open the passport");
 await fails(consultant.client.storage.from("service-files").createSignedUrl(docPath, 60), null, "other services' staff can't open it");
 
-must(await traveler.rpc("travel_submit_payment", { p_token: trip.token, p_amount: 700, p_method: "momo", p_reference: "MP12345" }), "pay");
-const pay = must(await travelStaff.client.from("travel_payments").select("*").eq("trip_id", staffTrip.id).single(), "payment");
-must(await travelStaff.client.from("travel_payments").update({ status: "confirmed", confirmed_by: travelStaff.id, confirmed_at: new Date().toISOString() }).eq("id", pay.id), "confirm");
+await fails(traveler.rpc("travel_submit_payment", { p_token: trip.token, p_amount: 5000, p_method: "momo", p_reference: `MP-${run}-X` }), /left to pay/, "customer can't report more than the $1,700 balance");
+must(await traveler.rpc("travel_submit_payment", { p_token: trip.token, p_amount: 700, p_method: "momo", p_reference: `MP-${run}` }), "pay");
+await fails(traveler.rpc("travel_submit_payment", { p_token: trip.token, p_amount: 100, p_method: "momo", p_reference: `MP-${run}` }), /already reported/, "the same reference can't be reported twice");
+await fails(travelStaff.client.from("travel_payments").insert({ trip_id: staffTrip.id, amount: 1700, method: "cash", status: "confirmed" }), null, "staff can't write payments directly any more");
+const queue = must(await travelStaff.client.rpc("finance_pending_submissions", { p_module: "travel" }), "queue");
+const pay = queue.find((s) => s.entity_id === staffTrip.id);
+assert.equal(Number(pay.amount), 700);
+await fails(consultant.client.rpc("finance_verify_submission", { p_submission_id: pay.id }), null, "consultancy staff can't confirm a travel payment");
+must(await travelStaff.client.rpc("finance_verify_submission", { p_submission_id: pay.id }), "confirm");
 view = must(await traveler.rpc("travel_trip_view", { p_token: trip.token }), "view");
-assert.equal(Number(view.paid), 700); ok("payment reported by customer, confirmed by staff: paid $700 of $1,700");
+assert.equal(Number(view.paid), 700); assert.equal(Number(view.balance), 1000);
+ok("payment reported by customer, confirmed by staff: paid $700 of $1,700");
+await fails(travelStaff.client.rpc("finance_refund_payment", { p_payment_id: pay.id, p_amount: 100, p_reason: "test" }), /finance/i, "travel staff can't refund");
 must(await travelStaff.client.from("travel_trips").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", staffTrip.id), "complete");
 ok("trip completed");
 
@@ -181,7 +189,7 @@ dv = must(await org.rpc("data_request_view", { p_token: dr.token }), "view");
 assert.equal(dv.status, "analysis"); ok("client asks for changes: back to analysis");
 must(await analyst.client.from("data_requests").update({ status: "client_review" }).eq("id", proj.id), "review 2");
 must(await org.rpc("data_review", { p_token: dr.token, p_approve: true, p_message: null }), "approve");
-must(await org.rpc("data_submit_payment", { p_token: dr.token, p_amount: 500, p_method: "bank", p_reference: "BK-99881" }), "pay");
+must(await org.rpc("data_submit_payment", { p_token: dr.token, p_amount: 500, p_method: "bank", p_reference: `BK-${run}` }), "pay");
 dv = must(await org.rpc("data_request_view", { p_token: dr.token }), "view");
 assert.equal(dv.status, "completed"); assert.equal(Number(dv.pending_payment), 500); ok("client approves (completed) and reports the payment");
 

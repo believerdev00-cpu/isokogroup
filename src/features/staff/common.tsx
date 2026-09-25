@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Mail, MessageCircle, Phone, Plus, Trash2, X } from "lucide-react";
+import { Check, Mail, MessageCircle, Phone, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import {
-  customerWhatsapp, db, errorText, formatDate, formatMoney, PAYMENT_METHOD_LABEL, unwrap, type PaymentMethod, type ServiceKey,
+  customerWhatsapp, db, errorText, formatDate, unwrap, type ServiceKey,
 } from "@/features/services/api";
 import { useStaffDirectory } from "./access";
 import { CountUp } from "@/components/motion";
@@ -252,94 +252,6 @@ export function TasksPanel({ table, requestId }: { table: "consult_tasks" | "dat
         <Input type="date" aria-label="Due date" className="w-36 shrink-0" value={due} onChange={(e) => setDue(e.target.value)} />
         <Button type="submit" size="icon" aria-label="Add task" disabled={!title.trim()}><Plus className="h-4 w-4" /></Button>
       </form>
-    </Panel>
-  );
-}
-
-// ============== PAYMENTS ==============
-export type Payment = {
-  id: string; amount: number; method: PaymentMethod; reference: string; status: "pending" | "confirmed" | "rejected";
-  from_customer: boolean; created_at: string; confirmed_at: string | null;
-};
-
-/** Record payments, and confirm the ones customers report. */
-export function PaymentsPanel({
-  table, fk, parentId, total, currency, onChange,
-}: { table: "travel_payments" | "consult_payments" | "data_payments"; fk: "trip_id" | "request_id"; parentId: string; total: number | null; currency: string; onChange?: () => void }) {
-  const qc = useQueryClient();
-  const { user } = useAuth();
-  const key = [table, parentId];
-  const q = useQuery({
-    queryKey: key,
-    queryFn: async () => unwrap<Payment[]>(await db.from(table).select("*").eq(fk, parentId).order("created_at")),
-  });
-  const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<PaymentMethod>("momo");
-  const [ref, setRef] = useState("");
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: key });
-    qc.invalidateQueries({ queryKey: ["staff_payments"] });
-    onChange?.();
-  };
-  const setStatus = async (p: Payment, status: "confirmed" | "rejected") => {
-    const { error } = await db.from(table).update({ status, confirmed_at: new Date().toISOString(), confirmed_by: user?.id }).eq("id", p.id);
-    if (error) return toast.error(error.message);
-    toast.success(status === "confirmed" ? "Payment confirmed" : "Payment rejected");
-    refresh();
-  };
-  const record = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { error } = await db.from(table).insert({
-      [fk]: parentId, amount: Number(amount), method, reference: ref.trim(), status: "confirmed", from_customer: false,
-      confirmed_at: new Date().toISOString(), confirmed_by: user?.id,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Payment recorded");
-    setOpen(false);
-    setAmount("");
-    setRef("");
-    refresh();
-  };
-  const payments = q.data ?? [];
-  const paid = payments.filter((p) => p.status === "confirmed").reduce((s, p) => s + Number(p.amount), 0);
-  return (
-    <Panel title="Payments" right={<Button size="sm" variant="outline" onClick={() => setOpen(!open)}>{open ? "Cancel" : "Record payment"}</Button>}>
-      <p className="text-sm">
-        Paid <span className="font-bold">{formatMoney(paid, currency)}</span>
-        {total != null && <> of {formatMoney(total, currency)} · Remaining <span className="font-bold">{formatMoney(Math.max(total - paid, 0), currency)}</span></>}
-      </p>
-      {open && (
-        <form onSubmit={record} className="mt-3 grid gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-4">
-          <Input type="number" min="0.01" step="any" placeholder={`Amount (${currency})`} value={amount} onChange={(e) => setAmount(e.target.value)} required />
-          <select className="h-10 rounded-md border bg-background px-3 text-sm" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
-            {(Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((m) => <option key={m} value={m}>{PAYMENT_METHOD_LABEL[m]}</option>)}
-          </select>
-          <Input placeholder="Reference" value={ref} onChange={(e) => setRef(e.target.value)} maxLength={100} />
-          <Button type="submit" disabled={!amount}>Save</Button>
-        </form>
-      )}
-      {payments.length > 0 && (
-        <ul className="mt-3 divide-y text-sm">
-          {payments.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center gap-2 py-2">
-              <span className="font-semibold tabular-nums">{formatMoney(p.amount, currency)}</span>
-              <span className="text-muted-foreground">{PAYMENT_METHOD_LABEL[p.method]}{p.reference && ` · ${p.reference}`} · {formatDate(p.created_at, { day: "numeric", month: "short" })}</span>
-              <span className="ml-auto flex items-center gap-2">
-                {p.status === "pending" ? (
-                  <>
-                    <Pill tone="wait">From customer · check</Pill>
-                    <Button size="sm" onClick={() => setStatus(p, "confirmed")}><Check className="mr-1 h-4 w-4" />Confirm</Button>
-                    <Button size="sm" variant="ghost" aria-label="Reject payment" onClick={() => setStatus(p, "rejected")}><X className="h-4 w-4" /></Button>
-                  </>
-                ) : (
-                  <Pill tone={p.status === "confirmed" ? "done" : "off"}>{p.status === "confirmed" ? "Confirmed" : "Rejected"}</Pill>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
     </Panel>
   );
 }

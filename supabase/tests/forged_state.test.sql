@@ -82,7 +82,9 @@ SELECT pg_temp.expect((SELECT status FROM public.orders WHERE seller_id = :selle
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$
   SELECT public.seller_set_order_status((SELECT id FROM public.orders WHERE seller_id = auth.uid()), 'shipped') $$),
   'seller cannot ship before payment is confirmed');
-UPDATE public.orders SET payment_status = 'paid' WHERE seller_id = :seller;  -- admin confirms payment
+SELECT pg_temp.expect(NOT pg_temp.refused(:admin, $$
+  SELECT public.confirm_order_payment((SELECT id FROM public.orders WHERE seller_id = '00000000-0000-4000-8000-00000000000a')) $$),
+  'admin confirms the buyer''s payment');
 SELECT pg_temp.expect(NOT pg_temp.refused(:seller, $$
   SELECT public.seller_set_order_status((SELECT id FROM public.orders WHERE seller_id = auth.uid()), 'delivered') $$),
   'seller marks the shipment delivered');
