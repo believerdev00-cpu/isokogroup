@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Users, ShoppingCart, DollarSign, TrendingUp, Package, BookOpen, Truck, Box, Bell, Settings, FileText, Eye, Download, Film, Mic, Upload, Wallet, CheckCircle } from "lucide-react";
-import { notify } from "@/lib/notify";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -175,13 +174,7 @@ const Admin = () => {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
-    await notify({
-      userId: order.seller_id,
-      title: "Payment received — please ship",
-      body: `Order #${order.id.slice(0, 8)} (${order.total_amount.toLocaleString()} RWF) has been paid by the buyer. Please prepare and deliver the products.`,
-      type: "success",
-      link: "/seller",
-    });
+    // Buyer and seller are notified by the database (PAYMENT_SUCCESSFUL, ORDER_PAID)
     toast({ title: "Payment confirmed", description: "Seller has been notified to deliver." });
     fetchAll();
   };
@@ -194,16 +187,7 @@ const Admin = () => {
       toast({ title: "Failed", description: error.message, variant: "destructive" });
       return;
     }
-    await notify({
-      userId: payout.seller_id,
-      title: status === "paid" ? "Payout sent" : "Payout rejected",
-      body:
-        status === "paid"
-          ? `Your payout of ${payout.net_amount.toLocaleString()} RWF was sent to your ${payout.payout_method.toUpperCase()}.`
-          : `Your payout request was rejected. ${note || ""}`.trim(),
-      type: status === "paid" ? "success" : "warning",
-      link: "/seller",
-    });
+    // The seller is notified by the database (PAYOUT_PAID / PAYOUT_REJECTED)
     toast({ title: status === "paid" ? "Marked as paid" : "Rejected" });
     fetchAll();
   };
@@ -378,23 +362,7 @@ const Admin = () => {
     if (driver_id) patch.status = "assigned";
     const { error } = await (supabase as any).from("logistics_requests").update(patch).eq("id", id);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    const req = logisticsRequests.find((r) => r.id === id);
-    if (driver_id && req?.user_id) {
-      await (supabase as any).from("notifications").insert({
-        user_id: req.user_id,
-        title: "Driver assigned",
-        body: "A driver has been assigned to your delivery.",
-        type: "info",
-        link: "/logistics/history",
-      });
-      await (supabase as any).from("notifications").insert({
-        user_id: driver_id,
-        title: "New delivery assigned",
-        body: `Pickup: ${req.pickup} → ${req.dropoff}`,
-        type: "info",
-        link: "/driver",
-      });
-    }
+    // Customer and driver are notified by the database (DELIVERY_DRIVER_ASSIGNED / DELIVERY_JOB_ASSIGNED)
     toast({ title: driver_id ? "Driver assigned" : "Driver unassigned" });
     fetchAll();
   };

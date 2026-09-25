@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Package, Truck, Box, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import NotificationPreferences from "@/components/NotificationPreferences";
 
 const statusColor = (s: string) => {
   if (["delivered", "completed"].includes(s)) return "bg-green-500/15 text-green-500";
@@ -129,6 +130,10 @@ const CustomerDashboard = () => {
             </Card>
           </div>
         )}
+
+        <div className="mt-8 max-w-xl">
+          <NotificationPreferences />
+        </div>
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link to="/logistics/delivery"><Button variant="outline"><Truck className="h-4 w-4 mr-2" /> New Delivery</Button></Link>

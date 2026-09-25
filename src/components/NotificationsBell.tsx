@@ -16,6 +16,14 @@ type N = {
   created_at: string;
 };
 
+// The colour of a notification's type (set by the notification engine)
+const TONE: Record<string, string> = {
+  success: "bg-emerald-500",
+  warning: "bg-amber-500",
+  error: "bg-destructive",
+  info: "bg-primary",
+};
+
 const NotificationsBell = () => {
   const { user } = useAuth();
   const [items, setItems] = useState<N[]>([]);
@@ -60,7 +68,7 @@ const NotificationsBell = () => {
   return (
     <Popover onOpenChange={(o) => o && markAllRead()}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
+        <Button variant="ghost" size="icon" aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"} className="relative">
           <Bell className="h-4 w-4" />
           {unread > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center px-1">
@@ -79,10 +87,13 @@ const NotificationsBell = () => {
           ) : (
             items.map((n) => {
               const Inner = (
-                <div className={`px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/50 ${!n.read ? "bg-primary/5" : ""}`}>
-                  <p className="text-sm font-medium">{n.title}</p>
+                <div className={`flex gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/50 ${!n.read ? "bg-primary/5" : ""}`}>
+                  <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE[n.type] ?? TONE.info} ${n.read ? "opacity-40" : ""}`} />
+                  <div className="min-w-0">
+                  <p className="text-sm font-medium">{!n.read && <span className="sr-only">Unread: </span>}{n.title}</p>
                   {n.body && <p className="text-xs text-muted-foreground mt-0.5">{n.body}</p>}
                   <p className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                  </div>
                 </div>
               );
               return n.link ? (

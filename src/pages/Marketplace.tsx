@@ -9,7 +9,6 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { notify } from "@/lib/notify";
 
 const categories = ["All", "Electronics", "Fashion", "Food & Drink", "Crafts", "Home", "Accessories"];
 
@@ -58,13 +57,6 @@ const Marketplace = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Added to Cart!", description: `${product.name} added to your cart.` });
-      await notify({
-        userId: user.id,
-        title: "Item added to cart",
-        body: `${product.name} was added to your cart.`,
-        type: "success",
-        link: "/cart",
-      });
     }
   };
 

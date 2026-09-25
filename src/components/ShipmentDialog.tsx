@@ -7,13 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { notify } from "@/lib/notify";
 import { Download, Package as PackageIcon, FileText, Tag, Calculator } from "lucide-react";
 import { calculateShippingCost, fetchShippingRates, type ShippingRate, type ShippingZone } from "@/lib/shipping";
 
 type Props = {
   orderId: string;
-  buyerId: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   onSaved?: () => void;
@@ -30,7 +28,7 @@ const STATUSES = [
 
 const PKG_TYPES = ["box", "envelope", "pallet", "custom"];
 
-const ShipmentDialog = ({ orderId, buyerId, open, onOpenChange, onSaved }: Props) => {
+const ShipmentDialog = ({ orderId, open, onOpenChange, onSaved }: Props) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [pkg, setPkg] = useState({
@@ -129,26 +127,16 @@ const ShipmentDialog = ({ orderId, buyerId, open, onOpenChange, onSaved }: Props
         estimated_delivery: shipment.estimated_delivery || null,
         status: shipment.status,
       };
-      let trackingNumber = shipment.tracking_number;
       if (shipId) {
         const { error } = await (supabase as any).from("shipments").update(shipPayload).eq("id", shipId);
         if (error) throw error;
       } else {
-        const { data, error } = await (supabase as any).from("shipments").insert({
+        const { error } = await (supabase as any).from("shipments").insert({
           order_id: orderId, ...shipPayload,
-        }).select("tracking_number").single();
+        });
         if (error) throw error;
-        trackingNumber = data.tracking_number;
       }
-
-      // Notify buyer
-      await notify({
-        userId: buyerId,
-        title: `Order ${shipment.status.replace(/_/g, " ")}`,
-        body: `Tracking: ${trackingNumber}`,
-        type: "info",
-        link: `/track/${trackingNumber}`,
-      });
+      // The buyer is notified by the database (SHIPMENT_UPDATED, ORDER_SHIPPED)
 
       toast({ title: "Saved", description: "Shipment updated." });
       onSaved?.();

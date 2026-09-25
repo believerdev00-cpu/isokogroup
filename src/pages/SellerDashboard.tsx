@@ -16,7 +16,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Package, ShoppingCart, DollarSign, TrendingUp, Plus, Upload, User, Bell, Wallet } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { COMMISSION_RATE, COMPANY_PAYMENT } from "@/lib/company";
-import { notify } from "@/lib/notify";
 import ShipmentDialog from "@/components/ShipmentDialog";
 import { Truck } from "lucide-react";
 
@@ -30,7 +29,7 @@ const SellerDashboard = () => {
 
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
-  const [shipmentOrder, setShipmentOrder] = useState<{ id: string; buyer_id: string } | null>(null);
+  const [shipmentOrder, setShipmentOrder] = useState<{ id: string } | null>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -332,7 +331,7 @@ const SellerDashboard = () => {
                                   <option value="shipped">Shipped</option>
                                   <option value="delivered" disabled>Delivered (buyer confirms)</option><option value="cancelled">Cancelled</option>
                                 </select>
-                                <Button size="sm" variant="outline" onClick={() => setShipmentOrder({ id: o.id, buyer_id: o.buyer_id })}>
+                                <Button size="sm" variant="outline" onClick={() => setShipmentOrder({ id: o.id })}>
                                   <Truck className="h-3 w-3 mr-1" /> Manage
                                 </Button>
                               </div>
@@ -573,7 +572,6 @@ const SellerDashboard = () => {
       {shipmentOrder && (
         <ShipmentDialog
           orderId={shipmentOrder.id}
-          buyerId={shipmentOrder.buyer_id}
           open={!!shipmentOrder}
           onOpenChange={(o) => { if (!o) setShipmentOrder(null); }}
           onSaved={fetchData}

@@ -12,7 +12,6 @@ import { Truck, MapPin, Camera, CheckCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { notify } from "@/lib/notify";
 
 const statusColor = (s: string) => {
   if (["delivered", "completed"].includes(s)) return "bg-green-500/15 text-green-500";
@@ -57,15 +56,7 @@ const DriverDashboard = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    if (req?.user_id) {
-      await notify({
-        userId: req.user_id,
-        title: status === "delivered" ? "Your delivery is completed" : `Delivery ${status.replace("_", " ")}`,
-        body: `Your request to ${req.dropoff} has been updated.`,
-        type: status === "delivered" ? "success" : "info",
-        link: "/logistics/history",
-      });
-    }
+    // The customer is notified by the database (DELIVERY_UPDATED / DELIVERY_COMPLETED)
     toast({ title: "Updated", description: `Status set to ${status}` });
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status, ...extra } : r)));
   };
