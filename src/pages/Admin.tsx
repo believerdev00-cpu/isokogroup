@@ -25,6 +25,7 @@ import DeliveriesAnalytics from "@/components/admin/DeliveriesAnalytics";
 import DataAnalysis from "@/components/admin/DataAnalysis";
 import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
 import MyOverview from "@/components/admin/MyOverview";
+import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
 const COLORS = ["hsl(0, 85%, 50%)", "hsl(0, 0%, 20%)", "hsl(0, 85%, 65%)", "hsl(0, 0%, 45%)", "hsl(0, 85%, 80%)"];
@@ -563,6 +564,7 @@ const Admin = () => {
               <TabsTrigger value="services">Travel · Consultancy · Data</TabsTrigger>
               <TabsTrigger value="payouts">Payouts</TabsTrigger>
               <TabsTrigger value="software">Software</TabsTrigger>
+              <TabsTrigger value="audit">Audit log</TabsTrigger>
             </TabsList>
 
             <TabsContent value="my"><MyOverview /></TabsContent>
@@ -570,6 +572,7 @@ const Admin = () => {
             <TabsContent value="couriers"><CouriersAdmin /></TabsContent>
             <TabsContent value="training"><TrainingCenterAdmin /></TabsContent>
             <TabsContent value="services"><ServiceStaffAdmin /></TabsContent>
+            <TabsContent value="audit"><AuditLogAdmin /></TabsContent>
             <TabsContent value="deliveries"><DeliveriesAnalytics /></TabsContent>
             <TabsContent value="drivers">
               <Card>
@@ -589,13 +592,9 @@ const Admin = () => {
                             size="sm"
                             variant={isDriverUser ? "outline" : "default"}
                             onClick={async () => {
-                              if (isDriverUser) {
-                                await (supabase as any).from("user_roles").delete().eq("user_id", p.user_id).eq("role", "driver");
-                                toast({ title: "Driver removed" });
-                              } else {
-                                await (supabase as any).from("user_roles").insert({ user_id: p.user_id, role: "driver" });
-                                toast({ title: "Promoted to driver" });
-                              }
+                              const { error } = await (supabase as any).rpc("admin_set_driver", { p_user_id: p.user_id, p_grant: !isDriverUser });
+                              if (error) toast({ title: "Could not change driver access", description: error.message, variant: "destructive" });
+                              else toast({ title: isDriverUser ? "Driver removed" : "Promoted to driver" });
                               fetchAll();
                             }}
                           >
