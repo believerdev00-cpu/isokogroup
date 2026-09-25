@@ -4,7 +4,7 @@
 // Dates are relative to today, so the demo always has: an intake in training (with
 // classes meeting today), one open for applications, a closed one, and a draft.
 import { config } from "../config.js";
-import { pool, query, queryOne, withTransaction } from "../db.js";
+import { actAs, pool, query, queryOne, withTransaction } from "../db.js";
 import { createUserAccount, updateAuthUser } from "../services/auth.js";
 import { approveApplication } from "../services/enrollment.js";
 import { refreshIntakeStatuses } from "../services/intakes.js";
@@ -49,6 +49,7 @@ async function main() {
   // Migrations add some programs, so an empty database is one without intakes
   if (await queryOne("SELECT 1 FROM intakes LIMIT 1")) throw new Error("The database already has intakes; demo data is only for an empty database");
   const d = await today();
+  const seedRun = Date.now().toString(36).toUpperCase();
 
   await createUserAccount({ email: "admin@isoko.test", password: PASSWORD, role: "admin", full_name: "Isoko Admin" });
   const admin = (await queryOne<{ id: string }>("SELECT id FROM users WHERE email = 'admin@isoko.test'"))!;
@@ -190,13 +191,12 @@ async function main() {
     const fees = (await queryOne<{ total: number }>("SELECT total_fees AS total FROM enrollment_balances WHERE enrollment_id = $1", [e.enrollment]))!.total;
     const share = i % 4 === 0 ? 1 : i % 4 === 3 ? 0 : 0.6;
     if (share === 0) continue;
+    // Through the payment engine, which issues the receipt (references are unique platform-wide)
     await withTransaction(async (c) => {
-      const p = await queryOne<{ id: string }>(
-        "INSERT INTO payments (enrollment_id, amount, method, reference, paid_on, recorded_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-        [e.enrollment, Math.round(fees * share), i % 2 ? "momo" : "bank", `TX${100200 + i}`, addDays(d, -30 + i), admin.id],
-        c,
-      );
-      await c.query("INSERT INTO receipts (payment_id, receipt_number) VALUES ($1, $2)", [p!.id, await nextNumber("receipt", Number(d.slice(0, 4)), c)]);
+      await actAs(c, admin.id);
+      await c.query("SELECT public.finance_record_payment('training.enrollments', $1, $2, $3, $4, NULL, NULL, $5)", [
+        e.enrollment, Math.round(fees * share), i % 2 ? "momo" : "bank", `TX${seedRun}${100200 + i}`, addDays(d, -30 + i),
+      ]);
     });
   }
 
@@ -215,7 +215,14 @@ async function main() {
   ]);
 
   // Demo emails aren't real addresses; don't try to send them
-  await query("UPDATE notifications SET email_status = 'not_configured' WHERE email_status = 'pending'");
+  await query(
+    `UPDATE public.notification_deliveries SET status = 'skipped', error = 'Demo data'
+     WHERE status = 'pending' AND event_id IN (
+       SELECT id FROM public.notification_events WHERE entity_table IN ('training.notifications', 'training.enrollments'))`,
+  );
+  await query(
+    "DELETE FROM public.notification_secrets s USING public.notification_deliveries d WHERE d.id = s.delivery_id AND d.status = 'skipped'",
+  );
   await refreshIntakeStatuses();
 
   console.log(`Demo data loaded. Password for every demo account: ${PASSWORD}

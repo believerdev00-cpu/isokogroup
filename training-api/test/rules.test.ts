@@ -283,7 +283,7 @@ describe("money", () => {
     const ref = (await apply(offeringId)).res.body.data.reference;
     const app = await queryOne("SELECT id FROM applications WHERE reference = $1", [ref]);
     const r = (await admin.post(`/api/admin/applications/${app.id}/approve`)).body.data;
-    const p = (await admin.post("/api/admin/payments").send({ enrollment_id: r.enrollment_id, amount: 500, method: "bank" })).body.data;
+    const p = (await admin.post("/api/admin/payments").send({ enrollment_id: r.enrollment_id, amount: 500, method: "bank", reference: `BK-${Date.now()}` })).body.data;
     expect(p.balance).toBe(0);
     expect((await admin.post(`/api/admin/payments/${p.id}/void`).send({ reason: "x" })).status).toBe(400); // reason too short
     await admin.post(`/api/admin/payments/${p.id}/void`).send({ reason: "Entered twice" });

@@ -168,7 +168,7 @@ describe("end-to-end training center workflow", () => {
   it("admin records the payment; a receipt is issued and the balance is cleared", async () => {
     const tooMuch = await admin.post("/api/admin/payments").send({ enrollment_id: s.enrollmentId, amount: 9999, method: "momo" });
     expect(tooMuch.status).toBe(400);
-    const p1 = await admin.post("/api/admin/payments").send({ enrollment_id: s.enrollmentId, amount: 300, method: "momo", reference: "MOMO-1" });
+    const p1 = await admin.post("/api/admin/payments").send({ enrollment_id: s.enrollmentId, amount: 300, method: "momo", reference: `MOMO-${Date.now()}` }); // references are unique platform-wide
     expect(p1.status).toBe(201);
     expect(p1.body.data.receipt_number).toMatch(/^ISK-RCPT-\d{4}-\d{5}$/);
     const fin = await admin.get(`/api/admin/enrollments/${s.enrollmentId}/finance`);

@@ -81,6 +81,10 @@ export async function receiptPdf(paymentId: string): Promise<{ pdf: Buffer; file
     y += 20;
     doc.setTextColor(180, 40, 40);
     doc.text(`Voided: ${p.void_reason ?? ""}`, 30, y);
+  } else if (p.refunded_amount > 0) {
+    y += 20;
+    doc.setTextColor(180, 40, 40);
+    doc.text(`Refunded: ${money(p.refunded_amount, center.currency)}`, 30, y);
   }
   doc.setTextColor(140, 150, 145);
   doc.setFontSize(8);

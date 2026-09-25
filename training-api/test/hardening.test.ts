@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { config } from "../src/config.js";
 import { temporaryPassword } from "../src/services/auth.js";
-import { dispatchEmails } from "../src/services/notifications.js";
-import { applicant, apply, makeAdmin, openOffering, query, queryOne, uid } from "./helpers.js";
+import { applicant, apply, makeAdmin, openOffering, pool, query, queryOne, uid } from "./helpers.js";
 
 async function authAccount(email: string, confirmed: boolean) {
   const res = await fetch(`${config.supabaseUrl}/auth/v1/admin/users`, {
@@ -11,6 +10,41 @@ async function authAccount(email: string, confirmed: boolean) {
     body: JSON.stringify({ email, password: "Someone-elses-42", email_confirm: confirmed }),
   });
   if (!res.ok) throw new Error(await res.text());
+}
+
+/** The email delivery of a Training Center notice, and its secret (if any). */
+async function emailOf(type: string, email: string) {
+  return queryOne(
+    `SELECT n.body AS notice, d.id AS delivery_id, d.status, d.subject, d.body, s.secret
+     FROM notifications n JOIN public.notification_deliveries d ON d.event_id = n.event_id AND d.channel = 'email'
+     LEFT JOIN public.notification_secrets s ON s.delivery_id = d.id
+     WHERE n.type = $1 AND lower(n.email) = $2`,
+    [type, email],
+  );
+}
+
+/**
+ * What notifications-dispatch does, as the service role, inside a transaction
+ * that is rolled back: claim the due emails (this one included), and report
+ * this one sent. Returns what the sender was given and what is left afterwards.
+ */
+async function sendOnce(deliveryId: string) {
+  const c = await pool.connect();
+  try {
+    await c.query("BEGIN");
+    await c.query("SELECT set_config('request.jwt.claims', '{\"role\":\"service_role\"}', true)");
+    // only this one is due (other test runs leave emails waiting; all rolled back below)
+    await c.query("UPDATE public.notification_deliveries SET next_attempt_at = now() + interval '1 day' WHERE id <> $1 AND status = 'pending'", [deliveryId]);
+    const claimed = (await c.query("SELECT id, body FROM public.notification_claim(100)")).rows.find((r) => r.id === deliveryId);
+    await c.query("SELECT public.notification_result($1, true, 'mock', 'm-1', NULL)", [deliveryId]);
+    const after = (await c.query(
+      `SELECT d.status, d.body, (SELECT count(*)::int FROM public.notification_secrets WHERE delivery_id = d.id) AS secrets
+       FROM public.notification_deliveries d WHERE d.id = $1`, [deliveryId])).rows[0];
+    return { claimed, after };
+  } finally {
+    await c.query("ROLLBACK");
+    c.release();
+  }
 }
 
 async function approve(admin: Awaited<ReturnType<typeof makeAdmin>>, offeringId: string, fields = applicant()) {
@@ -40,7 +74,7 @@ describe("accounts and credentials", () => {
     expect(await queryOne("SELECT 1 FROM students WHERE lower(email) = $1 AND user_id IS NOT NULL", [email])).toBeNull();
   });
 
-  it("a new student's password is only in the email, never in the app, and is wiped once the email is handled", async () => {
+  it("a new student's password is only in the email, never stored with a message, and deleted once the email is sent", async () => {
     const admin = await makeAdmin();
     const { offeringId } = await openOffering(admin);
     const fields = applicant();
@@ -48,15 +82,17 @@ describe("accounts and credentials", () => {
     const password = approval.login.temporary_password as string;
     expect(password).toEqual(expect.any(String));
 
-    const notices = await query("SELECT body, email_secret, email_status FROM notifications WHERE type = 'application_approved' AND lower(email) = $1", [fields.email]);
-    expect(notices).toHaveLength(1);
-    expect(notices[0].body).not.toContain(password);
-    expect(notices[0].email_secret).toContain(password);
+    const mail = await emailOf("application_approved", fields.email);
+    expect(mail.status).toBe("pending");
+    expect(mail.subject).toMatch(/Application approved/);
+    expect(mail.notice).not.toContain(password);
+    expect(mail.body).not.toContain(password);
+    expect(mail.secret).toContain(password);
+    expect(await query("SELECT 1 FROM training.notifications WHERE email_secret IS NOT NULL")).toHaveLength(0);
 
-    await dispatchEmails(200);
-    const after = await queryOne("SELECT email_secret, email_status FROM notifications WHERE type = 'application_approved' AND lower(email) = $1", [fields.email]);
-    expect(after.email_secret).toBeNull();
-    expect(after.email_status).toBe(config.smtp ? "sent" : "not_configured");
+    const { claimed, after } = await sendOnce(mail.delivery_id);
+    expect(claimed.body).toContain(password); // handed to the sender...
+    expect(after).toEqual({ status: "sent", body: mail.body, secrets: 0 }); // ...and gone once sent
   });
 
   it("new trainers' passwords are likewise kept out of the app", async () => {
@@ -64,9 +100,10 @@ describe("accounts and credentials", () => {
     const email = `trainer-${uid()}@test.local`;
     const res = await admin.post("/api/admin/trainers").send({ full_name: "New Trainer", email, specialization: "Design" });
     const password = res.body.data.login.temporary_password as string;
-    const notice = await queryOne("SELECT body, email_secret FROM notifications WHERE type = 'account_created' AND lower(email) = $1", [email]);
-    expect(notice.body).not.toContain(password);
-    expect(notice.email_secret).toContain(password);
+    const mail = await emailOf("account_created", email);
+    expect(mail.notice).not.toContain(password);
+    expect(mail.body).not.toContain(password);
+    expect(mail.secret).toContain(password);
   });
 
   it("an application can't overwrite an existing student's contact details", async () => {
@@ -85,22 +122,29 @@ describe("accounts and credentials", () => {
 });
 
 describe("emails", () => {
-  it("an email being sent is not picked up again until its lock runs out", async () => {
-    const email = `outbox-${uid()}@test.local`;
-    const [row] = await query(
-      `INSERT INTO notifications (email, type, title, body, email_status, email_attempts, email_locked_until)
-       VALUES ($1, 'announcement', 'Hello', 'Body', 'sending', 1, now() + interval '2 minutes') RETURNING id`,
-      [email],
-    );
-    await dispatchEmails(200);
-    expect((await queryOne("SELECT email_status, email_attempts FROM notifications WHERE id = $1", [row.id]))).toEqual({
-      email_status: "sending", email_attempts: 1,
-    });
-    // The sender died: once the lock expires the email is handled
-    await query("UPDATE notifications SET email_locked_until = now() - interval '1 second' WHERE id = $1", [row.id]);
-    await dispatchEmails(200);
-    const after = await queryOne("SELECT email_status, email_attempts FROM notifications WHERE id = $1", [row.id]);
-    expect(after.email_attempts).toBe(2);
-    expect(after.email_status).toBe(config.smtp ? "sent" : "not_configured");
+  it("Training Center emails go through the platform's notification engine, once per notice", async () => {
+    const { offeringId } = await openOffering(await makeAdmin());
+    const fields = applicant();
+    await apply(offeringId, fields);
+    const mail = await emailOf("application_submitted", fields.email);
+    expect(mail).toMatchObject({ status: "pending", secret: null });
+    expect(mail.subject).toMatch(/ISOKO-APP-/);
+    expect(mail.body).toContain(config.publicUrl + config.basePath);
+    const notice = await queryOne("SELECT id, event_id FROM notifications WHERE type = 'application_submitted' AND lower(email) = $1", [fields.email]);
+    // the same notice raised again is not sent again
+    const again = await queryOne("SELECT public.notify_event('TRAINING_NOTICE', 'TRAINING_NOTICE:' || $1::text, 'training.notifications', $1::uuid, '[{\"email\":\"x@test.local\"}]') AS id", [notice.id]);
+    expect(again.id).toBeNull();
+  });
+
+  it("someone who turned email off in Isoko doesn't get Training Center emails", async () => {
+    const admin = await makeAdmin();
+    const trainerEmail = `quiet-${uid()}@test.local`;
+    await authAccount(trainerEmail, true);
+    const user = await queryOne("SELECT id FROM auth.users WHERE email = $1", [trainerEmail]);
+    await query("INSERT INTO public.notification_preferences (user_id, channel, enabled) VALUES ($1, 'email', false)", [user.id]);
+    const res = await admin.post("/api/admin/trainers").send({ full_name: "Quiet Trainer", email: trainerEmail, specialization: "Web" });
+    expect(res.status).toBe(201);
+    const mail = await emailOf("account_created", trainerEmail);
+    expect(mail).toMatchObject({ status: "skipped", secret: null });
   });
 });

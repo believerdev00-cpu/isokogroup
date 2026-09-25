@@ -19,8 +19,8 @@ dashboardRouter.get("/dashboard", async (_req, res) => {
        (SELECT count(*) FROM classes cl JOIN intake_programs ip ON ip.id = cl.intake_program_id JOIN intakes i ON i.id = ip.intake_id
         WHERE cl.status = 'active' AND extract(isodow FROM $1::date)::smallint = ANY(cl.meeting_days)
           AND $1::date BETWEEN i.training_starts_on AND i.training_ends_on)::int AS classes_today,
-       (SELECT coalesce(sum(amount), 0) FROM payments WHERE voided_at IS NULL)::numeric AS fees_collected,
-       (SELECT coalesce(sum(amount), 0) FROM payments WHERE voided_at IS NULL
+       (SELECT coalesce(sum(amount - refunded_amount), 0) FROM payments WHERE voided_at IS NULL)::numeric AS fees_collected,
+       (SELECT coalesce(sum(amount - refunded_amount), 0) FROM payments WHERE voided_at IS NULL
         AND date_trunc('month', paid_on) = date_trunc('month', $1::date))::numeric AS fees_this_month,
        (SELECT coalesce(sum(greatest(b.total_fees - b.total_paid, 0)), 0) FROM enrollment_balances b
         JOIN enrollments e ON e.id = b.enrollment_id WHERE e.status <> 'withdrawn')::numeric AS outstanding_fees`,

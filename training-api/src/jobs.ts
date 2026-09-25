@@ -1,11 +1,9 @@
 import { refreshIntakeStatuses } from "./services/intakes.js";
-import { dispatchEmails } from "./services/notifications.js";
 
 // Background work, throttled per server instance. Dates move intakes between
-// upcoming/open/closed even when nobody touches them, and pending emails are sent
-// after the work that created them has committed.
+// upcoming/open/closed even when nobody touches them. (Emails are sent by the
+// platform's notifications-dispatch function.)
 const JOBS = [
-  { name: "emails", everyMs: 5 * 1000, run: () => dispatchEmails() },
   { name: "intake statuses", everyMs: 10 * 60 * 1000, run: () => refreshIntakeStatuses() },
 ];
 

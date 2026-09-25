@@ -94,15 +94,23 @@ studentRouter.get("/enrollments/:id/assessments", async (req, res) => {
 
 studentRouter.get("/enrollments/:id/payments", async (req, res) => {
   const id = await ownEnrollment(req, param(req, "id"));
-  const [charges, payments] = await Promise.all([
+  const [charges, adjustments, payments] = await Promise.all([
     query("SELECT id, type, description, amount, created_at FROM fee_charges WHERE enrollment_id = $1 ORDER BY created_at", [id]),
     query(
-      `SELECT p.id, p.amount, p.method, p.reference, p.paid_on, p.voided_at, r.receipt_number
+      `SELECT l.id, l.kind, l.amount, l.created_at FROM public.finance_ledger l
+       JOIN public.finance_accounts a ON a.id = l.account_id
+       WHERE a.entity_table = 'training.enrollments' AND a.entity_id = $1
+         AND (l.kind IN ('discount', 'waiver') OR (l.kind = 'adjustment' AND l.source <> 'price'))
+       ORDER BY l.id`,
+      [id],
+    ),
+    query(
+      `SELECT p.id, p.amount, p.refunded_amount, p.status, p.method, p.reference, p.paid_on, p.voided_at, r.receipt_number
        FROM payments p JOIN receipts r ON r.payment_id = p.id WHERE p.enrollment_id = $1 ORDER BY p.paid_on DESC`,
       [id],
     ),
   ]);
-  res.json({ data: { charges, payments } });
+  res.json({ data: { charges, adjustments, payments } });
 });
 
 studentRouter.get("/payments/:id/receipt", async (req, res) => {

@@ -8,7 +8,6 @@ import { runJobsSoon } from "./jobs.js";
 const app = createApp();
 const server = app.listen(config.port, () => {
   console.log(`Isoko Training Center API on http://localhost:${config.port}/api`);
-  if (!config.smtp) console.log("SMTP not configured: notifications are kept in-app only");
 });
 
 runJobsSoon();

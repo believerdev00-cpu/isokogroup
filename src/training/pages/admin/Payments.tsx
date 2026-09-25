@@ -18,6 +18,8 @@ import RecordPaymentDialog from "@/training/features/finance/RecordPaymentDialog
 type PaymentRow = {
   id: string;
   amount: number;
+  refunded_amount: number;
+  status: "successful" | "partially_refunded" | "refunded" | "voided";
   method: string;
   reference: string;
   paid_on: string;
@@ -195,13 +197,16 @@ export default function Payments() {
                           </TableCell>
                           <TableCell className={`tabular whitespace-nowrap text-right font-semibold ${p.voided_at ? "line-through" : ""}`}>
                             {formatMoney(p.amount, currency)}
+                            {p.refunded_amount > 0 && (
+                              <p className="text-xs font-normal text-muted-foreground">{formatMoney(p.refunded_amount, currency)} refunded</p>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               <Button size="sm" variant="outline" onClick={() => openApiFile(`/admin/payments/${p.id}/receipt`)}>
                                 <FileText className="h-4 w-4" /> Receipt
                               </Button>
-                              {!p.voided_at && (
+                              {p.status === "successful" && p.refunded_amount === 0 && (
                                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setVoiding(p)}>Void</Button>
                               )}
                             </div>

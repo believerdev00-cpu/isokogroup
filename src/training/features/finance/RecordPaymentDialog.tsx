@@ -22,9 +22,13 @@ export type EnrollmentFinanceData = {
   balance: number;
   payment_status: "paid" | "partially_paid" | "outstanding";
   charges: { id: string; type: string; description: string; amount: number; created_at: string }[];
+  /** Discounts and waivers (negative amounts) and corrections */
+  adjustments: { id: number; kind: string; amount: number; reason: string | null; created_at: string }[];
   payments: {
     id: string;
     amount: number;
+    refunded_amount: number;
+    status: "successful" | "partially_refunded" | "refunded" | "voided";
     method: string;
     reference: string;
     paid_on: string;
@@ -50,6 +54,8 @@ export default function RecordPaymentDialog({ enrollmentId, open, onOpenChange, 
   const [reference, setReference] = useState("");
   const [paidOn, setPaidOn] = useState(todayLocal());
   const [notes, setNotes] = useState("");
+  // One key per opening of the dialog: a double click or a retry records the payment once
+  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
 
   useEffect(() => {
     if (open && fin.data) setAmount(fin.data.balance > 0 ? String(fin.data.balance) : "");
@@ -61,6 +67,7 @@ export default function RecordPaymentDialog({ enrollmentId, open, onOpenChange, 
       setNotes("");
       setMethod("momo");
       setPaidOn(todayLocal());
+      setRequestKey(crypto.randomUUID());
     }
   }, [open]);
 
@@ -73,6 +80,7 @@ export default function RecordPaymentDialog({ enrollmentId, open, onOpenChange, 
         reference,
         paid_on: paidOn,
         notes,
+        idempotency_key: requestKey,
       }),
     {
       invalidate: FINANCE_KEYS,
@@ -90,7 +98,10 @@ export default function RecordPaymentDialog({ enrollmentId, open, onOpenChange, 
   const balance = fin.data?.balance ?? 0;
   const n = Number(amount);
   const tooMuch = fin.data !== undefined && n > balance + 0.001;
-  const valid = n > 0 && !tooMuch && paidOn <= todayLocal();
+  // Mobile money, bank and card payments are recognised by their transaction number
+  const needsReference = ["momo", "bank", "card"].includes(method);
+  const missingReference = needsReference && reference.trim().length < 3;
+  const valid = n > 0 && !tooMuch && !missingReference && paidOn <= todayLocal();
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -142,14 +153,19 @@ export default function RecordPaymentDialog({ enrollmentId, open, onOpenChange, 
                 <option value="other">Other</option>
               </NativeSelect>
             </Field>
-            <Field label="Reference / transaction ID" htmlFor="pay-ref" hint="MoMo or bank transaction number, if any">
-              <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} />
+            <Field
+              label="Reference / transaction ID"
+              htmlFor="pay-ref"
+              required={needsReference}
+              hint={needsReference ? "The MoMo, bank or card transaction number" : "Optional for cash"}
+            >
+              <Input id="pay-ref" maxLength={100} value={reference} onChange={(e) => setReference(e.target.value)} />
             </Field>
             <Field label="Payment date" htmlFor="pay-date" required error={paidOn > todayLocal() ? "Can't be in the future" : null}>
               <Input id="pay-date" type="date" max={todayLocal()} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
             </Field>
             <Field label="Notes" htmlFor="pay-notes" className="sm:col-span-2">
-              <Textarea id="pay-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Textarea id="pay-notes" rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </Field>
           </form>
         )}

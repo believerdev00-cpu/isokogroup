@@ -114,7 +114,7 @@ const REPORTS: Record<string, (f: Filters) => Promise<Report>> = {
   async payments(f) {
     const rows = await query(
       `SELECT r.receipt_number, to_char(pay.paid_on, 'YYYY-MM-DD') AS paid_on, s.student_number, s.full_name, p.name AS program,
-              i.name AS intake, pay.method, pay.reference, pay.amount, u.full_name AS recorded_by
+              i.name AS intake, pay.method, pay.reference, pay.amount, pay.refunded_amount, u.full_name AS recorded_by
        FROM payments pay JOIN receipts r ON r.payment_id = pay.id JOIN enrollments e ON e.id = pay.enrollment_id
        JOIN students s ON s.id = e.student_id JOIN intake_programs ip ON ip.id = e.intake_program_id
        JOIN programs p ON p.id = ip.program_id JOIN intakes i ON i.id = ip.intake_id LEFT JOIN users u ON u.id = pay.recorded_by
@@ -127,9 +127,9 @@ const REPORTS: Record<string, (f: Filters) => Promise<Report>> = {
     return {
       title: "Payments",
       columns: [{ key: "receipt_number", label: "Receipt" }, { key: "paid_on", label: "Date" }, ...STUDENT_COLS,
-        { key: "method", label: "Method" }, { key: "reference", label: "Reference" }, { key: "amount", label: "Amount" }, { key: "recorded_by", label: "Recorded by" }],
+        { key: "method", label: "Method" }, { key: "reference", label: "Reference" }, { key: "amount", label: "Amount" }, { key: "refunded_amount", label: "Refunded" }, { key: "recorded_by", label: "Recorded by" }],
       rows,
-      totals: { amount: rows.reduce((s, r) => s + r.amount, 0) },
+      totals: { amount: rows.reduce((s, r) => s + r.amount, 0), refunded_amount: rows.reduce((s, r) => s + r.refunded_amount, 0) },
     };
   },
 

@@ -18,6 +18,23 @@ export const forbidden = (message = "You are not allowed to do this") => new Htt
 export const notFound = (message = "Not found") => new HttpError(404, message, "not_found");
 export const conflict = (message: string) => new HttpError(409, message, "conflict");
 
+/**
+ * The platform's finance functions refuse bad requests with messages written
+ * for people (SQLSTATE 22023 bad value, 42501 not allowed, 23505 duplicate,
+ * P0002 not found). Those become HTTP errors with that message; anything else
+ * is rethrown unchanged.
+ */
+export async function dbRules<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (err) {
+    const { code, message } = err as { code?: string; message?: string };
+    const status = { "22023": 400, "42501": 403, "23505": 409, P0002: 404 }[code ?? ""];
+    if (status && message) throw new HttpError(status, message, status === 403 ? "forbidden" : "bad_request");
+    throw err;
+  }
+}
+
 /** Parses input with a zod schema, turning failures into a 400 with a readable message. */
 export function parse<S extends z.ZodTypeAny>(schema: S, input: unknown): z.infer<S> {
   const result = schema.safeParse(input);

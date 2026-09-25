@@ -5,7 +5,7 @@ import { badRequest, param, parse, uuid } from "../../lib/http.js";
 import { currentUser } from "../../middleware/auth.js";
 import { logActivity } from "../../services/activity.js";
 import { notify } from "../../services/notifications.js";
-import { allSettings } from "../../services/settings.js";
+import { allSettings, getSetting } from "../../services/settings.js";
 
 export const settingsRouter = Router();
 
@@ -16,7 +16,8 @@ const SCHEMAS = {
     email: z.string().trim().email(),
     phone: z.string().trim().max(40),
     address: z.string().trim().max(300),
-    currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, "use a 3-letter code like RWF or USD"),
+    // the currencies the platform ledger keeps accounts in
+    currency: z.string().trim().toUpperCase().pipe(z.enum(["RWF", "USD", "EUR"], { errorMap: () => ({ message: "use RWF, USD or EUR" }) })),
     timezone: z.string().trim().refine((tz) => Intl.supportedValuesOf("timeZone").includes(tz), "unknown time zone"),
   }),
   grading: z.object({
@@ -45,6 +46,14 @@ settingsRouter.put("/settings/:key", async (req, res) => {
   const admin = currentUser(req);
   const key = parse(z.enum(Object.keys(SCHEMAS) as [keyof typeof SCHEMAS]), req.params.key);
   const value = parse(SCHEMAS[key], req.body);
+  if (key === "center") {
+    // Fees already owed are kept in the currency they were charged in
+    const current = await getSetting("center");
+    const charged = await queryOne("SELECT 1 FROM public.finance_accounts WHERE module = 'training' LIMIT 1");
+    if (charged && (value as { currency: string }).currency !== current.currency) {
+      throw badRequest("The currency can't change once fees have been charged");
+    }
+  }
   await query("UPDATE settings SET value = $2, updated_at = now() WHERE key = $1", [key, JSON.stringify(value)]);
   await logActivity(admin.id, "settings.updated", "settings", null, { key });
   res.json({ data: value });

@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import { query, queryOne, withTransaction } from "../db.js";
+import { actAs, query, queryOne, withTransaction } from "../db.js";
 import { badRequest, conflict, notFound } from "../lib/http.js";
 import { logActivity } from "./activity.js";
 import { createUserAccount, temporaryPassword } from "./auth.js";
@@ -81,6 +81,8 @@ export async function approveApplication(applicationId: string, adminId: string,
       [student.id, ip.id, app.id],
       c,
     );
+    // Fees become charges in the platform ledger (a database trigger), recorded as this admin
+    await actAs(c, adminId);
     const registration = Number(ip.registration_fee ?? ip.program_registration);
     const tuition = Number(ip.tuition_fee ?? ip.program_tuition);
     if (registration > 0) {

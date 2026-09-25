@@ -35,6 +35,17 @@ export async function queryOne<T extends pg.QueryResultRow = any>(
   return rows[0] ?? null;
 }
 
+/**
+ * Makes the rest of the transaction act as this Training Center user in the
+ * database: the platform's finance functions check their rights (training
+ * admins handle training fees) and the ledger and audit log record who it was.
+ */
+export async function actAs(client: Queryable, userId: string) {
+  await client.query("SELECT set_config('request.jwt.claims', $1, true)", [
+    JSON.stringify({ sub: userId, role: "authenticated" }),
+  ]);
+}
+
 const rollbackHooks = new WeakMap<object, (() => Promise<void>)[]>();
 
 /** Work outside the database (e.g. a created auth account) to undo if the transaction fails. */

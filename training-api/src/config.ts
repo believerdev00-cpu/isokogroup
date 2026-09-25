@@ -36,14 +36,4 @@ export const config = {
   // Where the Training Center lives inside the Isoko site
   basePath: "/training-center",
   maxUploadMb: Number(env.MAX_UPLOAD_MB ?? 8),
-  smtp: env.SMTP_HOST
-    ? {
-        host: env.SMTP_HOST,
-        port: Number(env.SMTP_PORT ?? 465),
-        secure: (env.SMTP_SECURE ?? "true") === "true",
-        user: env.SMTP_USER,
-        pass: env.SMTP_PASSWORD,
-        from: env.MAIL_FROM ?? "Isoko Training Center <no-reply@isoko.rw>",
-      }
-    : null,
 };

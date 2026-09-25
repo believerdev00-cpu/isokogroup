@@ -9,7 +9,11 @@ import { cn } from "@/lib/utils";
 
 type Finance = {
   charges: { id: string; type: string; description: string; amount: number; created_at: string }[];
-  payments: { id: string; amount: number; method: string; reference: string; paid_on: string; voided_at: string | null; receipt_number: string }[];
+  adjustments: { id: number; kind: string; amount: number; created_at: string }[];
+  payments: {
+    id: string; amount: number; refunded_amount: number; method: string; reference: string; paid_on: string;
+    voided_at: string | null; receipt_number: string;
+  }[];
 };
 
 export default function StudentPayments() {
@@ -49,6 +53,18 @@ function PaymentsView({ e, currency }: { e: StudentEnrollment; currency: string 
                       <span className="tabular whitespace-nowrap font-semibold">{formatMoney(c.amount, currency)}</span>
                     </li>
                   ))}
+                  {fin.adjustments.map((a) => (
+                    <li key={`adj-${a.id}`} className="flex items-start justify-between gap-3 py-2.5 text-sm">
+                      <div>
+                        <p className="font-medium">{humanize(a.kind)}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(a.created_at)}</p>
+                      </div>
+                      <span className="tabular whitespace-nowrap font-semibold text-success">
+                        {a.amount < 0 ? "−" : "+"}
+                        {formatMoney(Math.abs(a.amount), currency)}
+                      </span>
+                    </li>
+                  ))}
                   <li className="flex justify-between py-2.5 text-sm font-bold">
                     <span>Total</span>
                     <span className="tabular">{formatMoney(f.total_fees, currency)}</span>
@@ -69,6 +85,7 @@ function PaymentsView({ e, currency }: { e: StudentEnrollment; currency: string 
                           <p className="tabular font-semibold">{formatMoney(p.amount, currency)}</p>
                           <p className="text-xs text-muted-foreground">
                             {formatDate(p.paid_on)} · {p.method.toUpperCase()}{p.reference && ` · ${p.reference}`} · {p.receipt_number}
+                            {p.refunded_amount > 0 && ` · ${formatMoney(p.refunded_amount, currency)} refunded`}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
