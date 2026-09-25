@@ -26,3 +26,8 @@ dist-ssr
 # Supabase CLI state and the generated Training Center function bundle
 supabase/.temp
 supabase/functions/training/index.js
+
+# Local environment (see .env.example)
+.env
+.env.*
+!.env.example
