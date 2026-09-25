@@ -7,8 +7,10 @@
 // A channel without a provider is not sent: its deliveries are marked skipped
 // with the reason, never "sent". WhatsApp and SMS providers are added here once
 // Isoko has an account with them (e.g. the WhatsApp Business Cloud API, an SMS
-// gateway); until then they have only "mock", for development and tests.
+// gateway); until then they have only "mock", for local development and tests
+// (refused on hosted Supabase).
 import nodemailer from "npm:nodemailer@10.0.10";
+import { mocksAllowed } from "../_shared/environment.ts";
 
 export type Channel = "email" | "whatsapp" | "sms";
 
@@ -100,7 +102,10 @@ export function configuredProviders(env: Env) {
   for (const channel of Object.keys(ENV_PREFIX) as Channel[]) {
     const name = (env.get(`${ENV_PREFIX[channel]}_PROVIDER`) ?? "").trim().toLowerCase();
     if (!name) providers.set(channel, `No ${channel} provider configured`);
-    else if (name === "mock") providers.set(channel, mockProvider());
+    else if (name === "mock") {
+      // a mock would mark messages sent that nobody received
+      providers.set(channel, mocksAllowed(env) ? mockProvider() : `The mock ${channel} provider is for local development only`);
+    }
     else if (name === "smtp" && channel === "email") providers.set(channel, smtpProvider(env));
     else providers.set(channel, `The ${channel} provider "${name}" is not supported yet`);
   }

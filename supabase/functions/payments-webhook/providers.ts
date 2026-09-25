@@ -6,7 +6,9 @@
 // Only providers with their secret configured are enabled. A real provider
 // (MTN MoMo, Airtel Money, Flutterwave, ...) is added here once Isoko has an
 // account and its credentials; until then only the mock provider exists, for
-// development and tests, and only when PAYMENTS_MOCK_SECRET is set.
+// development and tests, and only when PAYMENTS_MOCK_SECRET is set and the
+// function runs locally (never on hosted Supabase).
+import { mocksAllowed } from "../_shared/environment.ts";
 
 export type ProviderStatus = "processing" | "successful" | "failed" | "cancelled";
 
@@ -88,6 +90,6 @@ export function mockProvider(secret: string): PaymentProvider {
 export function enabledProviders(env: { get(name: string): string | undefined }): Map<string, PaymentProvider> {
   const providers = new Map<string, PaymentProvider>();
   const mockSecret = env.get("PAYMENTS_MOCK_SECRET");
-  if (mockSecret && mockSecret.length >= 16) providers.set("mock", mockProvider(mockSecret));
+  if (mockSecret && mockSecret.length >= 16 && mocksAllowed(env)) providers.set("mock", mockProvider(mockSecret));
   return providers;
 }

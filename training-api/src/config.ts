@@ -26,13 +26,15 @@ export const config = {
   serviceRoleKey: required("SUPABASE_SERVICE_ROLE_KEY", LOCAL_SERVICE),
   // Private Supabase Storage bucket for application documents and student photos
   storageBucket: env.TRAINING_STORAGE_BUCKET ?? "training",
-  // Sites allowed to call the API from a browser (comma separated)
-  allowedOrigins: (env.SITE_ORIGINS ?? "http://localhost:8080,http://localhost:8090")
+  // Sites allowed to call the API from a browser (comma separated). Required in
+  // production, where the local defaults would lock out the real site.
+  allowedOrigins: required("SITE_ORIGINS", "http://localhost:8080,http://localhost:8090")
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean),
-  // Public address of the Isoko site, used in emails and on certificates
-  publicUrl: (env.PUBLIC_SITE_URL ?? "http://localhost:8080").replace(/\/$/, ""),
+  // Public address of the Isoko site, used in emails and on certificates.
+  // Required in production, where links would otherwise point to localhost.
+  publicUrl: required("PUBLIC_SITE_URL", "http://localhost:8080").replace(/\/$/, ""),
   // Where the Training Center lives inside the Isoko site
   basePath: "/training-center",
   maxUploadMb: Number(env.MAX_UPLOAD_MB ?? 8),

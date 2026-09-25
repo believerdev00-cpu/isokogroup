@@ -1,0 +1,105 @@
+# Runs on every push and pull request. The "database" job starts a local
+# Supabase (every migration applied from an empty database), then runs the SQL
+# regression suites, the Training Center API tests and the end-to-end tests of
+# the website's services and Edge Functions against it. Nothing here touches
+# the production project, and no secrets are needed.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Website (lint, types, tests, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc -p tsconfig.app.json --noEmit
+      - run: npm test
+      - run: npm run build
+
+  training-api:
+    name: Training Center API (types, bundle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: training-api/package-lock.json
+      - run: npm ci --prefix training-api
+      - run: npm --prefix training-api run typecheck
+      - run: npm --prefix training-api run build
+
+  database:
+    name: Database, API and end-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Local-only test secret for the mock payment provider (refused on hosted Supabase)
+      PAYMENTS_MOCK_SECRET: ci-only-mock-secret-0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            training-api/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: npm ci
+      - run: npm ci --prefix training-api
+      # config.toml points the "training" function at this generated bundle
+      - run: npm --prefix training-api run build
+
+      - name: Start Supabase (applies every migration to an empty database)
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,postgres-meta
+
+      - name: SQL regression suites
+        run: npm run test:db
+
+      - name: Training Center API tests
+        run: npm --prefix training-api test
+
+      - name: Serve this repository's Edge Functions
+        run: |
+          # every run comes from one address: loosen the per-address limits for the tests
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -c "UPDATE public.platform_settings SET value = '100' WHERE key = 'rate_limit_multiplier'"
+          cat > "$RUNNER_TEMP/functions.env" <<EOF
+          PAYMENTS_MOCK_SECRET=$PAYMENTS_MOCK_SECRET
+          EMAIL_PROVIDER=mock
+          WHATSAPP_PROVIDER=mock
+          EOF
+          nohup supabase functions serve --env-file "$RUNNER_TEMP/functions.env" > "$RUNNER_TEMP/functions.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:54321/functions/v1/notifications-dispatch || true)
+            if [ "$code" = "401" ] || [ "$code" = "403" ]; then echo "functions are up"; exit 0; fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/functions.log"; exit 1
+
+      - name: End-to-end tests (website services, payment webhook, notification sending)
+        run: |
+          node supabase/tests/client-services.e2e.mjs
+          node supabase/tests/payments-webhook.e2e.mjs
+          node supabase/tests/notifications-dispatch.e2e.mjs
+
+      - name: Function logs
+        if: failure()
+        run: cat "$RUNNER_TEMP/functions.log" || true

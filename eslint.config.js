@@ -21,6 +21,16 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Kept visible but not blocking CI: most come from `(supabase as any)`
+      // around tables missing from the generated types (regenerate them to fix).
+      "@typescript-eslint/no-explicit-any": "warn",
+      // shadcn/ui's generated components declare empty prop interfaces
+      "@typescript-eslint/no-empty-object-type": "off",
     },
+  },
+  {
+    // Tailwind loads its plugins with require()
+    files: ["tailwind.config.ts"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
   },
 );
