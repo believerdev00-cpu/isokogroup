@@ -7,11 +7,17 @@ import { onRollback, queryOne, type Queryable, pool } from "../db.js";
 // sessions of its own. training.users says which role an Isoko account has here
 // (its id is the auth user's id).
 
-/** A readable temporary password, e.g. "kite-4821-river" (shown once, must be changed). */
+// No 0/O, 1/I/L: easy to read out and type
+const PASSWORD_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+
+/**
+ * A temporary password, e.g. "K7QM-4XRT-9PWD-3HNC" (about 79 bits; it also opens
+ * the person's whole Isoko account, so it must not be guessable). Shown once and
+ * must be changed at the first sign-in.
+ */
 export function temporaryPassword() {
-  const words = ["river", "hill", "kite", "lake", "maple", "cedar", "stone", "cloud", "sun", "tiger", "coffee", "drum"];
-  const pick = () => words[crypto.randomInt(words.length)];
-  return `${pick()}-${crypto.randomInt(1000, 10000)}-${pick()}`;
+  const group = () => Array.from({ length: 4 }, () => PASSWORD_ALPHABET[crypto.randomInt(PASSWORD_ALPHABET.length)]).join("");
+  return [group(), group(), group(), group()].join("-");
 }
 
 export type SessionUser = {
@@ -145,7 +151,16 @@ export async function createUserAccount(
 
   let id: string;
   let password: string | null = input.password;
-  const existing = await queryOne<{ id: string }>("SELECT id FROM auth.users WHERE lower(email) = $1", [email], client);
+  const existing = await queryOne<{ id: string; confirmed: boolean }>(
+    "SELECT id, email_confirmed_at IS NOT NULL AS confirmed FROM auth.users WHERE lower(email) = $1",
+    [email],
+    client,
+  );
+  if (existing && !existing.confirmed) {
+    // Anyone can sign up with any address; linking an unconfirmed account would
+    // hand this person's Training Center access to whoever created it.
+    throw conflict(`An Isoko account with ${email} exists but its email was never confirmed. Ask the person to confirm it (or remove that account) first.`);
+  }
   if (existing) {
     id = existing.id;
     password = null;

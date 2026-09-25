@@ -55,9 +55,12 @@ export async function approveApplication(applicationId: string, adminId: string,
         c,
       );
       if (already) throw conflict(`${student.full_name} is already enrolled in this program for this intake`);
-      // Keep the contact details current with the latest application
+      // The application's email isn't verified, so it only fills in details the
+      // student record doesn't have yet; it never overwrites them
       student = await queryOne(
-        `UPDATE students SET phone = $2, address = $3, emergency_contact_name = $4, emergency_contact_phone = $5
+        `UPDATE students SET phone = coalesce(nullif(phone, ''), $2), address = coalesce(nullif(address, ''), $3),
+           emergency_contact_name = coalesce(nullif(emergency_contact_name, ''), $4),
+           emergency_contact_phone = coalesce(nullif(emergency_contact_phone, ''), $5)
          WHERE id = $1 RETURNING *`,
         [student.id, app.phone, app.address, app.emergency_contact_name, app.emergency_contact_phone],
         c,
@@ -104,8 +107,9 @@ export async function approveApplication(applicationId: string, adminId: string,
     await refreshIntakeStatuses(c, ip.intake_id);
     await logActivity(adminId, "application.approved", "application", app.id, { student_number: student.student_number }, c);
 
+    // The password goes in the email only, never into the in-app notice
     const loginText = login?.temporary_password
-      ? `\n\nYour student portal login:\nEmail: ${login.email}\nTemporary password: ${login.temporary_password}\nYou'll be asked to choose a new password when you first sign in.`
+      ? `\n\nYour student portal login is ${login.email}. Your temporary password is in the email we sent you; you'll choose a new one when you first sign in.`
       : "\n\nSign in to the student portal with your existing Isoko account.";
     await notify(
       {
@@ -115,6 +119,7 @@ export async function approveApplication(applicationId: string, adminId: string,
         title: `Application approved — ${ip.program_name}`,
         body: `Congratulations ${app.full_name}! Your application ${app.reference} for ${ip.program_name} (${ip.intake_name}) has been approved. Your student number is ${student.student_number}.${klass ? ` Your class is ${klass.code}.` : ""}${loginText}`,
         link: "/login",
+        emailSecret: login?.temporary_password ? `Temporary password: ${login.temporary_password}` : null,
       },
       c,
     );

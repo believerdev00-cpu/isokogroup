@@ -80,7 +80,7 @@ export default function CertificatePanel({ enrollmentId, certificateId }: { enro
             <Download className="h-4 w-4" /> Download
           </Button>
           <Button size="sm" variant="outline" asChild>
-            <Link to={`/training-center/verify/${cert.certificate_number}`} target="_blank">
+            <Link to={`/training-center/verify/${cert.verification_code}`} target="_blank">
               <ExternalLink className="h-4 w-4" /> Verification page
             </Link>
           </Button>

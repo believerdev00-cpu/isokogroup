@@ -202,11 +202,16 @@ describe("end-to-end training center workflow", () => {
     expect(pdf.body.subarray(0, 4).toString()).toBe("%PDF");
   });
 
-  it("anyone can verify the certificate by number or verification code", async () => {
-    const byNumber = await visitor().get(`/api/public/certificates/verify/${s.cert.certificate_number}`);
-    expect(byNumber.body.data).toMatchObject({ valid: true, student_name: "John Doe", program_name: "Full-Stack Web Development" });
+  it("anyone can verify the certificate: the code shows whose it is, the number only that it exists", async () => {
     const byCode = await visitor().get(`/api/public/certificates/verify/${s.cert.verification_code.toLowerCase()}`);
-    expect(byCode.body.data.valid).toBe(true);
+    expect(byCode.body.data).toMatchObject({ valid: true, student_name: "John Doe", program_name: "Full-Stack Web Development" });
+    expect(byCode.body.data).not.toHaveProperty("verification_code");
+    // Numbers run in sequence: walking them must not list graduates' names, grades or codes
+    const byNumber = await visitor().get(`/api/public/certificates/verify/${s.cert.certificate_number}`);
+    expect(byNumber.body.data).toMatchObject({ valid: true, needs_code: true, program_name: "Full-Stack Web Development" });
+    expect(byNumber.body.data).not.toHaveProperty("student_name");
+    expect(byNumber.body.data).not.toHaveProperty("final_grade");
+    expect(byNumber.body.data).not.toHaveProperty("verification_code");
     const fake = await visitor().get("/api/public/certificates/verify/ISK-CERT-2027-99999");
     expect(fake.body.data).toMatchObject({ valid: false, not_found: true });
   });

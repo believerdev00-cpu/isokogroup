@@ -162,7 +162,7 @@ SELECT pg_temp.expect(NOT pg_temp.refused(:admin, $$UPDATE public.logistics_requ
   WHERE user_id = '00000000-0000-4000-8000-0000000000e1'$$), 'admin assigns a driver');
 SELECT pg_temp.expect(pg_temp.inbox(:buyer, 'DELIVERY_DRIVER_ASSIGNED') = 1 AND pg_temp.inbox(:driver, 'DELIVERY_JOB_ASSIGNED') = 1,
   'customer and driver are both told');
-SELECT pg_temp.expect(NOT pg_temp.refused(:driver, $$UPDATE public.logistics_requests SET status = 'delivered', delivered_at = now()
+SELECT pg_temp.expect(NOT pg_temp.refused(:driver, $$UPDATE public.logistics_requests SET status = 'delivered', delivered_at = now(), proof_url = auth.uid() || '/proof.jpg'
   WHERE assigned_driver_id = auth.uid()$$), 'driver completes the delivery');
 SELECT pg_temp.expect(pg_temp.inbox(:buyer, 'DELIVERY_COMPLETED') = 1, 'the customer is told (this message used to be refused)');
 SELECT pg_temp.expect((SELECT string_agg(d.channel || ':' || d.status, ',' ORDER BY d.channel) FROM public.notification_deliveries d

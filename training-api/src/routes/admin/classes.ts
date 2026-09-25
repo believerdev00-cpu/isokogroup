@@ -192,9 +192,11 @@ classesRouter.post("/trainers", async (req, res) => {
         type: "account_created",
         title: "Your Isoko Training Center trainer account",
         body: user.password
-          ? `Hello ${b.full_name}, a trainer account has been created for you.\nEmail: ${b.email}\nTemporary password: ${user.password}\nYou'll choose a new password when you first sign in.`
+          ? `Hello ${b.full_name}, a trainer account has been created for you. Sign in with ${b.email}; you'll choose a new password when you first sign in.`
           : `Hello ${b.full_name}, you are now a trainer at the Isoko Training Center. Sign in with your existing Isoko account (${b.email}).`,
         link: "/login",
+        // The password goes in the email only, never into the in-app notice
+        emailSecret: user.password ? `Temporary password: ${user.password}` : null,
       },
       c,
     );

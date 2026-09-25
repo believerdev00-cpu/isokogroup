@@ -1,7 +1,8 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
-import { config } from "../config.js";
+import { config } from "../config.js";
+import { DatabaseStore } from "../lib/rateLimitStore.js";
 import { query, queryOne } from "../db.js";
 import { badRequest, parse } from "../lib/http.js";
 import { currentUser, requireAuth } from "../middleware/auth.js";
@@ -16,6 +17,7 @@ const limiter = rateLimit({
   limit: config.isProduction ? 20 : 1000,
   standardHeaders: "draft-8",
   legacyHeaders: false,
+  store: new DatabaseStore("password"),
   message: { error: { message: "Too many attempts. Please wait a few minutes and try again.", code: "rate_limited" } },
 });
 

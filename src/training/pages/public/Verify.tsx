@@ -15,12 +15,13 @@ type Result =
       valid: boolean;
       revoked: boolean;
       certificate_number: string;
-      verification_code: string;
-      student_name: string;
       program_name: string;
-      intake_name: string;
-      final_grade: string | null;
       issued_on: string;
+      /** Only with the verification code; a certificate number alone doesn't say whose it is */
+      needs_code?: true;
+      student_name?: string;
+      intake_name?: string;
+      final_grade?: string | null;
     };
 
 export default function Verify() {
@@ -63,11 +64,12 @@ export default function Verify() {
   return (
     <>
       <PublicHero eyebrow="Employers & institutions" title="Verify a certificate">
-        Enter the certificate number (e.g. ISK-CERT-2027-00125) or the verification code printed on the certificate.
+        Enter the verification code printed on the certificate to see who it was awarded to. A certificate number (e.g.
+        ISK-CERT-2027-00125) only confirms that the certificate exists.
       </PublicHero>
       <div className="container max-w-2xl space-y-6 py-10">
         <form onSubmit={submit} className="flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm sm:flex-row sm:items-end">
-          <Field label="Certificate number or verification code" htmlFor="code" className="flex-1">
+          <Field label="Verification code or certificate number" htmlFor="code" className="flex-1">
             <Input id="code" value={input} onChange={(e) => setInput(e.target.value)} className="font-mono uppercase" autoCapitalize="characters" required />
           </Field>
           <Button type="submit" disabled={busy || input.trim().length < 5}>
@@ -82,7 +84,7 @@ export default function Verify() {
             <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
               <SearchX className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden />
               <p className="mt-3 text-lg font-bold">No certificate found</p>
-              <p className="mt-1 text-sm text-muted-foreground">No certificate matches this number. Check it carefully; letters and numbers must match exactly.</p>
+              <p className="mt-1 text-sm text-muted-foreground">No certificate matches this code. Check it carefully; letters and numbers must match exactly.</p>
             </div>
           )}
           {result && !("not_found" in result) && (
@@ -100,15 +102,28 @@ export default function Verify() {
               </div>
               <div className="mt-6 rounded-lg bg-card p-4">
                 <Facts
-                  items={[
-                    ["Student", result.student_name],
-                    ["Program", result.program_name],
-                    ["Intake", result.intake_name],
-                    ["Grade", result.final_grade ?? "—"],
-                    ["Issued on", formatLongDate(result.issued_on)],
-                    ["Certificate number", <span className="font-mono">{result.certificate_number}</span>],
-                  ]}
+                  items={
+                    result.needs_code
+                      ? [
+                          ["Program", result.program_name],
+                          ["Issued on", formatLongDate(result.issued_on)],
+                          ["Certificate number", <span className="font-mono">{result.certificate_number}</span>],
+                        ]
+                      : [
+                          ["Student", result.student_name],
+                          ["Program", result.program_name],
+                          ["Intake", result.intake_name],
+                          ["Grade", result.final_grade ?? "—"],
+                          ["Issued on", formatLongDate(result.issued_on)],
+                          ["Certificate number", <span className="font-mono">{result.certificate_number}</span>],
+                        ]
+                  }
                 />
+                {result.needs_code && (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    To see who this certificate was awarded to, enter the verification code printed on it.
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -173,7 +173,7 @@ function IssuedList({ intakeId }: { intakeId: string }) {
                               <Download className="h-4 w-4" /> PDF
                             </Button>
                             <Button size="sm" variant="ghost" asChild>
-                              <Link to={`/training-center/verify/${c.certificate_number}`} target="_blank" aria-label={`Open verification page for ${c.certificate_number}`}>
+                              <Link to={`/training-center/verify/${c.verification_code}`} target="_blank" aria-label={`Open verification page for ${c.certificate_number}`}>
                                 <ExternalLink className="h-4 w-4" />
                               </Link>
                             </Button>

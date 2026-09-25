@@ -2,6 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { config } from "../config.js";
+import { DatabaseStore } from "../lib/rateLimitStore.js";
 import { query, queryOne, withTransaction } from "../db.js";
 import { badRequest, conflict, notFound, optionalDate, parse, uuid } from "../lib/http.js";
 import { acceptingSql } from "../services/intakes.js";
@@ -18,6 +19,7 @@ const formLimiter = rateLimit({
   limit: config.isProduction ? 30 : 1000,
   standardHeaders: "draft-8",
   legacyHeaders: false,
+  store: new DatabaseStore("public-forms"),
   message: { error: { message: "Too many requests from your connection. Please try again later.", code: "rate_limited" } },
 });
 
@@ -206,15 +208,26 @@ publicRouter.post("/applications/withdraw", formLimiter, async (req, res) => {
   res.json({ data: { reference: app.reference, status: "withdrawn" } });
 });
 
-// Anyone can check a certificate by its number or verification code.
+// Anyone can check a certificate. The verification code (random, printed on the
+// certificate) shows whose it is; certificate numbers run in sequence, so a
+// number alone only confirms that it exists and is valid (otherwise walking
+// the numbers would list every graduate's name and grade).
 publicRouter.get("/certificates/verify/:code", formLimiter, async (req, res) => {
   const code = parse(z.string().trim().toUpperCase().min(5).max(40), req.params.code);
   const cert = await queryOne(
-    `SELECT certificate_number, verification_code, student_name, program_name, intake_name, final_grade, issued_on,
+    `SELECT certificate_number, student_name, program_name, intake_name, final_grade, issued_on,
             revoked_at IS NOT NULL AS revoked
-     FROM certificates WHERE certificate_number = $1 OR verification_code = $1`,
+     FROM certificates WHERE verification_code = $1`,
     [code],
   );
-  res.json({ data: cert ? { valid: !cert.revoked, ...cert } : { valid: false, not_found: true } });
+  if (cert) {
+    res.json({ data: { valid: !cert.revoked, ...cert } });
+    return;
+  }
+  const byNumber = await queryOne(
+    "SELECT certificate_number, program_name, issued_on, revoked_at IS NOT NULL AS revoked FROM certificates WHERE certificate_number = $1",
+    [code],
+  );
+  res.json({ data: byNumber ? { valid: !byNumber.revoked, needs_code: true, ...byNumber } : { valid: false, not_found: true } });
 });
 

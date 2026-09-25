@@ -217,7 +217,7 @@ const Admin = () => {
       contentType: file.type || undefined,
     });
     if (error) throw error;
-    return supabase.storage.from("books").getPublicUrl(path).data.publicUrl;
+    return path; // private bucket: subscribers get short-lived links
   };
 
   const handleAddBook = async (e: React.FormEvent) => {
@@ -265,7 +265,7 @@ const Admin = () => {
       });
       if (error) throw error;
       onProgress?.(100);
-      return supabase.storage.from("entertainment").getPublicUrl(path).data.publicUrl;
+      return path; // private bucket: subscribers get short-lived links
     }
 
     // Large files: resumable TUS upload
@@ -303,7 +303,7 @@ const Admin = () => {
       upload.start();
     });
 
-    return supabase.storage.from("entertainment").getPublicUrl(path).data.publicUrl;
+    return path;
   };
 
   const handleAddEntertainment = async (e: React.FormEvent) => {

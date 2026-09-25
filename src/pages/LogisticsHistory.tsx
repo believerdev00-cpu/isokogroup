@@ -43,6 +43,8 @@ const LogisticsHistory = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<LogisticsRequest[]>([]);
+  // Every status each request went through (kept by the database, never rewritten)
+  const [history, setHistory] = useState<Record<string, { status: string; created_at: string }[]>>({});
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -52,7 +54,18 @@ const LogisticsHistory = () => {
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-      if (data) setRequests(data);
+      if (data) {
+        setRequests(data);
+        const { data: steps } = await (supabase as any)
+          .from("request_status_history")
+          .select("request_id, status, created_at")
+          .eq("request_table", "logistics_requests")
+          .in("request_id", data.map((r: LogisticsRequest) => r.id))
+          .order("id");
+        const byRequest: Record<string, { status: string; created_at: string }[]> = {};
+        for (const st of steps ?? []) (byRequest[st.request_id] ??= []).push(st);
+        setHistory(byRequest);
+      }
       setLoading(false);
     };
     fetchRequests();
@@ -117,6 +130,16 @@ const LogisticsHistory = () => {
                       <span className="font-medium">{r.full_name} {r.phone ? `(${r.phone})` : ""}</span>
                     </div>
                   </div>
+                  {(history[r.id]?.length ?? 0) > 1 && (
+                    <ol className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label="Status history">
+                      {history[r.id].map((st, i) => (
+                        <li key={i}>
+                          <span className="font-medium text-foreground">{st.status.replace(/_/g, " ")}</span>{" "}
+                          {new Date(st.created_at).toLocaleString()}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
                   {r.proof_url && (
                     <Button
                       variant="outline" size="sm" className="mt-4"

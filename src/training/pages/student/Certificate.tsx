@@ -71,7 +71,7 @@ function Issued({ cert }: { cert: Cert }) {
             <Download className="mr-2 h-4 w-4" /> Download certificate
           </Button>
           <Button asChild size="lg" variant="outline">
-            <Link to={`/training-center/verify/${cert.certificate_number}`}>
+            <Link to={`/training-center/verify/${cert.verification_code}`}>
               <ShieldCheck className="mr-2 h-4 w-4" /> Verification page
             </Link>
           </Button>

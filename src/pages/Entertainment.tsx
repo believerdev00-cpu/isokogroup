@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Film, Mic, Search, Play, Trash2, Flame } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withLibraryLinks } from "@/lib/libraryFiles";
 import { useToast } from "@/hooks/use-toast";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
@@ -38,7 +39,8 @@ const Entertainment = () => {
       .select("*")
       .order("trending", { ascending: false })
       .order("created_at", { ascending: false });
-    if (data) setItems(data as EntItem[]);
+    // Files are for subscribers: swap stored paths for short-lived links
+    if (data) setItems(await withLibraryLinks("entertainment", data as EntItem[], ["cover_url", "media_url"]));
   };
 
   useEffect(() => {

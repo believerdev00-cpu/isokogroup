@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadLibraryFile, withLibraryLinks } from "@/lib/libraryFiles";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 
 const categories = ["All", "Business", "Technology", "History", "Self-Help", "Science", "Literature", "Other"];
@@ -48,7 +49,8 @@ const ELibrary = () => {
 
   const fetchBooks = async () => {
     const { data } = await supabase.from("books").select("*").order("created_at", { ascending: false });
-    if (data) setBooks(data as Book[]);
+    // Files are for subscribers: swap stored paths for short-lived links
+    if (data) setBooks(await withLibraryLinks("books", data as Book[], ["cover_url", "content_url"]));
   };
 
   useEffect(() => {
@@ -84,18 +86,8 @@ const ELibrary = () => {
     return () => observer.disconnect();
   }, [filtered.length]);
 
-  const uploadToBucket = async (file: File, prefix: string) => {
-    const ext = file.name.split(".").pop();
-    const path = `${prefix}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("books").upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || undefined,
-    });
-    if (error) throw error;
-    const { data } = supabase.storage.from("books").getPublicUrl(path);
-    return data.publicUrl;
-  };
+  // Stores the file's path; readers get a short-lived link (the bucket is private)
+  const uploadToBucket = (file: File, prefix: string) => uploadLibraryFile("books", prefix, file);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
