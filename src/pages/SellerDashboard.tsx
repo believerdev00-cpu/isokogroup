@@ -129,8 +129,10 @@ const SellerDashboard = () => {
   };
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
-    if (!error) { toast({ title: "Updated" }); fetchData(); }
+    const { error } = await (supabase as any).rpc("seller_set_order_status", { p_order_id: orderId, p_status: newStatus });
+    if (error) toast({ title: "Could not update the order", description: error.message, variant: "destructive" });
+    else toast({ title: "Updated" });
+    fetchData();
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -325,10 +327,10 @@ const SellerDashboard = () => {
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <select value={o.status} onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)} className="text-xs border rounded px-2 py-1 bg-background">
-                                  <option value="pending">Pending</option><option value="processing">Processing</option>
-                                  <option value="packed">Packed</option><option value="shipped">Shipped</option>
-                                  <option value="in_transit">In transit</option><option value="out_for_delivery">Out for delivery</option>
-                                  <option value="delivered">Delivered</option><option value="cancelled">Cancelled</option>
+                                  {/* Only the buyer confirms delivery; "delivered" shows once they do */}
+                                  <option value="pending" disabled>Pending</option><option value="processing">Processing</option>
+                                  <option value="shipped">Shipped</option>
+                                  <option value="delivered" disabled>Delivered (buyer confirms)</option><option value="cancelled">Cancelled</option>
                                 </select>
                                 <Button size="sm" variant="outline" onClick={() => setShipmentOrder({ id: o.id, buyer_id: o.buyer_id })}>
                                   <Truck className="h-3 w-3 mr-1" /> Manage

@@ -442,10 +442,12 @@ const Admin = () => {
   };
 
   const handleApproveApplication = async (app: any) => {
-    // Update application status
-    await (supabase as any).from("seller_applications").update({ status: "approved" }).eq("id", app.id);
-    // Update user profile role to seller
-    await supabase.from("profiles").update({ role: "seller", business_name: app.business_name }).eq("user_id", app.user_id);
+    // Application, seller role and the seller's notice change together on the server
+    const { error } = await (supabase as any).rpc("approve_seller_application", { p_application_id: app.id });
+    if (error) {
+      toast({ title: "Approval failed", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Seller Approved!" });
     fetchAll();
   };

@@ -97,6 +97,13 @@ const ShipmentDialog = ({ orderId, buyerId, open, onOpenChange, onSaved }: Props
   const save = async () => {
     setLoading(true);
     try {
+      // Move the order first: the server refuses shipping unpaid orders, and a
+      // shipment marked delivered keeps the order "shipped" until the buyer confirms.
+      const { error: statusError } = await (supabase as any).rpc("seller_set_order_status", {
+        p_order_id: orderId, p_status: shipment.status,
+      });
+      if (statusError) throw statusError;
+
       // Upsert package
       if (pkgId) {
         const { error } = await (supabase as any).from("packages").update({
@@ -133,9 +140,6 @@ const ShipmentDialog = ({ orderId, buyerId, open, onOpenChange, onSaved }: Props
         if (error) throw error;
         trackingNumber = data.tracking_number;
       }
-
-      // Sync order status with shipment status
-      await (supabase as any).from("orders").update({ status: shipment.status }).eq("id", orderId);
 
       // Notify buyer
       await notify({
