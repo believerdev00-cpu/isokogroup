@@ -222,7 +222,7 @@ const Cart = () => {
                     <p>{COMPANY_PAYMENT.bank.bank}</p>
                     <p>Account: <span className="font-mono text-primary">{COMPANY_PAYMENT.bank.account}</span></p>
                     <p>Name: {COMPANY_PAYMENT.bank.name}</p>
-                    <p className="text-muted-foreground">SWIFT: {COMPANY_PAYMENT.bank.swift}</p>
+                    {COMPANY_PAYMENT.bank.swift && <p className="text-muted-foreground">SWIFT: {COMPANY_PAYMENT.bank.swift}</p>}
                   </>
                 )}
                 {paymentMethod === "auto" && (

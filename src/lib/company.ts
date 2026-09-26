@@ -3,17 +3,19 @@
 export const COMPANY_PAYMENT = {
   momo: {
     label: "Mobile Money (MTN MoMo)",
-    name: "ISOKO GROUP LTD",
+    name: "ISOKO GROUPS COMPANY LTD",
     number: "*182*8*1*871951#",
     note: "Use your Order ID as the reference.",
   },
   bank: {
     label: "Bank Transfer",
-    bank: "Bank of Kigali",
+    bank: "BANQUE POPULAIRE DU RWANDA(KCB)",
     name: "ISOKO GROUPS COMPANY LTD",
-    account: "4713 8103 0001 9645",
-    
-    swift: "BKIGRWRW",
+    account: "4491099561",
+    // BPR's SWIFT/BIC code for international transfers: not known yet (it isn't in
+    // the ItecPay contract or anywhere else we have). Fill it in once BPR confirms
+    // it; until then the payment screens don't show a SWIFT line.
+    swift: null as string | null,
   },
   auto: {
     label: "Automatic Payment (SSD)",

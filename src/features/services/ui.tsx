@@ -423,7 +423,7 @@ export function PaymentBox({
               <>
                 <p className="font-semibold">{COMPANY_PAYMENT.bank.bank}</p>
                 <p>{COMPANY_PAYMENT.bank.name} · <span className="font-mono">{COMPANY_PAYMENT.bank.account}</span></p>
-                <p>SWIFT: <span className="font-mono">{COMPANY_PAYMENT.bank.swift}</span></p>
+                {COMPANY_PAYMENT.bank.swift && <p>SWIFT: <span className="font-mono">{COMPANY_PAYMENT.bank.swift}</span></p>}
               </>
             )}
             <p className="mt-2 text-muted-foreground">Use <span className="font-mono font-semibold text-foreground">{reference}</span> as the payment reference.</p>
