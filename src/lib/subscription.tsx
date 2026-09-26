@@ -2,9 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, Re
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
-// Billing: a new account gets a short free trial on its first sign-in (5 minutes
-// by default), then pays for its first month (50 RWF), then every month after
-// (200 RWF). The server decides who has access, until when and at what price
+// Billing: a new account gets a free trial on its first sign-in (20 minutes by
+// default), then pays 50 RWF for its first week, then 200 RWF for every month
+// after. The server decides who has access, until when and at what price
 // (subscription_state); this only shows it, starts the trial and locks the
 // member pages the moment access runs out.
 
@@ -23,10 +23,16 @@ export type Subscription = {
 
 export type SubscriptionPricing = {
   trialMinutes: number;
-  firstMonthPrice: number;
+  /** The first paid period: a week (50 RWF) */
+  firstWeekPrice: number;
+  firstPeriodDays: number;
+  /** Every period after: a month (200 RWF) */
   monthlyPrice: number;
-  /** What this account's next month costs: the first-month price until one is paid */
+  periodDays: number;
+  /** This account's next period: the first week until one is paid, then monthly */
+  nextIsFirstWeek: boolean;
   nextPrice: number;
+  nextDays: number;
   currency: string;
 };
 
@@ -39,9 +45,13 @@ type ServerState = {
   seconds_left?: number | null;
   payment_pending?: boolean;
   next_price?: number;
+  next_days?: number;
+  next_is_first_week?: boolean;
   trial_minutes: number;
-  first_month_price: number;
+  first_week_price: number;
+  first_period_days: number;
   monthly_price: number;
+  period_days: number;
   currency?: string;
 };
 
@@ -60,7 +70,10 @@ type SubscriptionContextType = {
   submitPayment: (reference: string) => Promise<{ data: any; error: any } | undefined>;
 };
 
-const DEFAULT_PRICING: SubscriptionPricing = { trialMinutes: 5, firstMonthPrice: 50, monthlyPrice: 200, nextPrice: 50, currency: "RWF" };
+const DEFAULT_PRICING: SubscriptionPricing = {
+  trialMinutes: 20, firstWeekPrice: 50, firstPeriodDays: 7, monthlyPrice: 200, periodDays: 30,
+  nextIsFirstWeek: true, nextPrice: 50, nextDays: 7, currency: "RWF",
+};
 
 const SubscriptionContext = createContext<SubscriptionContextType>({} as SubscriptionContextType);
 
@@ -152,9 +165,13 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const pricing: SubscriptionPricing = state
     ? {
         trialMinutes: state.trial_minutes,
-        firstMonthPrice: state.first_month_price,
+        firstWeekPrice: state.first_week_price,
+        firstPeriodDays: state.first_period_days,
         monthlyPrice: state.monthly_price,
-        nextPrice: state.next_price ?? state.first_month_price,
+        periodDays: state.period_days,
+        nextIsFirstWeek: state.next_is_first_week ?? true,
+        nextPrice: state.next_price ?? state.first_week_price,
+        nextDays: state.next_days ?? state.first_period_days,
         currency: state.currency ?? "RWF",
       }
     : DEFAULT_PRICING;
@@ -184,3 +201,10 @@ export const useSubscription = () => useContext(SubscriptionContext);
 
 /** "50 RWF" */
 export const formatPrice = (amount: number, currency = "RWF") => `${Math.round(amount).toLocaleString("en-US")} ${currency}`;
+
+/** "1 hour", "90 minutes", "2 hours" */
+export const formatTrial = (minutes: number) =>
+  minutes % 60 === 0 ? `${minutes / 60} hour${minutes === 60 ? "" : "s"}` : `${minutes} minute${minutes === 1 ? "" : "s"}`;
+
+/** "7 days" / "30 days" as "a week" / "a month" where they are */
+export const formatPeriod = (days: number) => (days === 7 ? "a week" : days === 30 ? "a month" : `${days} days`);

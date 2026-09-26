@@ -33,7 +33,7 @@ export const TrialBanner = () => {
           </span>
         </p>
         <Link to="/subscription" className="font-semibold text-primary hover:underline">
-          Pay {formatPrice(pricing.nextPrice, pricing.currency)} for your first month →
+          Pay {formatPrice(pricing.nextPrice, pricing.currency)} for your first week →
         </Link>
       </div>
     </div>

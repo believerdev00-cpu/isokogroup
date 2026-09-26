@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SubscriptionPayment from "@/components/SubscriptionPayment";
-import { formatPrice, useSubscription } from "@/lib/subscription";
+import { formatPeriod, formatPrice, useSubscription } from "@/lib/subscription";
 
 type Props = {
   reason: "no_subscription" | "expired";
@@ -19,26 +19,28 @@ const benefits = [
   "Real-time order tracking",
 ];
 
-// Shown in place of a member page when the free trial or the month has ended.
+// Shown in place of a member page when the free trial, the first week or the
+// month has ended.
 const SubscriptionRequired = ({ reason }: Props) => {
   const [open, setOpen] = useState(false);
-  const { pricing, subscription, paymentPending } = useSubscription();
-  const firstMonth = pricing.nextPrice === pricing.firstMonthPrice && pricing.firstMonthPrice !== pricing.monthlyPrice;
+  const { pricing, paymentPending } = useSubscription();
+  const firstWeek = pricing.nextIsFirstWeek;
   const price = formatPrice(pricing.nextPrice, pricing.currency);
-  const trialEnded = reason === "expired" && subscription?.status !== "active" && firstMonth;
+  const monthly = formatPrice(pricing.monthlyPrice, pricing.currency);
+  const period = formatPeriod(pricing.nextDays);
 
   const title = paymentPending
     ? "We're checking your payment"
-    : trialEnded
+    : reason === "expired" && firstWeek
       ? "Your free trial has ended"
       : reason === "expired"
         ? "Your subscription has ended"
         : "Subscription required";
   const text = paymentPending
     ? "Your access opens as soon as we confirm your Mobile Money payment."
-    : firstMonth
-      ? `Pay ${price} for your first month to keep using ISOKO GROUP. After that it's ${formatPrice(pricing.monthlyPrice, pricing.currency)} a month.`
-      : `Renew for ${price} to keep using ISOKO GROUP for another 30 days.`;
+    : firstWeek
+      ? `Pay ${price} for your first week to keep using ISOKO GROUP. After that it's ${monthly} a month.`
+      : `Renew for ${price} to keep using ISOKO GROUP for ${period}.`;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -65,7 +67,7 @@ const SubscriptionRequired = ({ reason }: Props) => {
           {!paymentPending && (
             <Button size="lg" className="w-full gap-2 text-base font-semibold" onClick={() => setOpen(true)}>
               <Sparkles className="h-5 w-5" />
-              {firstMonth ? `Pay ${price} for your first month` : `Renew for ${price}`}
+              {firstWeek ? `Pay ${price} for your first week` : `Renew for ${price} a month`}
             </Button>
           )}
 
@@ -79,16 +81,16 @@ const SubscriptionRequired = ({ reason }: Props) => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl">{firstMonth ? "Your first month" : "Renew your subscription"}</DialogTitle>
+            <DialogTitle className="text-2xl">{firstWeek ? "Your first week" : "Monthly subscription"}</DialogTitle>
             <DialogDescription>
-              {firstMonth
-                ? `${price} for 30 days of full access, then ${formatPrice(pricing.monthlyPrice, pricing.currency)} a month.`
-                : `${price} for another 30 days of full access.`}
+              {firstWeek
+                ? `${price} for ${pricing.firstPeriodDays} days of full access, then ${monthly} a month.`
+                : `${price} for ${pricing.periodDays} days of full access.`}
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-semibold">{firstMonth ? "First month" : "Monthly plan"}</span>
+              <span className="font-semibold">{firstWeek ? "First week" : "Monthly plan"}</span>
               <span className="text-lg text-primary font-bold">{price}</span>
             </div>
             <p className="text-xs text-muted-foreground">Access opens once we confirm your payment.</p>

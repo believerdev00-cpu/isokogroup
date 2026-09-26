@@ -115,7 +115,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   // CTA
   "cta.joinToday": { en: "Join Today", rw: "Iyandikishe Uyu Munsi" },
   "cta.title": { en: "Start for Just", rw: "Tangira ku" },
-  "cta.subtitle": { en: "Try every ISOKO GROUP service free for 5 minutes, then 50 RWF for your first month and 200 RWF a month after. Pay with Mobile Money.", rw: "Gerageza serivisi zose za ISOKO GROUP ku buntu mu minota 5, hanyuma 50 RWF ukwezi kwa mbere na 200 RWF buri kwezi. Ishyura ukoresheje Mobile Money." },
+  "cta.subtitle": { en: "Try every ISOKO GROUP service free for 20 minutes, then 50 RWF for your first week and 200 RWF a month after. Pay with Mobile Money.", rw: "Gerageza serivisi zose za ISOKO GROUP ku buntu mu minota 20, hanyuma 50 RWF icyumweru cya mbere na 200 RWF buri kwezi. Ishyura ukoresheje Mobile Money." },
   "cta.getStarted": { en: "Get Started Now", rw: "Tangira Nonaha" },
   "cta.benefit1": { en: "Access all services — Logistics, Packaging, Marketplace, E-Library", rw: "Koresha serivisi zose — Gutwara, Gupakira, Isoko, Ibitabo" },
   "cta.benefit2": { en: "Connect with verified sellers and buyers", rw: "Hura n'abacuruzi n'abaguzi bemejwe" },
@@ -131,7 +131,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "auth.password": { en: "Password", rw: "Ijambo ry'Ibanga" },
   "auth.fullName": { en: "Full Name", rw: "Amazina Yose" },
   "auth.createAccount": { en: "Create Account", rw: "Fungura Konti" },
-  "auth.subscription": { en: "Free for 5 minutes, then 50 RWF for your first month and 200 RWF a month", rw: "Ubuntu mu minota 5, hanyuma 50 RWF ukwezi kwa mbere na 200 RWF buri kwezi" },
+  "auth.subscription": { en: "Free for 20 minutes, then 50 RWF for your first week and 200 RWF a month", rw: "Ubuntu mu minota 20, hanyuma 50 RWF icyumweru cya mbere na 200 RWF buri kwezi" },
 
   // Seller
   "seller.title": { en: "Become a Seller", rw: "Ba Umucuruzi" },

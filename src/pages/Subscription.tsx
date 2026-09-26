@@ -1,5 +1,5 @@
 import { useAuth } from "@/lib/auth";
-import { formatPrice } from "@/lib/subscription";
+import { formatPeriod, formatPrice, formatTrial } from "@/lib/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Clock } from "lucide-react";
@@ -22,10 +22,10 @@ const Subscription = () => {
     );
   }
 
-  const first = formatPrice(pricing.firstMonthPrice, pricing.currency);
+  const firstWeek = formatPrice(pricing.firstWeekPrice, pricing.currency);
   const monthly = formatPrice(pricing.monthlyPrice, pricing.currency);
   const next = formatPrice(pricing.nextPrice, pricing.currency);
-  const firstMonthNext = pricing.nextPrice === pricing.firstMonthPrice && pricing.firstMonthPrice !== pricing.monthlyPrice;
+  const nextPeriod = formatPeriod(pricing.nextDays);
 
   return (
     <div className="min-h-screen">
@@ -35,7 +35,7 @@ const Subscription = () => {
           <div className="text-center mb-8 space-y-2">
             <h1 className="text-3xl font-display font-bold">Subscription</h1>
             <p className="text-muted-foreground">
-              {pricing.trialMinutes}-minute free trial, then {first} for your first month and {monthly} a month after.
+              Free for {formatTrial(pricing.trialMinutes)}, then {firstWeek} for your first week and {monthly} a month after.
             </p>
           </div>
 
@@ -63,7 +63,7 @@ const Subscription = () => {
                     <p className="text-sm text-muted-foreground">Paid until {accessUntil.toLocaleDateString()}</p>
                   )}
                   <p className="text-sm text-muted-foreground">
-                    {firstMonthNext ? `First month: ${next}` : `Next month: ${next}`}
+                    {pricing.nextIsFirstWeek ? `First week: ${next}` : `Next month: ${next}`}
                   </p>
                 </div>
               </div>
@@ -86,10 +86,10 @@ const Subscription = () => {
                 <div className="text-center space-y-4">
                   <p className="text-muted-foreground">
                     {status === "trial"
-                      ? `Pay ${next} now to keep going after your trial: 30 days of full access.`
+                      ? `Pay ${next} now to keep going after your trial: ${nextPeriod} of full access.`
                       : isActive
-                        ? `Pay ${next} to add another 30 days.`
-                        : `Pay ${next} to continue for 30 days.`}
+                        ? `Pay ${next} to add ${nextPeriod} more.`
+                        : `Pay ${next} to continue for ${nextPeriod}.`}
                   </p>
                   <SubscriptionPayment />
                 </div>
