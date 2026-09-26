@@ -6,9 +6,11 @@ import {
   Truck,
   Package,
   ShoppingBag,
-  BookOpen,
-  Film,
-  Code2,
+  Warehouse,
+  Route,
+  Workflow,
+  GraduationCap,
+  Plane,
   Target,
   Eye,
   HeartHandshake,
@@ -25,9 +27,24 @@ import JourneyTimeline from "@/components/about/JourneyTimeline";
 
 const pillars = [
   {
+    icon: Warehouse,
+    title: "Wholesale",
+    desc: "Goods in bulk for shops, restaurants and businesses, at wholesale prices.",
+  },
+  {
+    icon: Route,
+    title: "Distribution",
+    desc: "We move stock from suppliers to retailers and customers, on schedule.",
+  },
+  {
+    icon: Workflow,
+    title: "Supply Chain",
+    desc: "Sourcing and end-to-end shipments, with customs, taxes and live tracking handled for you.",
+  },
+  {
     icon: Truck,
     title: "Logistics",
-    desc: "Same-day pickups, deliveries and courier runs across Kigali, with tracking from booking to drop-off.",
+    desc: "Pickups, deliveries and courier runs, tracked from booking to drop-off.",
   },
   {
     icon: Package,
@@ -37,22 +54,17 @@ const pillars = [
   {
     icon: ShoppingBag,
     title: "Marketplace",
-    desc: "A trusted online market where Rwandan buyers and verified sellers meet, with secure orders and payments.",
+    desc: "A trusted online market where buyers and verified sellers meet, with secure orders and payments.",
   },
   {
-    icon: BookOpen,
-    title: "E-Library",
-    desc: "A growing digital library of books, guides and study material for students, professionals and entrepreneurs.",
+    icon: GraduationCap,
+    title: "Learning",
+    desc: "The Isoko Training Center's practical courses with certificates, and an e-library of books and study material.",
   },
   {
-    icon: Film,
-    title: "Entertainment",
-    desc: "Original films, shorts and podcasts produced under our Isoko Studioz brand.",
-  },
-  {
-    icon: Code2,
-    title: "Software",
-    desc: "Custom websites and mobile apps from our in-house tech team, plus the Isoko Training Center.",
+    icon: Plane,
+    title: "Travel Agency",
+    desc: "Trips planned for you, from transport to stays, with one link to follow your booking.",
   },
 ];
 
@@ -79,7 +91,7 @@ const About = () => {
           <div className="container relative py-20 md:py-28">
             <div className="max-w-3xl space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground">
-                <span className="h-2 w-2 rounded-full bg-primary" /> About ISOKO GROUP
+                <span className="h-2 w-2 rounded-full bg-primary" /> About ISOKO GROUPS
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight">
                 Welcome to <span className="text-primary">ISOKO GROUPS COMPANY LTD</span>
@@ -111,33 +123,33 @@ const About = () => {
           <div className="container grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-5">
               <span className="text-sm font-semibold uppercase tracking-wider text-primary">Our Story</span>
-              <h2 className="text-3xl md:text-4xl font-display font-bold">Built in Kigali, for Rwanda.</h2>
+              <h2 className="text-3xl md:text-4xl font-display font-bold">Built in Kigali, for Africa and the world.</h2>
               <p className="text-muted-foreground leading-relaxed">
-                ISOKO GROUP started with a simple observation: Rwandan customers were juggling separate apps
+                ISOKO GROUPS started with a simple observation: Rwandan customers were juggling separate apps
                 and contacts to send a parcel, order a product, find a book or get a website built. We set out
                 to bring those services together — operated by one team, from one office in Kimironko, with one
                 set of standards.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Today we serve buyers, sellers, students, businesses and creators through six connected
-                divisions. Whether you are sending a delivery across town, opening a shop online, reading a
-                book, watching an Isoko Studioz production or commissioning a custom app — you are working
-                with the same group, and the same promise of reliability.
+                Today we serve buyers, sellers, students, businesses and travellers through eight connected
+                services. Whether you are buying stock wholesale, shipping goods, opening a shop online, taking
+                a course or planning a trip — you are working with the same group, and the same promise of
+                reliability.
               </p>
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-8 space-y-6">
               <div className="flex items-center gap-4">
-                <img src={logo} alt="ISOKO GROUP logo" className="h-16 w-16 rounded-full object-cover" />
+                <img src={logo} alt="ISOKO GROUPS logo" className="h-16 w-16 rounded-full object-cover" />
                 <div>
-                  <p className="font-display text-xl font-bold">ISOKO GROUP Ltd</p>
+                  <p className="font-display text-xl font-bold">ISOKO GROUPS COMPANY LTD</p>
                   <p className="text-sm text-muted-foreground">Headquartered in Kigali, Rwanda</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-2xl font-bold text-primary">6</p>
-                  <p className="text-muted-foreground">Service divisions</p>
+                  <p className="text-2xl font-bold text-primary">8</p>
+                  <p className="text-muted-foreground">Services</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-primary">3</p>
@@ -187,13 +199,13 @@ const About = () => {
           <div className="container">
             <div className="text-center mb-12 space-y-3">
               <span className="text-sm font-semibold uppercase tracking-wider text-primary">What we do</span>
-              <h2 className="text-3xl md:text-4xl font-display font-bold">Six services, one group</h2>
+              <h2 className="text-3xl md:text-4xl font-display font-bold">Eight services, one group</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Each division runs independently, but shares the same operations team, customer support and quality standards.
+                Each service runs independently, but shares the same operations team, customer support and quality standards.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {pillars.map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="rounded-xl border border-border bg-card p-6 hover-lift">
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
