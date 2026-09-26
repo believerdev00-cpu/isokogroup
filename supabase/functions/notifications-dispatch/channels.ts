@@ -2,15 +2,14 @@
 //   EMAIL_PROVIDER=smtp with SMTP_HOST, SMTP_PORT (465), SMTP_SECURE (true),
 //     SMTP_USER, SMTP_PASSWORD and EMAIL_FROM: any mail server or email service
 //     that accepts SMTP (the Training Center's mailbox, for example)
-//   WHATSAPP_PROVIDER / WHATSAPP_API_KEY
-//   SMS_PROVIDER / SMS_API_KEY
+//   WHATSAPP_PROVIDER=twilio and SMS_PROVIDER=twilio with the TWILIO_* settings
+//     (see twilio.ts)
 // A channel without a provider is not sent: its deliveries are marked skipped
-// with the reason, never "sent". WhatsApp and SMS providers are added here once
-// Isoko has an account with them (e.g. the WhatsApp Business Cloud API, an SMS
-// gateway); until then they have only "mock", for local development and tests
+// with the reason, never "sent". "mock" is for local development and tests
 // (refused on hosted Supabase).
 import nodemailer from "npm:nodemailer@10.0.10";
 import { mocksAllowed } from "../_shared/environment.ts";
+import { twilioProvider } from "./twilio.ts";
 
 export type Channel = "email" | "whatsapp" | "sms";
 
@@ -21,6 +20,8 @@ export type Message = {
   name: string | null;
   subject: string;
   body: string;
+  /** An approved template to send instead of the text (WhatsApp), with its numbered values */
+  template?: { id: string; variables: Record<string, string> };
 };
 
 export type SendResult =
@@ -107,6 +108,7 @@ export function configuredProviders(env: Env) {
       providers.set(channel, mocksAllowed(env) ? mockProvider() : `The mock ${channel} provider is for local development only`);
     }
     else if (name === "smtp" && channel === "email") providers.set(channel, smtpProvider(env));
+    else if (name === "twilio" && channel !== "email") providers.set(channel, twilioProvider(env, channel));
     else providers.set(channel, `The ${channel} provider "${name}" is not supported yet`);
   }
   return providers;

@@ -106,7 +106,8 @@ CALL pg_temp.none($$
     'audit_event(text,text,text,jsonb,text)', 'rate_limit(text,integer,integer,text)',
     'training_is_admin()', 'finance_can_reverse_module(text)',
     'mobile_money_claim_send(uuid)', 'mobile_money_sent(uuid,text,text)', 'mobile_money_due(integer,uuid,boolean)',
-    'mobile_money_by_transaction(text)', 'mobile_money_phone(text)']) f
+    'mobile_money_by_transaction(text)', 'mobile_money_phone(text)',
+    'notification_provider_status(text,text,text,text)']) f
   WHERE to_regprocedure('public.' || f) IS NULL
      OR has_function_privilege('anon', to_regprocedure('public.' || f), 'EXECUTE')
      OR has_function_privilege('authenticated', to_regprocedure('public.' || f), 'EXECUTE')

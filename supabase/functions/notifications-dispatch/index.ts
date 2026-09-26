@@ -16,7 +16,24 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-type Delivery = { id: string; channel: Channel; recipient_address: string; recipient_name: string | null; subject: string; body: string };
+type Delivery = {
+  id: string; channel: Channel; recipient_address: string; recipient_name: string | null; subject: string; body: string;
+  data: Record<string, unknown> | null;
+};
+type Template = { id: string; variables: string[] };
+
+/** Approved provider templates (WhatsApp), by "<event type>:<channel>" */
+async function providerTemplates(): Promise<Map<string, Template>> {
+  const { data, error } = await admin.from("notification_templates")
+    .select("event_type, channel, provider_template, provider_variables").not("provider_template", "is", null);
+  if (error) console.error(`notifications-dispatch: templates: ${error.message}`);
+  return new Map((data ?? []).map((t) => [`${t.event_type}:${t.channel}`, { id: t.provider_template, variables: t.provider_variables ?? [] }]));
+}
+
+/** {"1": value of the first named variable, ...}; WhatsApp refuses empty values */
+function fill(t: Template, data: Record<string, unknown>) {
+  return Object.fromEntries(t.variables.map((name, i) => [String(i + 1), String(data[name] ?? "").trim() || "-"]));
+}
 
 const reply = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -37,6 +54,7 @@ Deno.serve(async (req) => {
   if (!isServiceRole(req)) return reply(403, { error: "Forbidden" });
 
   const counts: Record<string, number> = {};
+  const templates = await providerTemplates();
   for (let batch = 0; batch < MAX_BATCHES; batch++) {
     const { data, error } = await admin.rpc("notification_claim", { p_limit: BATCH });
     if (error) {
@@ -51,7 +69,11 @@ Deno.serve(async (req) => {
         result = { ok: false, provider: null, messageId: null, error: provider ?? "Unknown channel", retry: false };
       } else {
         try {
-          const r = await provider.send({ id: d.id, to: d.recipient_address, name: d.recipient_name, subject: d.subject, body: d.body });
+          const t = templates.get(`${d.data?.event_type}:${d.channel}`);
+          const r = await provider.send({
+            id: d.id, to: d.recipient_address, name: d.recipient_name, subject: d.subject, body: d.body,
+            template: t ? { id: t.id, variables: fill(t, d.data ?? {}) } : undefined,
+          });
           result = r.ok
             ? { ok: true, provider: provider.id, messageId: r.messageId, error: null, retry: false }
             : { ok: false, provider: provider.id, messageId: null, error: r.error, retry: r.retry };

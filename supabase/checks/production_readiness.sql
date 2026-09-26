@@ -18,7 +18,8 @@ expected(version, name) AS (VALUES
   ('20260925120100', 'payment_engine'), ('20260925130000', 'notification_engine'),
   ('20260925140000', 'files_and_links'), ('20260925150000', 'module_fixes'),
   ('20260925150100', 'training_hardening'), ('20260925160000', 'training_on_engines'),
-  ('20260925170000', 'privilege_hygiene'), ('20260925180000', 'mobile_money')),
+  ('20260925170000', 'privilege_hygiene'), ('20260925180000', 'mobile_money'),
+  ('20260925190000', 'notification_providers')),
 missing AS (
   SELECT e.* FROM expected e
   WHERE NOT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations m WHERE m.version = e.version)),

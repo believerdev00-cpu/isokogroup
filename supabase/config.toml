@@ -17,3 +17,8 @@ verify_jwt = false
 # send/check with the payment id it received; the sweep checks the
 # service-role key itself (see functions/payments-itecpay).
 verify_jwt = false
+
+[functions.notifications-status]
+# Providers report delivery without a Supabase token; each report is checked
+# by the provider's signature instead (see functions/notifications-status).
+verify_jwt = false

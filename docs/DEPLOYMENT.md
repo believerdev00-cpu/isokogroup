@@ -8,7 +8,7 @@ What gets deployed:
 | Part | Where | How |
 | --- | --- | --- |
 | Database (tables, rules, functions) | Supabase project `klcyyeeqxxfheurdhmay` | `supabase db push` |
-| Edge Functions: `training`, `payments-webhook`, `payments-itecpay`, `notifications-dispatch`, `file-access`, `service-files`, `generate-pdf` | Same project | `supabase functions deploy` |
+| Edge Functions: `training`, `payments-webhook`, `payments-itecpay`, `notifications-dispatch`, `notifications-status`, `file-access`, `service-files`, `generate-pdf` | Same project | `supabase functions deploy` |
 | Website | Vercel | push to the production branch |
 
 Nothing in the migrations deletes customer data. They move payments into the
@@ -82,6 +82,21 @@ supabase secrets set \
 - The SMTP settings are the ones the Training Center used before (its API no
   longer sends email itself). Port 465 with `SMTP_SECURE=true`: Supabase blocks
   outgoing ports 25 and 587.
+- **Email with Resend:** verify your domain in Resend (it shows the DNS records
+  to add), create an API key, then `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`,
+  `SMTP_SECURE=true`, `SMTP_USER=resend`, `SMTP_PASSWORD=<the API key>`,
+  `EMAIL_FROM="Isoko <no-reply@<the verified domain>>"`.
+- **WhatsApp (and SMS) with Twilio:** `WHATSAPP_PROVIDER=twilio`,
+  `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (Twilio Console > Account info; a
+  password, only here), `TWILIO_WHATSAPP_FROM`. To test first, use Twilio's
+  sandbox (Messaging > Try it out > WhatsApp): `TWILIO_WHATSAPP_FROM=whatsapp:+14155238886`,
+  and each test phone sends the sandbox's "join" code first. For real customers,
+  register your WhatsApp sender in Twilio (Messaging > Senders > WhatsApp senders,
+  linked to a Meta Business account) and submit the templates in
+  `docs/WHATSAPP_TEMPLATES.md`. SMS through the same account: `SMS_PROVIDER=twilio`
+  and `TWILIO_SMS_FROM` (check Twilio's rules for sending SMS to Rwanda first).
+  Delivery reports come back to `notifications-status` by themselves; it checks
+  Twilio's signature with the auth token.
 - Don't set `PAYMENTS_MOCK_SECRET`, or `WHATSAPP_PROVIDER` / `SMS_PROVIDER` to
   `mock`. Hosted functions ignore the mocks anyway, but the settings mislead.
   WhatsApp and SMS stay off (messages marked skipped) until real providers are
@@ -107,7 +122,7 @@ are for local tests and ignored on hosted Supabase.
 ```sh
 npm --prefix training-api ci
 npm --prefix training-api run build     # writes supabase/functions/training/index.js
-supabase functions deploy training payments-webhook payments-itecpay notifications-dispatch file-access service-files generate-pdf
+supabase functions deploy training payments-webhook payments-itecpay notifications-dispatch notifications-status file-access service-files generate-pdf
 ```
 
 ## 4. Settings in the database

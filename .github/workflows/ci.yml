@@ -108,6 +108,28 @@ jobs:
           node supabase/tests/notifications-dispatch.e2e.mjs
           node supabase/tests/mobile-money.e2e.mjs
 
+      - name: WhatsApp and SMS through Twilio (fake Twilio)
+        run: |
+          pkill -f "supabase functions serve" || true
+          host=$(docker network inspect "supabase_network_$(grep -m1 "^project_id" supabase/config.toml | cut -d\" -f2)" -f "{{(index .IPAM.Config 0).Gateway}}")
+          cat > "$RUNNER_TEMP/twilio.env" <<EOF
+          EMAIL_PROVIDER=mock
+          WHATSAPP_PROVIDER=twilio
+          SMS_PROVIDER=twilio
+          TWILIO_API_BASE=http://$host:54398
+          TWILIO_ACCOUNT_SID=ACtest0123456789abcdef0123456789ab
+          TWILIO_AUTH_TOKEN=fake-twilio-token-0123456789
+          TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+          TWILIO_SMS_FROM=MGtest0123456789abcdef0123456789ab
+          EOF
+          nohup supabase functions serve --env-file "$RUNNER_TEMP/twilio.env" > "$RUNNER_TEMP/functions.log" 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:54321/functions/v1/notifications-dispatch || true)
+            if [ "$code" = "401" ] || [ "$code" = "403" ]; then break; fi
+            sleep 2
+          done
+          node supabase/tests/notifications-twilio.e2e.mjs
+
       - name: Function logs
         if: failure()
         run: cat "$RUNNER_TEMP/functions.log" || true
