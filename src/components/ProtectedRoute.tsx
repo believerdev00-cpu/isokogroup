@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/lib/subscription";
 import SubscriptionRequired from "@/components/SubscriptionRequired";
+import { TrialBanner } from "@/components/TrialCountdown";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -16,9 +17,15 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+  // The free trial or the month ran out (checked live): the page locks
   if (!isActive && reason) return <SubscriptionRequired reason={reason} />;
 
-  return <>{children}</>;
+  return (
+    <>
+      <TrialBanner />
+      {children}
+    </>
+  );
 };
 
 export default ProtectedRoute;

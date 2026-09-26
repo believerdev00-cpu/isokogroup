@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Clock, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useSubscription } from "@/lib/subscription";
+import { formatPrice, useSubscription } from "@/lib/subscription";
 import { useToast } from "@/hooks/use-toast";
 import { COMPANY_PAYMENT } from "@/lib/company";
 
@@ -13,8 +13,10 @@ type Props = {
 
 // Pay by MoMo, then send the transaction reference. An admin confirms the
 // payment and activates the plan; until then the user sees it as pending.
-const SubscriptionPayment = ({ label = "I have paid 200 RWF", onSubmitted }: Props) => {
-  const { subscription, submitPayment } = useSubscription();
+const SubscriptionPayment = ({ label, onSubmitted }: Props) => {
+  const { subscription, submitPayment, pricing } = useSubscription();
+  // the server decides the price: the first month, or the monthly price after that
+  const price = formatPrice(pricing.nextPrice, pricing.currency);
   const { toast } = useToast();
   const [reference, setReference] = useState("");
   const [sending, setSending] = useState(false);
@@ -52,7 +54,7 @@ const SubscriptionPayment = ({ label = "I have paid 200 RWF", onSubmitted }: Pro
   return (
     <div className="space-y-3 text-left">
       <div className="rounded-lg bg-muted/30 p-3 text-sm">
-        <p className="text-muted-foreground">Pay 200 RWF via {COMPANY_PAYMENT.momo.label}</p>
+        <p className="text-muted-foreground">Pay {price} via {COMPANY_PAYMENT.momo.label}</p>
         <p className="font-mono font-semibold">{COMPANY_PAYMENT.momo.number}</p>
         <p className="text-xs text-muted-foreground">Account: {COMPANY_PAYMENT.momo.name}</p>
       </div>
@@ -64,7 +66,7 @@ const SubscriptionPayment = ({ label = "I have paid 200 RWF", onSubmitted }: Pro
       />
       <Button className="w-full gap-2" size="lg" onClick={handleSubmit} disabled={sending}>
         <CreditCard className="h-4 w-4" />
-        {sending ? "Sending…" : label}
+        {sending ? "Sending…" : label ?? `I have paid ${price}`}
       </Button>
     </div>
   );

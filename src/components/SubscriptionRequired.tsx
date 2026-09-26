@@ -6,8 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SubscriptionPayment from "@/components/SubscriptionPayment";
-import { useSubscription } from "@/lib/subscription";
-import { useToast } from "@/hooks/use-toast";
+import { formatPrice, useSubscription } from "@/lib/subscription";
 
 type Props = {
   reason: "no_subscription" | "expired";
@@ -20,46 +19,38 @@ const benefits = [
   "Real-time order tracking",
 ];
 
+// Shown in place of a member page when the free trial or the month has ended.
 const SubscriptionRequired = ({ reason }: Props) => {
-  const expired = reason === "expired";
   const [open, setOpen] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const { startTrial, subscription } = useSubscription();
-  const { toast } = useToast();
+  const { pricing, subscription, paymentPending } = useSubscription();
+  const firstMonth = pricing.nextPrice === pricing.firstMonthPrice && pricing.firstMonthPrice !== pricing.monthlyPrice;
+  const price = formatPrice(pricing.nextPrice, pricing.currency);
+  const trialEnded = reason === "expired" && subscription?.status !== "active" && firstMonth;
 
-  const handleTrial = async () => {
-    setProcessing(true);
-    const result = await startTrial();
-    setProcessing(false);
-    if (result?.error) {
-      toast({ title: "Error", description: result.error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Trial started!", description: "Enjoy 1 week of full access." });
-      setOpen(false);
-    }
-  };
+  const title = paymentPending
+    ? "We're checking your payment"
+    : trialEnded
+      ? "Your free trial has ended"
+      : reason === "expired"
+        ? "Your subscription has ended"
+        : "Subscription required";
+  const text = paymentPending
+    ? "Your access opens as soon as we confirm your Mobile Money payment."
+    : firstMonth
+      ? `Pay ${price} for your first month to keep using ISOKO GROUP. After that it's ${formatPrice(pricing.monthlyPrice, pricing.currency)} a month.`
+      : `Renew for ${price} to keep using ISOKO GROUP for another 30 days.`;
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 container py-16 flex items-center justify-center">
-        <div className="max-w-lg w-full rounded-2xl border-2 border-primary/20 bg-card p-8 text-center space-y-6 shadow-xl hover-lift">
+      <main className="flex-1 container py-10 sm:py-16 flex items-center justify-center">
+        <div className="max-w-lg w-full rounded-2xl border-2 border-primary/20 bg-card p-6 sm:p-8 text-center space-y-6 shadow-xl">
           <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-            {expired ? (
-              <Clock className="h-8 w-8 text-primary" />
-            ) : (
-              <Lock className="h-8 w-8 text-primary" />
-            )}
+            {reason === "expired" ? <Clock className="h-8 w-8 text-primary" /> : <Lock className="h-8 w-8 text-primary" />}
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-display font-bold">
-              {expired ? "Your subscription has expired" : "Subscription required"}
-            </h1>
-            <p className="text-muted-foreground">
-              {expired
-                ? "Renew your plan for 200 RWF to keep accessing all ISOKO services."
-                : "Subscribe for just 200 RWF/month to unlock all ISOKO GROUP services."}
-            </p>
+            <h1 className="text-2xl font-display font-bold">{title}</h1>
+            <p className="text-muted-foreground">{text}</p>
           </div>
 
           <ul className="space-y-2 text-left bg-muted/30 rounded-lg p-4">
@@ -71,17 +62,15 @@ const SubscriptionRequired = ({ reason }: Props) => {
             ))}
           </ul>
 
-          <Button
-            size="lg"
-            className="w-full gap-2 text-base font-semibold hover-glow"
-            onClick={() => setOpen(true)}
-          >
-            <Sparkles className="h-5 w-5" />
-            {expired ? "Renew Subscription" : "Subscribe Now"}
-          </Button>
+          {!paymentPending && (
+            <Button size="lg" className="w-full gap-2 text-base font-semibold" onClick={() => setOpen(true)}>
+              <Sparkles className="h-5 w-5" />
+              {firstMonth ? `Pay ${price} for your first month` : `Renew for ${price}`}
+            </Button>
+          )}
 
           <Link to="/subscription" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-            View full subscription details →
+            View subscription details →
           </Link>
         </div>
       </main>
@@ -90,47 +79,20 @@ const SubscriptionRequired = ({ reason }: Props) => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl">
-              {expired ? "Renew your subscription" : "Choose your plan"}
-            </DialogTitle>
+            <DialogTitle className="text-2xl">{firstMonth ? "Your first month" : "Renew your subscription"}</DialogTitle>
             <DialogDescription>
-              {expired
-                ? "Pay 200 RWF to restore access for 30 days."
-                : "Start with a free trial or pay now for full access."}
+              {firstMonth
+                ? `${price} for 30 days of full access, then ${formatPrice(pricing.monthlyPrice, pricing.currency)} a month.`
+                : `${price} for another 30 days of full access.`}
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {!expired && !subscription && (
-              <div className="rounded-lg border-2 border-primary p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold">1-Week Free Trial</span>
-                  <span className="text-sm text-primary font-bold">FREE</span>
-                </div>
-                <p className="text-xs text-muted-foreground">No payment required. Full access for 7 days.</p>
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={handleTrial}
-                  disabled={processing}
-                >
-                  Start Free Trial
-                </Button>
-              </div>
-            )}
-
-            <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">Monthly Plan</span>
-                <span className="text-lg text-primary font-bold">200 RWF</span>
-              </div>
-              <p className="text-xs text-muted-foreground">30 days of unlimited access, activated once we confirm your payment.</p>
-              {subscription ? (
-                <SubscriptionPayment onSubmitted={() => setOpen(false)} />
-              ) : (
-                <p className="text-xs text-center text-muted-foreground">Start a trial first to unlock paid upgrade.</p>
-              )}
+          <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">{firstMonth ? "First month" : "Monthly plan"}</span>
+              <span className="text-lg text-primary font-bold">{price}</span>
             </div>
+            <p className="text-xs text-muted-foreground">Access opens once we confirm your payment.</p>
+            <SubscriptionPayment onSubmitted={() => setOpen(false)} />
           </div>
         </DialogContent>
       </Dialog>

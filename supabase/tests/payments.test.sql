@@ -333,8 +333,8 @@ SELECT pg_temp.expect(NOT pg_temp.refused('00000000-0000-4000-8000-0000000000f5'
   $$SELECT public.activate_subscription((SELECT id FROM public.subscriptions WHERE user_id = '00000000-0000-4000-8000-0000000000f2'))$$),
   'finance activates the subscription');
 SELECT pg_temp.expect((SELECT status FROM public.subscriptions WHERE user_id = '00000000-0000-4000-8000-0000000000f2') = 'active'
-  AND (pg_temp.totals('subscriptions', (SELECT id FROM public.subscriptions WHERE user_id = '00000000-0000-4000-8000-0000000000f2')) ->> 'paid')::numeric = 200,
-  'active, with the 200 payment on record');
+  AND (pg_temp.totals('subscriptions', (SELECT id FROM public.subscriptions WHERE user_id = '00000000-0000-4000-8000-0000000000f2')) ->> 'paid')::numeric = 50,
+  'active, with the first month (50) on record');
 
 -- ---------- Software ----------
 SELECT pg_temp.refused(NULL, $$INSERT INTO public.software_bookings (full_name, email, phone, service_type, project_description)

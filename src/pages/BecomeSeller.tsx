@@ -15,7 +15,7 @@ const rules = [
   "10% monthly commission on profits",
   "Products must meet quality standards",
   "ID verification required",
-  "Active subscription required (200 RWF)",
+  "Active subscription required (50 RWF the first month, then 200 RWF a month)",
 ];
 
 const MAX_ID_SIZE = 5 * 1024 * 1024; // 5MB
