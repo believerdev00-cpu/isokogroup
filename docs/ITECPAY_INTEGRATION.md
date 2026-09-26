@@ -151,7 +151,7 @@ Supabase secrets (Dashboard > Edge Functions > Secrets), never in the code or `.
 | `ITECPAY_CALLBACK_SECRET` | a random value of 32+ characters that we choose; only in the callback address |
 
 Callback address to give ItecPay:
-`https://klcyyeeqxxfheurdhmay.supabase.co/functions/v1/payments-itecpay/callback/<ITECPAY_CALLBACK_SECRET>`
+`https://oswetaksxcepublsjyrt.supabase.co/functions/v1/payments-itecpay/callback/<ITECPAY_CALLBACK_SECRET>`
 (how it is registered, per key in the portal or by ItecPay support: **(ask ItecPay)**).
 
 ## Questions for ItecPay (info@itec.rw, +250 788 620 612)

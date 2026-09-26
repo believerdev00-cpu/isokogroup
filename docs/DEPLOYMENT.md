@@ -7,7 +7,7 @@ What gets deployed:
 
 | Part | Where | How |
 | --- | --- | --- |
-| Database (tables, rules, functions) | Supabase project `klcyyeeqxxfheurdhmay` | `supabase db push` |
+| Database (tables, rules, functions) | Supabase project `oswetaksxcepublsjyrt` | `supabase db push` |
 | Edge Functions: `training`, `payments-webhook`, `payments-itecpay`, `notifications-dispatch`, `notifications-status`, `file-access`, `service-files`, `generate-pdf` | Same project | `supabase functions deploy` |
 | Website | Vercel | push to the production branch |
 
@@ -21,7 +21,7 @@ records first; the old payment tables stay as read-only history.
   checked during this work. Link the project and list what it has:
 
   ```sh
-  supabase link --project-ref klcyyeeqxxfheurdhmay
+  supabase link --project-ref oswetaksxcepublsjyrt
   supabase migration list        # "Local" vs "Remote" columns
   ```
 
@@ -43,7 +43,7 @@ records first; the old payment tables stay as read-only history.
 
   Anything that fails there would have failed in production. Delete the
   temporary project afterwards: it holds customer data. Link back to production
-  (`supabase link --project-ref klcyyeeqxxfheurdhmay`) before step 1.
+  (`supabase link --project-ref oswetaksxcepublsjyrt`) before step 1.
 
 - **Take a backup** you can restore: Dashboard > Database > Backups (a daily
   backup, or point-in-time recovery if the plan has it). Note the time.
@@ -142,7 +142,7 @@ SELECT value FROM public.platform_settings WHERE key = 'rate_limit_multiplier';
 Emails (including new students' temporary passwords) wait in the queue until
 `notifications-dispatch` runs. Run it every minute, either with Dashboard >
 Integrations > Cron > Create job (type "Supabase Edge Function" or "HTTP
-request": `POST https://klcyyeeqxxfheurdhmay.supabase.co/functions/v1/notifications-dispatch`
+request": `POST https://oswetaksxcepublsjyrt.supabase.co/functions/v1/notifications-dispatch`
 with header `Authorization: Bearer <service_role key>`, schedule `* * * * *`),
 or in SQL:
 
@@ -151,7 +151,7 @@ or in SQL:
 SELECT vault.create_secret('<service_role key>', 'notifications_dispatch_key');
 SELECT cron.schedule('notifications-dispatch', '* * * * *', $$
   SELECT net.http_post(
-    url := 'https://klcyyeeqxxfheurdhmay.supabase.co/functions/v1/notifications-dispatch',
+    url := 'https://oswetaksxcepublsjyrt.supabase.co/functions/v1/notifications-dispatch',
     headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization',
       'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'notifications_dispatch_key')),
     body := '{}'::jsonb)
@@ -170,7 +170,7 @@ that URL.
 
 1. Give ItecPay this callback address (portal or support, see question 1 in
    `docs/ITECPAY_INTEGRATION.md`), with your `ITECPAY_CALLBACK_SECRET` at the end:
-   `https://klcyyeeqxxfheurdhmay.supabase.co/functions/v1/payments-itecpay/callback/<ITECPAY_CALLBACK_SECRET>`
+   `https://oswetaksxcepublsjyrt.supabase.co/functions/v1/payments-itecpay/callback/<ITECPAY_CALLBACK_SECRET>`
 2. Switch it on for admins and finance staff only, and run the contract's test
    phase with small amounts to your own phones (the test plan in
    `docs/ITECPAY_INTEGRATION.md`):
