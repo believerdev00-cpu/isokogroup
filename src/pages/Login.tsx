@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -112,6 +112,9 @@ const Login = () => {
                   <div className="space-y-2">
                     <Label htmlFor="password">{t("auth.password")}</Label>
                     <Input id="password" name="password" type="password" placeholder="••••••••" required />
+                    <Link to="/forgot-password" className="block text-right text-sm text-primary hover:underline">
+                      {t("auth.forgot")}
+                    </Link>
                   </div>
                   <Button className="w-full" size="lg" disabled={loading}>
                     {loading ? "..." : t("auth.login")}

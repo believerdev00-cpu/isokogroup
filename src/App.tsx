@@ -43,6 +43,8 @@ import Marketplace from "./pages/Marketplace";
 import ELibrary from "./pages/ELibrary";
 import Entertainment from "./pages/Entertainment";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import BecomeSeller from "./pages/BecomeSeller";
 import Admin from "./pages/Admin";
 import SellerDashboard from "./pages/SellerDashboard";
@@ -77,6 +79,8 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/become-seller" element={<BecomeSeller />} />
                   <Route path="/subscription" element={<Subscription />} />
                   <Route path="/admin" element={<Admin />} />

@@ -185,6 +185,14 @@ Vercel's production environment needs `VITE_SUPABASE_PROJECT_ID`,
 `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (the publishable key,
 never the service-role key). Deploy by pushing to the production branch.
 
+For password reset links, Dashboard > Authentication > URL Configuration needs
+the site as **Site URL** (`https://isokogroups.com`) and
+`https://isokogroups.com/reset-password` and
+`https://www.isokogroups.com/reset-password` under **Redirect URLs**. Supabase
+sends these emails itself: under Authentication > SMTP Settings, use the same
+SMTP account as step 2, because Supabase's built-in sender only sends a few
+emails an hour.
+
 ## 7. People and roles
 
 Roles live only in `public.user_roles` (`profiles.role` is a copy). Grant them in
