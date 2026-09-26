@@ -35,7 +35,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` amount: e.g. `150,000 RWF`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -57,7 +57,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` service: e.g. `business plan`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -79,7 +79,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` reference: e.g. `ISO-TRIP-00123`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -100,7 +100,7 @@ Thank you, Isoko.
 ```
 
 - `{{1}}` name: e.g. `Aline`
-- `{{2}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{2}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -122,7 +122,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` service: e.g. `business plan`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -143,7 +143,7 @@ Thank you, Isoko.
 ```
 
 - `{{1}}` dropoff: e.g. `Kimironko`
-- `{{2}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{2}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -164,7 +164,7 @@ Thank you, Isoko.
 ```
 
 - `{{1}}` dropoff: e.g. `Kimironko`
-- `{{2}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{2}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -186,7 +186,7 @@ Thank you, Isoko.
 
 - `{{1}}` pickup: e.g. `Nyabugogo`
 - `{{2}}` dropoff: e.g. `Kimironko`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -208,7 +208,7 @@ Thank you, Isoko.
 
 - `{{1}}` amount: e.g. `150,000 RWF`
 - `{{2}}` order: e.g. `a1b2c3d4`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -229,7 +229,7 @@ Thank you, Isoko.
 ```
 
 - `{{1}}` order: e.g. `a1b2c3d4`
-- `{{2}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{2}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -253,7 +253,7 @@ Thank you, Isoko.
 - `{{2}}` amount: e.g. `150,000 RWF`
 - `{{3}}` label: e.g. `ISO-TRIP-00123 · Aline Uwase`
 - `{{4}}` reason: e.g. `wrong reference`
-- `{{5}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{5}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -276,7 +276,7 @@ Thank you, Isoko.
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` amount: e.g. `150,000 RWF`
 - `{{3}}` label: e.g. `ISO-TRIP-00123 · Aline Uwase`
-- `{{4}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{4}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -301,7 +301,7 @@ Thank you, Isoko.
 - `{{3}}` amount: e.g. `150,000 RWF`
 - `{{4}}` label: e.g. `ISO-TRIP-00123 · Aline Uwase`
 - `{{5}}` reason: e.g. `wrong reference`
-- `{{6}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{6}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -325,7 +325,7 @@ Thank you, Isoko.
 - `{{2}}` amount: e.g. `150,000 RWF`
 - `{{3}}` label: e.g. `ISO-TRIP-00123 · Aline Uwase`
 - `{{4}}` balance: e.g. `0 RWF`
-- `{{5}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{5}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -347,7 +347,7 @@ Thank you, Isoko.
 
 - `{{1}}` amount: e.g. `150,000 RWF`
 - `{{2}}` method: e.g. `MoMo`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -369,7 +369,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` reference: e.g. `ISO-TRIP-00123`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -391,7 +391,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` amount: e.g. `150,000 RWF`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -413,7 +413,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` amount: e.g. `150,000 RWF`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -435,7 +435,7 @@ Thank you, Isoko.
 
 - `{{1}}` name: e.g. `Aline`
 - `{{2}}` amount: e.g. `150,000 RWF`
-- `{{3}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{3}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)
@@ -456,7 +456,7 @@ Thank you, Isoko.
 ```
 
 - `{{1}}` name: e.g. `Aline`
-- `{{2}}` link: e.g. `https://isokogroup.com/travel/trip/…`
+- `{{2}}` link: e.g. `https://isokogroups.com/travel/trip/…`
 
 ```sql
 INSERT INTO public.notification_templates (event_type, channel, subject, body, provider_template, provider_variables)

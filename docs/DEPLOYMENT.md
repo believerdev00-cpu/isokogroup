@@ -70,10 +70,10 @@ the cause (usually data that breaks a new rule, found by the rehearsal), and run
 
 ```sh
 supabase secrets set \
-  SITE_ORIGINS="https://isokogroup.com,https://www.isokogroup.com" \
-  PUBLIC_SITE_URL="https://isokogroup.com" \
+  SITE_ORIGINS="https://isokogroups.com,https://www.isokogroups.com" \
+  PUBLIC_SITE_URL="https://isokogroups.com" \
   EMAIL_PROVIDER=smtp \
-  EMAIL_FROM="Isoko <no-reply@isoko.rw>" \
+  EMAIL_FROM="Isoko <no-reply@isokogroups.com>" \
   SMTP_HOST=... SMTP_PORT=465 SMTP_SECURE=true SMTP_USER=... SMTP_PASSWORD=...
 ```
 
@@ -85,7 +85,7 @@ supabase secrets set \
 - **Email with Resend:** verify your domain in Resend (it shows the DNS records
   to add), create an API key, then `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`,
   `SMTP_SECURE=true`, `SMTP_USER=resend`, `SMTP_PASSWORD=<the API key>`,
-  `EMAIL_FROM="Isoko <no-reply@<the verified domain>>"`.
+  `EMAIL_FROM="Isoko <no-reply@isokogroups.com>"` (the domain verified in Resend).
 - **WhatsApp (and SMS) with Twilio:** `WHATSAPP_PROVIDER=twilio`,
   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (Twilio Console > Account info; a
   password, only here), `TWILIO_WHATSAPP_FROM`. To test first, use Twilio's
@@ -132,7 +132,7 @@ In the SQL editor:
 ```sql
 -- The site's address, for links in emails and messages (https, no trailing slash).
 -- Until it is set, messages that contain a link are skipped.
-UPDATE public.platform_settings SET value = 'https://isokogroup.com' WHERE key = 'site_url';
+UPDATE public.platform_settings SET value = 'https://isokogroups.com' WHERE key = 'site_url';
 -- Must be 1 in production (tests locally use more)
 SELECT value FROM public.platform_settings WHERE key = 'rate_limit_multiplier';
 ```
