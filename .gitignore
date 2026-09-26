@@ -31,3 +31,6 @@ supabase/functions/training/index.js
 .env
 .env.*
 !.env.example
+
+# Vercel CLI link
+.vercel
