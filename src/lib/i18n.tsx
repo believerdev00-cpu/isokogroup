@@ -34,7 +34,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "nav.subscription": { en: "Subscription", rw: "Iyandikishe", sw: "Usajili", fr: "Abonnement", zh: "订阅" },
 
   // Hero
-  "home.title": { en: "Deliveries across Rwanda, handled end to end.", rw: "Kohereza ibintu mu Rwanda hose, tubyitaho kuva bitangiye kugeza birangiye.", sw: "Usafirishaji kote Rwanda, tunashughulikia kila hatua.", fr: "Des livraisons partout au Rwanda, prises en charge de bout en bout.", zh: "覆盖卢旺达全境的配送，全程为您负责。" },
+  "home.title": { en: "Deliveries across Africa and the world, handled end to end.", rw: "Kohereza ibintu muri Afurika no ku isi hose, tubyitaho kuva bitangiye kugeza birangiye.", sw: "Usafirishaji kote Afrika na duniani, tunashughulikia kila hatua.", fr: "Des livraisons à travers l'Afrique et le monde, prises en charge de bout en bout.", zh: "覆盖非洲及全球的配送，全程为您负责。" },
   "home.subtitle": { en: "Pickup, packaging and delivery with live tracking. And when you need more, every other Isoko service is one search away.", rw: "Gufata, gupakira no kugeza ibintu, ukurikirana aho bigeze. N'izindi serivisi zose za Isoko uzibona ushakishije rimwe.", sw: "Kuchukua, kufunga na kufikisha mizigo kwa ufuatiliaji wa moja kwa moja. Huduma nyingine zote za Isoko ziko karibu kwa utafutaji mmoja.", fr: "Enlèvement, emballage et livraison avec suivi en direct. Et tous les autres services Isoko sont à une recherche près.", zh: "取件、包装与配送，实时追踪。需要更多？Isoko 的所有服务一搜即得。" },
   "home.requestDelivery": { en: "Request a delivery", rw: "Saba koherezwa", sw: "Omba usafirishaji", fr: "Demander une livraison", zh: "预约配送" },
   "home.track": { en: "Track a shipment", rw: "Kurikirana ibyoherejwe", sw: "Fuatilia mzigo", fr: "Suivre un colis", zh: "追踪包裹" },
@@ -72,7 +72,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
 
   // Logistics
   "logistics.title": { en: "Reliable Delivery Services", rw: "Serivisi z'Ikohereza Zizewe" },
-  "logistics.subtitle": { en: "Fast, secure, and trackable logistics across Rwanda.", rw: "Gutwara byihuse, byizewe, kandi bishobora gukurikiranwa mu Rwanda hose." },
+  "logistics.subtitle": { en: "Fast, secure, and trackable logistics across Africa and the world.", rw: "Gutwara byihuse, byizewe, kandi bishobora gukurikiranwa muri Afurika no ku isi hose." },
   "logistics.requestDelivery": { en: "Request Delivery", rw: "Saba Ikohereza" },
   "logistics.realTimeTracking": { en: "Real-time Tracking", rw: "Gukurikirana mu gihe nyacyo" },
   "logistics.pricingCalculator": { en: "Pricing Calculator", rw: "Kubara Igiciro" },
@@ -153,7 +153,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
 
   // Seller
   "seller.title": { en: "Become a Seller", rw: "Ba Umucuruzi" },
-  "seller.subtitle": { en: "Join our marketplace and reach thousands of buyers across Rwanda.", rw: "Injira mu isoko ryacu uhure n'abaguzi ibihumbi mu Rwanda hose." },
+  "seller.subtitle": { en: "Join our marketplace and reach thousands of buyers across Africa and the world.", rw: "Injira mu isoko ryacu uhure n'abaguzi ibihumbi muri Afurika no ku isi hose." },
   "seller.rules": { en: "Seller Rules", rw: "Amategeko y'Abacuruzi" },
   "seller.form": { en: "Registration Form", rw: "Ifishi yo Kwiyandikisha" },
   "seller.fullName": { en: "Full Name", rw: "Amazina Yose" },
