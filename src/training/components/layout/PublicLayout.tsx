@@ -36,7 +36,11 @@ export default function PublicLayout() {
           <Link to="/training-center" className="mr-2 hidden shrink-0 text-sm font-bold text-primary sm:block">
             Training Center
           </Link>
-          <nav className="-mx-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto" aria-label="Training Center">
+          {/* On phones the tabs scroll sideways; the fade at the right edge shows there are more */}
+          <nav
+            className="-mx-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pr-4 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] sm:pr-0 sm:[mask-image:none]"
+            aria-label="Training Center"
+          >
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
