@@ -1,0 +1,17 @@
+# Only the website is deployed to Vercel. Never upload local secrets or the
+# backend (the database and Edge Functions deploy to Supabase). A leading "/"
+# means the top-level folder only (src/integrations/supabase is the site's own).
+.env
+.env.*
+!.env.example
+/supabase
+/training-api
+/docs
+/dist
+/node_modules
+/.github
+/.lovable
+*.log
+# Vercel would install with Bun from these; the tested versions are in package-lock.json
+/bun.lock
+/bun.lockb
