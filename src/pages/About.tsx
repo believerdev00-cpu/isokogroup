@@ -82,13 +82,18 @@ const About = () => {
                 <span className="h-2 w-2 rounded-full bg-primary" /> About ISOKO GROUP
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight">
-                Six services. <span className="text-primary">One Rwandan group.</span>
+                Welcome to <span className="text-primary">ISOKO GROUPS COMPANY LTD</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-                ISOKO GROUP is a Kigali-based company building everyday infrastructure for Rwandans —
-                logistics, packaging, an online marketplace, an e-library, entertainment and software —
-                under one trusted brand.
+                Everything you need, under one trusted platform.
               </p>
+              <ul className="flex flex-wrap gap-2 text-sm font-medium text-foreground/80">
+                {["Wholesale", "Distribution", "Supply Chain", "Logistics", "Packaging", "Marketplace", "Learning", "Travel Agency"].map((s) => (
+                  <li key={s} className="whitespace-nowrap rounded-full border border-border px-3 py-1">
+                    {s}
+                  </li>
+                ))}
+              </ul>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link to="/marketplace">
                   <Button size="lg" className="gap-2">Explore our services <ArrowRight className="h-4 w-4" /></Button>
