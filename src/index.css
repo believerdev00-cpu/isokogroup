@@ -431,6 +431,52 @@
 @keyframes burst { from { opacity: 0.9; transform: scale(0.6) rotate(0deg); } to { opacity: 0; transform: scale(1.25) rotate(40deg); } }
 @keyframes feed-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 
+/* Home "See what we do" story: pictures that explain each service. Each
+   animation starts from an offset and ends on the drawn picture, so with the
+   animation off (lite motion, paused) every scene is still complete. */
+.story-stage * { transform-box: fill-box; transform-origin: center; }
+.story-enter { animation: fade-in-up 0.5s var(--ease-out) both; }
+.story-pop { animation: story-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.story-rise { animation: story-rise 0.8s var(--ease-out) both; }
+.story-drop { animation: story-drop 0.7s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+.story-drive { animation: story-drive 2.6s cubic-bezier(0.45, 0, 0.2, 1) both; }
+.story-fold { transform-origin: bottom center; animation: story-fold 0.6s var(--ease-out) both; }
+.story-type { transform-origin: left center; animation: story-type 0.7s var(--ease-out) both; }
+.story-grow { transform-origin: bottom center; animation: story-grow 0.8s var(--ease-out) both; }
+.story-draw { animation: story-draw 1.4s var(--ease-out) both; }
+.story-fly-in { animation: story-fly-in 0.9s var(--ease-out) both; }
+.story-turn { transform-origin: left center; animation: story-turn 3s ease-in-out 1s infinite; }
+.story-bob { animation: story-bob 2.4s ease-in-out infinite; }
+.story-float { animation: story-float 3s ease-in infinite; }
+.story-pulse { animation: story-pulse 2s ease-in-out infinite; }
+.story-plane { animation: story-plane 8s linear infinite; }
+.story-drift { animation: story-drift 6s ease-in-out infinite alternate; }
+.story-progress { transform-origin: left; animation-name: progress-fill; animation-timing-function: linear; animation-fill-mode: both; }
+.story-btn {
+  display: inline-flex; height: 2.75rem; width: 2.75rem; align-items: center; justify-content: center;
+  border-radius: 9999px; border: 1px solid hsl(var(--border)); transition: background-color 0.2s, color 0.2s;
+}
+.story-btn:hover { background: hsl(var(--muted)); }
+.story-stage.is-still .story-bob, .story-stage.is-still .story-float, .story-stage.is-still .story-pulse,
+.story-stage.is-still .story-plane, .story-stage.is-still .story-drift, .story-stage.is-still .story-turn { animation-play-state: paused; }
+.motion-lite .story-stage, .motion-lite .story-stage * { animation: none !important; }
+
+@keyframes story-pop { from { opacity: 0; transform: scale(0); } }
+@keyframes story-rise { from { opacity: 0; transform: translateY(30px); } }
+@keyframes story-drop { from { opacity: 0; transform: translateY(-60px); } }
+@keyframes story-drive { from { transform: translateX(-230px); } }
+@keyframes story-fold { from { transform: scaleY(-1); } }
+@keyframes story-type { from { transform: scaleX(0); } }
+@keyframes story-grow { from { transform: scaleY(0); } }
+@keyframes story-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes story-fly-in { from { opacity: 0; transform: translate(-170px, 30px) scale(0.5); } }
+@keyframes story-turn { 0%, 20% { transform: none; opacity: 1; } 60%, 85% { transform: scaleX(-1); opacity: 1; } 100% { transform: scaleX(-1); opacity: 0; } }
+@keyframes story-bob { 50% { transform: translateY(-4px); } }
+@keyframes story-float { 0% { opacity: 0; transform: translateY(10px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px); } }
+@keyframes story-pulse { 50% { transform: scale(1.12); } }
+@keyframes story-plane { from { transform: translateX(-260px); } to { transform: translateX(300px); } }
+@keyframes story-drift { from { transform: translateX(-16px); } to { transform: translateX(16px); } }
+
 /* Lite motion: keep the interface calm and fast on this device */
 .motion-lite .animate-float-soft,
 .motion-lite .bg-animated-gradient,

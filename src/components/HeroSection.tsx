@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, MapPin, PackageCheck, Truck } from "lucide-react";
+import { ArrowRight, CheckCircle2, MapPin, PackageCheck, PlayCircle, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
 import RouteMap, { TruckMarker } from "@/components/motion/RouteMap";
@@ -55,6 +55,9 @@ const HeroSection = () => {
           <div className="max-w-xl fade-in-up" style={{ animationDelay: "320ms" }}>
             <SearchTrigger large />
           </div>
+          <a href="#what-we-do" className="inline-flex items-center gap-2 font-semibold text-primary fade-in-up" style={{ animationDelay: "400ms" }}>
+            <PlayCircle className="h-6 w-6" /> {t("story.watch")}
+          </a>
         </div>
 
         {/* A delivery on its way: shows what Isoko Logistics does at a glance */}
