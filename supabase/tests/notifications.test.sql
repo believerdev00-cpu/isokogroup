@@ -173,6 +173,10 @@ SELECT pg_temp.expect(EXISTS (SELECT 1 FROM public.notification_deliveries d JOI
   'the phone number is cleaned up');
 
 -- ---------- Sending, retries ----------
+-- Only this test's messages are due (other runs can leave retries waiting in
+-- the local queue); rolled back with everything else
+UPDATE public.notification_deliveries SET next_attempt_at = now() + interval '1 day'
+WHERE created_at < now() AND status IN ('pending', 'sending');
 SELECT pg_temp.expect(pg_temp.refused(:admin, $$SELECT * FROM public.notification_claim(10)$$), 'only the sender (service role) claims deliveries');
 CREATE TEMP TABLE claimed AS SELECT id, channel, attempts FROM public.notification_deliveries WHERE false;
 GRANT ALL ON claimed TO service_role;

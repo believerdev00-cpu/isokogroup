@@ -8,7 +8,7 @@ What gets deployed:
 | Part | Where | How |
 | --- | --- | --- |
 | Database (tables, rules, functions) | Supabase project `klcyyeeqxxfheurdhmay` | `supabase db push` |
-| Edge Functions: `training`, `payments-webhook`, `notifications-dispatch`, `file-access`, `service-files`, `generate-pdf` | Same project | `supabase functions deploy` |
+| Edge Functions: `training`, `payments-webhook`, `payments-itecpay`, `notifications-dispatch`, `file-access`, `service-files`, `generate-pdf` | Same project | `supabase functions deploy` |
 | Website | Vercel | push to the production branch |
 
 Nothing in the migrations deletes customer data. They move payments into the
@@ -87,12 +87,27 @@ supabase secrets set \
   WhatsApp and SMS stay off (messages marked skipped) until real providers are
   added in `supabase/functions/notifications-dispatch/channels.ts`.
 
+Paying from the phone (ItecPay, see `docs/ITECPAY_INTEGRATION.md`): paste the
+keys yourself in Dashboard > Edge Functions > Secrets, from ItecPay's portal
+(Integrations > API keys), never into chat, email or a file in the repository:
+
+| Secret | Value |
+| --- | --- |
+| `ITECPAY_KEY_MTN` | the MTN Mobile Money key |
+| `ITECPAY_KEY_AIRTEL` | the Airtel Money key |
+| `ITECPAY_KEY_SPENN` | the SPENN key |
+| `ITECPAY_CALLBACK_SECRET` | 32+ random characters you make up, e.g. `openssl rand -hex 24` |
+
+A network without its key isn't offered (the request is cancelled with "not
+available"). Don't set `ITECPAY_BASE_URL` or `MOBILE_MONEY_WAIT_SECONDS`: they
+are for local tests and ignored on hosted Supabase.
+
 ## 3. Edge Functions
 
 ```sh
 npm --prefix training-api ci
 npm --prefix training-api run build     # writes supabase/functions/training/index.js
-supabase functions deploy training payments-webhook notifications-dispatch file-access service-files generate-pdf
+supabase functions deploy training payments-webhook payments-itecpay notifications-dispatch file-access service-files generate-pdf
 ```
 
 ## 4. Settings in the database
@@ -107,7 +122,7 @@ UPDATE public.platform_settings SET value = 'https://isokogroup.com' WHERE key =
 SELECT value FROM public.platform_settings WHERE key = 'rate_limit_multiplier';
 ```
 
-## 5. Schedule the notification sender
+## 5. Schedule the notification sender and the payment checker
 
 Emails (including new students' temporary passwords) wait in the queue until
 `notifications-dispatch` runs. Run it every minute, either with Dashboard >
@@ -129,6 +144,25 @@ $$);
 ```
 
 (`pg_cron` and `pg_net` need to be enabled under Database > Extensions.)
+
+The same way, every minute, `POST .../functions/v1/payments-itecpay/sweep` with
+the same `Authorization` header: it asks ItecPay about phone payments still
+waiting (in case its notification never arrives) and stops waiting after 15
+minutes. In SQL, as above with `cron.schedule('payments-itecpay-sweep', ...)` and
+that URL.
+
+## 5b. ItecPay: callback address and testing
+
+1. Give ItecPay this callback address (portal or support, see question 1 in
+   `docs/ITECPAY_INTEGRATION.md`), with your `ITECPAY_CALLBACK_SECRET` at the end:
+   `https://klcyyeeqxxfheurdhmay.supabase.co/functions/v1/payments-itecpay/callback/<ITECPAY_CALLBACK_SECRET>`
+2. Switch it on for admins and finance staff only, and run the contract's test
+   phase with small amounts to your own phones (the test plan in
+   `docs/ITECPAY_INTEGRATION.md`):
+   `UPDATE public.platform_settings SET value = 'staff' WHERE key = 'mobile_money';`
+3. After the test phase and ItecPay's sign-off, for everyone:
+   `UPDATE public.platform_settings SET value = 'on' WHERE key = 'mobile_money';`
+   To stop offering it at any time: `'off'` (payments already waiting still settle).
 
 ## 6. Website
 
@@ -197,6 +231,11 @@ check the receipt, and see that the emails arrive.
   subscribers only.
 - Every email, WhatsApp and SMS comes from one sender; people can switch
   channels off in their settings.
+- Once switched on, customers can pay from their phone (MTN, Airtel, SPENN, in
+  RWF) on the travel, consultancy and data pages and for Training Center fees;
+  it is paid when ItecPay confirms it, with no transaction ID to type. Refunds
+  of those payments are sent in the ItecPay portal and recorded in Isoko with a
+  reason, as before.
 
 ## If something goes wrong
 

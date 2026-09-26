@@ -1,4 +1,6 @@
-import { CreditCard, Receipt } from "lucide-react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CreditCard, Receipt, Smartphone } from "lucide-react";
 import { EmptyState, QueryView, Section, StatCard, StatusBadge } from "@/training/components/common";
 import { Button } from "@/components/ui/button";
 import { StudentEnrollmentPage, type StudentEnrollment } from "@/training/features/student/useStudent";
@@ -6,6 +8,7 @@ import { openApiFile } from "@/training/lib/api";
 import { formatDate, formatMoney, humanize } from "@/training/lib/format";
 import { useApi } from "@/training/lib/query";
 import { cn } from "@/lib/utils";
+import { MobileMoneyPay, useMobileMoneyAvailable } from "@/features/finance/MobileMoneyPay";
 
 type Finance = {
   charges: { id: string; type: string; description: string; amount: number; created_at: string }[];
@@ -23,6 +26,11 @@ export default function StudentPayments() {
 function PaymentsView({ e, currency }: { e: StudentEnrollment; currency: string }) {
   const q = useApi<Finance>(`/student/enrollments/${e.id}/payments`);
   const f = e.finance;
+  const qc = useQueryClient();
+  const phone = useMobileMoneyAvailable(currency);
+  const [paying, setPaying] = useState(false);
+  // the balance, the payments list and the dashboard all change once it's paid
+  const paid = () => qc.invalidateQueries({ predicate: (k) => typeof k.queryKey[0] === "string" && (k.queryKey[0] as string).startsWith("/student") });
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -33,8 +41,26 @@ function PaymentsView({ e, currency }: { e: StudentEnrollment; currency: string 
       </div>
       {f.balance > 0 && (
         <p className="rounded-lg bg-gold-soft px-4 py-3 text-sm">
-          Please pay the remaining <strong>{formatMoney(f.balance, currency)}</strong> at the training center office, by mobile money or bank transfer, and keep your receipt.
+          Please pay the remaining <strong>{formatMoney(f.balance, currency)}</strong>
+          {phone ? " from your phone below, or" : ""} at the training center office, by mobile money or bank transfer, and keep your receipt.
         </p>
+      )}
+      {phone && f.balance > 0 && (
+        <Section title="Pay from your phone">
+          {paying ? (
+            <MobileMoneyPay
+              target={{ entityTable: "training.enrollments", entityId: e.id }}
+              amountDue={f.balance}
+              currency={currency}
+              onPaid={paid}
+              onCancel={() => setPaying(false)}
+            />
+          ) : (
+            <Button onClick={() => setPaying(true)}>
+              <Smartphone className="mr-2 h-4 w-4" aria-hidden /> Pay with MTN MoMo, Airtel Money or SPENN
+            </Button>
+          )}
+        </Section>
       )}
       <QueryView query={q}>
         {(fin) => (

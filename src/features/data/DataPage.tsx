@@ -191,6 +191,8 @@ export default function DataPage() {
             pending={Number(v.pending_payment)}
             currency={v.currency}
             reference={v.reference}
+            mobileMoney={{ entityTable: "data_requests", token }}
+            onPaid={refresh}
             onSubmit={async (p) => {
               await rpc("data_submit_payment", { p_token: token, p_amount: p.amount, p_method: p.method, p_reference: p.reference });
               refresh();

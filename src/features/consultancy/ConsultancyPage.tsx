@@ -208,6 +208,8 @@ export default function ConsultancyPage() {
             pending={Number(v.pending_payment)}
             currency={v.proposal!.currency}
             reference={v.reference}
+            mobileMoney={{ entityTable: "consult_requests", token }}
+            onPaid={refresh}
             onSubmit={async (p) => {
               await rpc("consult_submit_payment", { p_token: token, p_amount: p.amount, p_method: p.method, p_reference: p.reference });
               refresh();

@@ -89,7 +89,10 @@ CALL pg_temp.none($$
     'consult_request_changes(text,text)', 'consult_submit_payment(text,numeric,text,text)',
     'consult_client_file(text,text,text,bigint)',
     'data_submit_request(jsonb)', 'data_request_view(text)', 'data_client_file(text,text,text,bigint)',
-    'data_review(text,boolean,text)', 'data_submit_payment(text,numeric,text,text)'])
+    'data_review(text,boolean,text)', 'data_submit_payment(text,numeric,text,text)',
+    -- paying from the phone: switched on by platform_settings.mobile_money; the link
+    -- token or the signed-in owner is checked, rate-limited; status by payment id
+    'mobile_money_available()', 'mobile_money_start(text,uuid,text,text,text,numeric)', 'mobile_money_status(uuid)'])
 $$, 'anonymous visitors can run only the intended elevated functions');
 
 -- Internals of the engines: never callable from the website
@@ -101,7 +104,9 @@ CALL pg_temp.none($$
     'notify_event(text,text,text,uuid,jsonb,jsonb)', 'notification_attach_secret(uuid,text)',
     'notification_claim(integer)', 'notification_result(uuid,boolean,text,text,text,boolean)',
     'audit_event(text,text,text,jsonb,text)', 'rate_limit(text,integer,integer,text)',
-    'training_is_admin()', 'finance_can_reverse_module(text)']) f
+    'training_is_admin()', 'finance_can_reverse_module(text)',
+    'mobile_money_claim_send(uuid)', 'mobile_money_sent(uuid,text,text)', 'mobile_money_due(integer,uuid,boolean)',
+    'mobile_money_by_transaction(text)', 'mobile_money_phone(text)']) f
   WHERE to_regprocedure('public.' || f) IS NULL
      OR has_function_privilege('anon', to_regprocedure('public.' || f), 'EXECUTE')
      OR has_function_privilege('authenticated', to_regprocedure('public.' || f), 'EXECUTE')

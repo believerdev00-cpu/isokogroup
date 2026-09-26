@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MobileMoneyPay, useMobileMoneyAvailable, type MobileMoneyTarget } from "@/features/finance/MobileMoneyPay";
 import { COMPANY_PAYMENT } from "@/lib/company";
 import { cn } from "@/lib/utils";
 import { errorText, formatMoney, whatsappLink, type ServiceKey } from "./api";
@@ -319,16 +320,26 @@ export function RequestReceived({
 }
 
 // ============== PAYMENT ==============
-/** Total / paid / remaining, and one "Make Payment" action that records a transfer for Isoko to confirm. */
+/**
+ * Total / paid / remaining, and one "Make Payment" action: pay now from the
+ * phone (when Isoko has switched it on, RWF only), or record a transfer already
+ * made for Isoko to confirm.
+ */
 export function PaymentBox({
-  service, total, paid, pending, currency, reference, onSubmit,
+  service, total, paid, pending, currency, reference, onSubmit, mobileMoney, onPaid,
 }: {
   service: ServiceKey; total: number; paid: number; pending: number; currency: string; reference: string;
   onSubmit: (v: { amount: number; method: "momo" | "bank"; reference: string }) => Promise<void>;
+  /** Where "pay from my phone" pays (this page's record) */
+  mobileMoney?: MobileMoneyTarget;
+  onPaid?: () => void;
 }) {
   const remaining = Math.max(total - paid, 0);
+  const phoneAvailable = useMobileMoneyAvailable(currency) && Boolean(mobileMoney);
   const [open, setOpen] = useState(false);
-  const [method, setMethod] = useState<"momo" | "bank">("momo");
+  const [method, setMethod] = useState<"phone" | "momo" | "bank">("momo");
+  const choices = phoneAvailable ? (["phone", "momo", "bank"] as const) : (["momo", "bank"] as const);
+  const label = { phone: "From my phone", momo: "I paid by MoMo", bank: "Bank transfer" };
   const [amount, setAmount] = useState(String(Math.max(remaining - pending, 0) || ""));
   const [txRef, setTxRef] = useState("");
   const [busy, setBusy] = useState(false);
@@ -339,7 +350,7 @@ export function PaymentBox({
     setBusy(true);
     setError(null);
     try {
-      await onSubmit({ amount: Number(amount), method, reference: txRef });
+      await onSubmit({ amount: Number(amount), method: method === "bank" ? "bank" : "momo", reference: txRef });
       toast.success("Thank you. Isoko will confirm your payment shortly.");
       setOpen(false);
       setTxRef("");
@@ -370,15 +381,15 @@ export function PaymentBox({
         <p className="mt-3 text-sm text-muted-foreground">{formatMoney(pending, currency)} received from you is being confirmed by Isoko.</p>
       )}
       {remaining > 0 && !open && (
-        <PrimaryButton service={service} className="mt-4" onClick={() => setOpen(true)}>
+        <PrimaryButton service={service} className="mt-4" onClick={() => { setMethod(phoneAvailable ? "phone" : "momo"); setOpen(true); }}>
           Make Payment
         </PrimaryButton>
       )}
       {remaining === 0 && total > 0 && <p className={cn("mt-3 text-sm font-semibold", THEME[service].text)}>Fully paid. Thank you!</p>}
       {open && (
-        <form onSubmit={submit} className="mt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="How are you paying?">
-            {(["momo", "bank"] as const).map((m) => (
+        <div className="mt-4 space-y-4">
+          <div className={cn("grid gap-2", choices.length === 3 ? "grid-cols-3" : "grid-cols-2")} role="radiogroup" aria-label="How are you paying?">
+            {choices.map((m) => (
               <button
                 key={m}
                 type="button"
@@ -387,10 +398,21 @@ export function PaymentBox({
                 onClick={() => setMethod(m)}
                 className={cn("rounded-xl border p-3 text-sm font-semibold", method === m && THEME[service].ring)}
               >
-                {m === "momo" ? "Mobile Money" : "Bank transfer"}
+                {phoneAvailable ? label[m] : m === "momo" ? "Mobile Money" : "Bank transfer"}
               </button>
             ))}
           </div>
+          {method === "phone" && mobileMoney ? (
+            <MobileMoneyPay
+              target={mobileMoney}
+              amountDue={Math.max(remaining - pending, 0)}
+              currency={currency}
+              accentClass={THEME[service].ring}
+              onPaid={() => onPaid?.()}
+              onCancel={() => setOpen(false)}
+            />
+          ) : (
+        <form onSubmit={submit} className="space-y-4">
           <div className="rounded-xl bg-muted/60 p-4 text-sm">
             {method === "momo" ? (
               <>
@@ -420,6 +442,8 @@ export function PaymentBox({
             Cancel
           </Button>
         </form>
+          )}
+        </div>
       )}
     </SectionCard>
   );

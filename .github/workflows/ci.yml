@@ -81,10 +81,17 @@ jobs:
           # every run comes from one address: loosen the per-address limits for the tests
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             -c "UPDATE public.platform_settings SET value = '100' WHERE key = 'rate_limit_multiplier'"
+          # the functions run in Docker; the fake ItecPay (in mobile-money.e2e.mjs) on this machine
+          host=$(docker network inspect "supabase_network_$(grep -m1 "^project_id" supabase/config.toml | cut -d\" -f2)" -f "{{(index .IPAM.Config 0).Gateway}}")
           cat > "$RUNNER_TEMP/functions.env" <<EOF
           PAYMENTS_MOCK_SECRET=$PAYMENTS_MOCK_SECRET
           EMAIL_PROVIDER=mock
           WHATSAPP_PROVIDER=mock
+          ITECPAY_BASE_URL=http://$host:54399
+          ITECPAY_KEY_MTN=fake-mtn-key-0123456789
+          ITECPAY_KEY_AIRTEL=fake-airtel-key-0123456789
+          ITECPAY_CALLBACK_SECRET=fake-callback-secret-0123456789abcdef
+          MOBILE_MONEY_WAIT_SECONDS=6
           EOF
           nohup supabase functions serve --env-file "$RUNNER_TEMP/functions.env" > "$RUNNER_TEMP/functions.log" 2>&1 &
           for i in $(seq 1 60); do
@@ -94,11 +101,12 @@ jobs:
           done
           cat "$RUNNER_TEMP/functions.log"; exit 1
 
-      - name: End-to-end tests (website services, payment webhook, notification sending)
+      - name: End-to-end tests (website services, payment webhook, notification sending, mobile money)
         run: |
           node supabase/tests/client-services.e2e.mjs
           node supabase/tests/payments-webhook.e2e.mjs
           node supabase/tests/notifications-dispatch.e2e.mjs
+          node supabase/tests/mobile-money.e2e.mjs
 
       - name: Function logs
         if: failure()

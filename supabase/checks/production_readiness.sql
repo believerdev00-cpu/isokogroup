@@ -18,7 +18,7 @@ expected(version, name) AS (VALUES
   ('20260925120100', 'payment_engine'), ('20260925130000', 'notification_engine'),
   ('20260925140000', 'files_and_links'), ('20260925150000', 'module_fixes'),
   ('20260925150100', 'training_hardening'), ('20260925160000', 'training_on_engines'),
-  ('20260925170000', 'privilege_hygiene')),
+  ('20260925170000', 'privilege_hygiene'), ('20260925180000', 'mobile_money')),
 missing AS (
   SELECT e.* FROM expected e
   WHERE NOT EXISTS (SELECT 1 FROM supabase_migrations.schema_migrations m WHERE m.version = e.version)),
@@ -75,6 +75,12 @@ checks(n, ok, fail, area, check_, detail) AS (
          FROM public.notification_deliveries WHERE status = 'failed' AND failed_at > now() - interval '7 days'
   UNION ALL SELECT 16, count(*) = 0, false, 'notifications', 'no one-time secrets older than a day (is the sender running?)',
          count(*) || ' found' FROM public.notification_secrets WHERE created_at < now() - interval '1 day'
+  UNION ALL SELECT 16.1, v IN ('off', 'staff', 'on'), false, 'money',
+         'paying from the phone (ItecPay): off, staff (testing) or on', 'mobile_money = ' || v
+         FROM (SELECT coalesce((SELECT value FROM public.platform_settings WHERE key = 'mobile_money'), '(not set)') AS v) m
+  UNION ALL SELECT 16.2, count(*) = 0, true, 'money', 'no phone payments waiting over 30 minutes (is the payments-itecpay sweep running?)',
+         count(*) || ' waiting' FROM public.finance_payments
+         WHERE provider = 'itecpay' AND status IN ('pending', 'processing') AND created_at < now() - interval '30 minutes'
   UNION ALL SELECT 17, names IS NULL, true, 'security', 'row-level security on every public table', names FROM no_rls
   UNION ALL SELECT 18, count(*) = 0, true, 'security', 'only product images are public in Storage',
          'public: ' || string_agg(id, ', ') FROM storage.buckets WHERE public AND id <> 'product-images'

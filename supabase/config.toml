@@ -11,3 +11,9 @@ entrypoint = "./functions/training/index.js"
 # Payment providers can't send an Isoko access token; each webhook is checked
 # by the provider's signature instead (see functions/payments-webhook).
 verify_jwt = false
+
+[functions.payments-itecpay]
+# ItecPay's callbacks carry no Supabase token. The customer's screen calls
+# send/check with the payment id it received; the sweep checks the
+# service-role key itself (see functions/payments-itecpay).
+verify_jwt = false

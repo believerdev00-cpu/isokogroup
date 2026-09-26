@@ -300,6 +300,8 @@ function ConfirmedTrip({ trip, token, refresh }: { trip: TripView; token: string
           pending={Number(trip.pending_payment)}
           currency={trip.currency}
           reference={trip.reference}
+          mobileMoney={{ entityTable: "travel_trips", token }}
+          onPaid={refresh}
           onSubmit={async (v) => {
             await rpc("travel_submit_payment", { p_token: token, p_amount: v.amount, p_method: v.method, p_reference: v.reference });
             refresh();
