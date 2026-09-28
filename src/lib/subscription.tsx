@@ -84,8 +84,15 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [accessUntil, setAccessUntil] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const trialAsked = useRef<string | null>(null);
+  // Whose state we hold. Right after signing in or out the state still belongs to
+  // the previous visitor, so it counts as loading until the new one's arrives.
+  const userId = user?.id ?? null;
+  const [stateFor, setStateFor] = useState<string | null | undefined>(undefined);
+  const currentUser = useRef(userId);
+  currentUser.current = userId;
 
   const fetchSub = useCallback(async () => {
+    const forUser = user?.id ?? null;
     try {
       const { data: s, error } = await (supabase as any).rpc("subscription_state");
       if (error) throw error;
@@ -97,6 +104,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         const again = await (supabase as any).rpc("subscription_state");
         if (!again.error) next = again.data as ServerState;
       }
+      if (currentUser.current !== forUser) return; // signed in or out meanwhile: a newer check is coming
       setState(next);
       // the end of access on this device's clock, from the server's "seconds left"
       setAccessUntil(next.seconds_left != null ? new Date(Date.now() + next.seconds_left * 1000) : null);
@@ -115,7 +123,10 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.error("subscription check failed", e);
     } finally {
-      setLoading(false);
+      if (currentUser.current === forUser) {
+        setStateFor(forUser);
+        setLoading(false);
+      }
     }
   }, [user]);
 
@@ -180,7 +191,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     <SubscriptionContext.Provider
       value={{
         subscription,
-        loading: loading || authLoading,
+        loading: loading || authLoading || stateFor !== userId,
         isActive,
         status,
         reason,

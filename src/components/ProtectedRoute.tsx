@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/lib/subscription";
 import SubscriptionRequired from "@/components/SubscriptionRequired";
@@ -7,6 +7,7 @@ import { TrialBanner } from "@/components/TrialCountdown";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
   const { isActive, loading: subLoading, reason } = useSubscription();
 
   if (authLoading || subLoading) {
@@ -16,7 +17,8 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  // Remember where they were going, so signing in brings them back there
+  if (!user) return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   // The free trial or the month ran out (checked live): the page locks
   if (!isActive && reason) return <SubscriptionRequired reason={reason} />;
 

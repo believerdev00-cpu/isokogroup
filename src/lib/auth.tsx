@@ -6,7 +6,8 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; alreadyRegistered: boolean }>;
+  resendConfirmation: (email: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<{ error: any }>;
@@ -42,13 +43,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
         emailRedirectTo: window.location.origin,
       },
+    });
+    // With email confirmation on, an address that already has an account gets no
+    // error, just a placeholder user with no identities (and no email is sent).
+    const alreadyRegistered = !error && data.user?.identities?.length === 0;
+    return { error, alreadyRegistered };
+  };
+
+  const resendConfirmation = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin },
     });
     return { error };
   };
@@ -77,7 +90,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut, requestPasswordReset, updatePassword }}>
+    <AuthContext.Provider value={{ session, user, loading, signUp, resendConfirmation, signIn, signOut, requestPasswordReset, updatePassword }}>
       {children}
     </AuthContext.Provider>
   );

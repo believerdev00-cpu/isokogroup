@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MailCheck } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -14,48 +15,88 @@ import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/isoko-logo.jpeg";
 
+// A confirmation link is on its way (just registered), or is still needed (tried to log in unconfirmed)
+type Notice = { kind: "sent" | "unconfirmed"; email: string };
+
 const Login = () => {
-  const { signIn, signUp } = useAuth();
+  const { user, loading: authLoading, signIn, signUp, resendConfirmation } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isActive } = useSubscription();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
+  const { isActive, loading: subLoading } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [tab, setTab] = useState("login");
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  // Signed in (just now, or already when they opened this page): once this account's
+  // subscription is known, go where they were heading, or to Subscription if they
+  // have no access yet.
+  useEffect(() => {
+    if (authLoading || subLoading || !user) return;
+    const id = window.setTimeout(
+      () => navigate(isActive ? from ?? "/" : "/subscription", { replace: true }),
+      success ? 1200 : 0,
+    );
+    return () => window.clearTimeout(id);
+  }, [authLoading, subLoading, user, isActive, from, success, navigate]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const form = new FormData(e.currentTarget);
-    const { error } = await signIn(form.get("email") as string, form.get("password") as string);
+    const email = (form.get("email") as string).trim();
+    const { error } = await signIn(email, form.get("password") as string);
     setLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      if (/email not confirmed/i.test(error.message)) {
+        setNotice({ kind: "unconfirmed", email });
+      } else {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
     } else {
+      setNotice(null);
       toast({ title: "Success", description: "Logged in successfully!" });
       setSuccess(true);
-      setTimeout(() => {
-        if (!isActive) navigate("/subscription");
-        else navigate("/");
-      }, 3000);
     }
   };
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
-    const { error } = await signUp(
-      form.get("email") as string,
+    const form = new FormData(formEl);
+    const email = (form.get("email") as string).trim();
+    const { error, alreadyRegistered } = await signUp(
+      email,
       form.get("password") as string,
-      form.get("fullname") as string,
+      (form.get("fullname") as string).trim(),
     );
     setLoading(false);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else if (alreadyRegistered) {
+      toast({
+        title: "You already have an account",
+        description: "Log in with this email, or use “Forgot your password?” to set a new password.",
+      });
+      setTab("login");
     } else {
-      toast({ title: "Success", description: "Account created! Check your email to verify." });
+      formEl.reset();
+      setNotice({ kind: "sent", email });
+      setTab("login");
     }
+  };
+
+  const handleResend = async () => {
+    if (!notice) return;
+    setLoading(true);
+    const { error } = await resendConfirmation(notice.email);
+    setLoading(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else toast({ title: "Sent", description: `We sent a new confirmation link to ${notice.email}.` });
   };
 
   return (
@@ -96,8 +137,23 @@ const Login = () => {
             )}
           </AnimatePresence>
 
+          {notice && (
+            <div className="mb-4 flex gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm" role="status">
+              <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="space-y-2">
+                <p>
+                  {notice.kind === "sent" ? "Account created. We sent a confirmation link to " : "Please confirm your email first. We sent a link to "}
+                  <strong className="break-all">{notice.email}</strong>. Open it, then log in here.
+                </p>
+                <button type="button" onClick={handleResend} disabled={loading} className="font-semibold text-primary hover:underline disabled:opacity-50">
+                  Didn't get it? Send the link again
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-xl border border-border bg-card p-6">
-            <Tabs defaultValue="login">
+            <Tabs value={tab} onValueChange={setTab}>
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">{t("auth.login")}</TabsTrigger>
                 <TabsTrigger value="register">{t("auth.register")}</TabsTrigger>
