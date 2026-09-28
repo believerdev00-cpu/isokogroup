@@ -52,6 +52,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "hero.fastDelivery": { en: "Fast delivery", rw: "Kohereza byihuse", sw: "Usafirishaji wa haraka", fr: "Livraison rapide", zh: "快速送达" },
   "hero.securePacking": { en: "Secure packing", rw: "Gupakira neza", sw: "Ufungaji salama", fr: "Emballage sécurisé", zh: "安全包装" },
   "hero.buySell": { en: "Buy & sell", rw: "Gura & Gucuruza", sw: "Nunua & uze", fr: "Acheter & vendre", zh: "买卖" },
+  "hero.discover": { en: "Discover more", rw: "Menya byinshi", sw: "Gundua zaidi", fr: "En savoir plus", zh: "了解更多" },
   "hero.readOnline": { en: "Read online", rw: "Soma kuri interineti", sw: "Soma mtandaoni", fr: "Lire en ligne", zh: "在线阅读" },
 
   // Services

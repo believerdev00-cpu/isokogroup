@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import HeroSection from "@/components/HeroSection";
 import { Button } from "@/components/ui/button";
 import {
   Truck,
@@ -81,42 +82,7 @@ const About = () => {
       <Header />
 
       <main className="flex-1">
-        {/* Hero */}
-        <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-background via-background to-card">
-          <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <div className="absolute top-16 left-10 w-72 h-72 rounded-full bg-primary blur-3xl" />
-            <div className="absolute bottom-0 right-10 w-96 h-96 rounded-full bg-primary blur-3xl" />
-          </div>
-
-          <div className="container relative py-20 md:py-28">
-            <div className="max-w-3xl space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground">
-                <span className="h-2 w-2 rounded-full bg-primary" /> About ISOKO GROUPS
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight">
-                Welcome to <span className="text-primary">ISOKO GROUPS COMPANY LTD</span>
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-                Everything you need, under one trusted platform.
-              </p>
-              <ul className="flex flex-wrap gap-2 text-sm font-medium text-foreground/80">
-                {["Wholesale", "Distribution", "Supply Chain", "Logistics", "Packaging", "Marketplace", "Learning", "Travel Agency"].map((s) => (
-                  <li key={s} className="whitespace-nowrap rounded-full border border-border px-3 py-1">
-                    {s}
-                  </li>
-                ))}
-              </ul>
-              <div className="flex flex-wrap gap-3 pt-2">
-                <Link to="/marketplace">
-                  <Button size="lg" className="gap-2">Explore our services <ArrowRight className="h-4 w-4" /></Button>
-                </Link>
-                <Link to="/become-seller">
-                  <Button size="lg" variant="outline">Become a seller</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+        <HeroSection badge="Welcome to ISOKO GROUPS COMPANY LTD" search={false} />
 
         {/* Story */}
         <section className="py-16 md:py-20">

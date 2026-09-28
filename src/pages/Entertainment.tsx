@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { withLibraryLinks } from "@/lib/libraryFiles";
 import { useToast } from "@/hooks/use-toast";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { isLiteMotion } from "@/lib/motion";
+import logo from "@/assets/isoko-logo.jpeg";
 
 type EntItem = {
   id: string;
@@ -68,15 +70,49 @@ const Entertainment = () => {
   return (
     <div className="min-h-screen">
       <Header />
-      <section className="py-20">
-        <div className="container">
-          <div className="text-center mb-10 space-y-3">
-            <span className="text-sm font-semibold uppercase tracking-wider text-primary">Isoko Entertainment</span>
-            <h1 className="text-4xl md:text-5xl font-display font-bold">Creative Media & Digital Storytelling</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+      {/* Hero: a real studio at work behind the ISOKO name */}
+      <section className="relative overflow-hidden border-b border-border bg-neutral-900 text-white">
+        {isLiteMotion() ? (
+          <img src="/videos/entertainment-podcast.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <video
+            src="/videos/entertainment-podcast.mp4"
+            poster="/videos/entertainment-podcast.jpg"
+            autoPlay
+            muted
+            loop
+            playsInline
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/20" aria-hidden />
+        <div className="pointer-events-none absolute right-4 top-4 hidden items-center gap-2 rounded-full bg-black/40 py-1.5 pl-1.5 pr-4 backdrop-blur sm:flex md:right-8 md:top-6" aria-hidden>
+          <img src={logo} alt="" className="h-8 w-8 rounded-full object-cover" />
+          <span className="font-display text-sm font-bold tracking-wide">
+            ISOKO <span className="text-primary">GROUP</span>
+          </span>
+        </div>
+        <div className="container relative py-16 md:py-28">
+          <div className="max-w-2xl space-y-4">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80 sm:text-sm">ISOKO GROUP · Isoko Studioz</span>
+            <h1 className="font-display text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
+              <span className="text-primary">Isoko</span> Entertainment
+            </h1>
+            <p className="text-lg font-medium text-white/90 md:text-xl">Creative Media & Digital Storytelling</p>
+            <p className="leading-relaxed text-white/80">
               Isoko Entertainment is a dynamic creative platform under Isoko Groups Company Ltd, dedicated to producing impactful media content that informs, inspires, and connects audiences. We specialize in storytelling through film, audio, and digital platforms — helping brands, creators, and communities share their voice with the world.
             </p>
+            <div className="pt-2">
+              <Button asChild size="lg" className="gap-2 rounded-full bg-white text-neutral-900 hover:bg-white/90">
+                <a href="#watch"><Play className="h-4 w-4" /> Watch now</a>
+              </Button>
+            </div>
           </div>
+        </div>
+      </section>
+      <section className="py-16 md:py-20">
+        <div className="container">
 
           {/* What We Create */}
           <div className="mb-12">
@@ -113,7 +149,7 @@ const Entertainment = () => {
             ))}
           </div>
 
-          <div className="text-center mb-10">
+          <div id="watch" className="scroll-mt-24 text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-display font-bold">Trending Films & Podcasts</h2>
             <p className="text-muted-foreground mt-2">Stream curated films and podcasts from creators across the region.</p>
           </div>
