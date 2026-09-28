@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Users, ShoppingCart, DollarSign, TrendingUp, Package, BookOpen, Truck, Box, Bell, Settings, FileText, Eye, Download, Film, Mic, Upload, Wallet, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1156,99 +1156,15 @@ const Admin = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Film className="h-5 w-5 text-primary" /> Entertainment ({entertainment.length})
+                    <Film className="h-5 w-5 text-primary" /> Entertainment
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleAddEntertainment} className="mb-6 p-4 border border-border rounded-lg space-y-4">
-                    <h3 className="font-semibold flex items-center gap-2"><Upload className="h-4 w-4 text-primary" /> Upload film or podcast</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Title</Label>
-                        <Input value={entForm.title} onChange={(e) => setEntForm({ ...entForm, title: e.target.value })} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Creator</Label>
-                        <Input value={entForm.creator} onChange={(e) => setEntForm({ ...entForm, creator: e.target.value })} required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Type</Label>
-                        <Select value={entForm.type} onValueChange={(v: "film" | "podcast") => setEntForm({ ...entForm, type: v })}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="film">Film</SelectItem>
-                            <SelectItem value="podcast">Podcast</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Category</Label>
-                        <Input value={entForm.category} onChange={(e) => setEntForm({ ...entForm, category: e.target.value })} placeholder="trending, drama, tech..." />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Price (RWF)</Label>
-                        <Input type="number" min={0} value={entForm.price} onChange={(e) => setEntForm({ ...entForm, price: Number(e.target.value) })} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Duration (minutes)</Label>
-                        <Input type="number" min={0} value={entForm.duration} onChange={(e) => setEntForm({ ...entForm, duration: Number(e.target.value) })} />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Description</Label>
-                      <Textarea rows={3} value={entForm.description} onChange={(e) => setEntForm({ ...entForm, description: e.target.value })} />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Cover image</Label>
-                        <Input type="file" accept="image/*" onChange={(e) => setEntCoverFile(e.target.files?.[0] || null)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Media file (any video or audio format)</Label>
-                        <Input type="file" accept="video/*,audio/*,.mkv,.mov,.avi,.wmv,.flv,.webm,.mp4,.m4v,.mpg,.mpeg,.3gp,.ogv,.ts,.mts,.m4a,.aac,.wav,.flac,.ogg,.opus,.wma" onChange={(e) => setEntMediaFile(e.target.files?.[0] || null)} />
-                      </div>
-                    </div>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={entForm.trending} onChange={(e) => setEntForm({ ...entForm, trending: e.target.checked })} />
-                      Mark as trending
-                    </label>
-                    <Button type="submit" disabled={entUploading}>
-                      {entUploading ? (entUploadProgress > 0 ? `Uploading... ${entUploadProgress}%` : "Uploading...") : "Upload"}
-                    </Button>
-                  </form>
-
-                  {entertainment.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No films or podcasts uploaded yet.</p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Title</TableHead>
-                          <TableHead>Creator</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Trending</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {entertainment.map((it) => (
-                          <TableRow key={it.id}>
-                            <TableCell className="font-medium">{it.title}</TableCell>
-                            <TableCell>{it.creator}</TableCell>
-                            <TableCell className="capitalize">{it.type}</TableCell>
-                            <TableCell>{it.category}</TableCell>
-                            <TableCell>{it.price > 0 ? `${it.price} RWF` : "Free"}</TableCell>
-                            <TableCell>{it.trending ? "Yes" : "No"}</TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="destructive" onClick={() => handleDeleteEntertainment(it.id)}>Delete</Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
+                <CardContent className="space-y-3">
+                  <p className="text-muted-foreground">
+                    Films, podcasts, photo studio, art & design, fashion, live streams and event coverage are now managed
+                    in the Media desk, with drafts, scheduling, featuring and archiving.
+                  </p>
+                  <Button asChild><Link to="/staff/media">Open the Media desk</Link></Button>
                 </CardContent>
               </Card>
             </TabsContent>

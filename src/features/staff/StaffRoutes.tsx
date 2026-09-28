@@ -4,8 +4,11 @@ import { TravelCustomers, TravelDashboard, TravelMore, TravelPayments, TravelReq
 import TripBuilder from "./travel/TripBuilder";
 import { ConsultancyDashboard, ConsultancyDetail, ConsultancyRequests, ConsultancyServices } from "./consultancy/ConsultancyStaff";
 import { DataDashboard, DataDetail, DataProjects, DataServices } from "./data/DataStaff";
+import {
+  MediaCategories, MediaEvents, MediaFashion, MediaFilms, MediaLive, MediaOverview, MediaPeople, MediaPodcasts, MediaWork,
+} from "./media/MediaAdmin";
 
-/** /staff/*: the Isoko Workspace for Travel, Consultancy and Data Analysis staff. */
+/** /staff/*: the Isoko Workspace for Travel, Consultancy, Data Analysis and Media staff. */
 export default function StaffRoutes() {
   return (
     <Routes>
@@ -26,6 +29,15 @@ export default function StaffRoutes() {
         <Route path="data/projects" element={<DataProjects />} />
         <Route path="data/services" element={<DataServices />} />
         <Route path="data/:id" element={<DataDetail />} />
+        <Route path="media" element={<MediaOverview />} />
+        <Route path="media/films" element={<MediaFilms />} />
+        <Route path="media/podcasts" element={<MediaPodcasts />} />
+        <Route path="media/people" element={<MediaPeople />} />
+        <Route path="media/work" element={<MediaWork />} />
+        <Route path="media/fashion" element={<MediaFashion />} />
+        <Route path="media/live" element={<MediaLive />} />
+        <Route path="media/events" element={<MediaEvents />} />
+        <Route path="media/categories" element={<MediaCategories />} />
       </Route>
     </Routes>
   );

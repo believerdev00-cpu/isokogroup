@@ -142,6 +142,10 @@
 }
 
 @layer utilities {
+  /* Sideways content rows scroll by touch or trackpad without a visible bar */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: var(--hero-gradient);

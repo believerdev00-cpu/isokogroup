@@ -117,8 +117,17 @@ $$, 'engine internals exist and aren''t callable from the website');
 
 -- ---------- Storage ----------
 CALL pg_temp.none($$
-  SELECT id FROM storage.buckets WHERE public AND id NOT IN ('product-images')
-$$, 'only product images are served publicly');
+  SELECT id FROM storage.buckets WHERE public AND id NOT IN (
+    'product-images',
+    -- Entertainment posters, thumbnails and display images (images only, 5 MB,
+    -- staff-written); films, episodes and originals stay in private buckets
+    'media-public')
+$$, 'only product images and entertainment display images are served publicly');
+CALL pg_temp.none($$
+  SELECT id FROM storage.buckets WHERE id = 'media-public'
+    AND (file_size_limit IS NULL OR file_size_limit > 5242880
+         OR allowed_mime_types IS NULL OR NOT allowed_mime_types <@ ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
+$$, 'the public media bucket takes only web-sized images');
 
 -- ---------- Training Center ----------
 CALL pg_temp.none($$

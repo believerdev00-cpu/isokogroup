@@ -38,10 +38,10 @@ const DataHome = lazy(() => import("./features/data/DataHome"));
 const DataRequest = lazy(() => import("./features/data/DataRequest"));
 const DataPage = lazy(() => import("./features/data/DataPage"));
 const StaffRoutes = lazy(() => import("./features/staff/StaffRoutes"));
+const EntRoutes = lazy(() => import("./features/entertainment/EntRoutes"));
 const page = (el: React.ReactNode) => <Suspense fallback={<PageSkeleton />}>{el}</Suspense>;
 import Marketplace from "./pages/Marketplace";
 import ELibrary from "./pages/ELibrary";
-import Entertainment from "./pages/Entertainment";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -93,7 +93,7 @@ const App = () => (
                   <Route path="/packaging" element={<Navigate to="/logistics/packaging" replace />} />
                   <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
                   <Route path="/e-library" element={<ProtectedRoute><ELibrary /></ProtectedRoute>} />
-                  <Route path="/entertainment" element={<ProtectedRoute><Entertainment /></ProtectedRoute>} />
+                  <Route path="/entertainment/*" element={page(<EntRoutes />)} />
                   <Route path="/software" element={<Software />} />
                   <Route path="/software/booking" element={<SoftwareBooking />} />
                   <Route path="/training-center/*" element={<Suspense fallback={<PageSkeleton />}><TrainingApp /></Suspense>} />
