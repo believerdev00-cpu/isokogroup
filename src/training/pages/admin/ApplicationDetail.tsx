@@ -4,11 +4,15 @@ import { Facts, PageHeader, QueryView, Section, StatusBadge } from "@/training/c
 import { Button } from "@/components/ui/button";
 import { ApplicationActions, ApprovalResultHost } from "@/training/features/admin-core/shared";
 import { openApiFile } from "@/training/lib/api";
-import { formatDate, formatDateTime, humanize } from "@/training/lib/format";
+import { formatDate, formatDateTime, formatMoney, humanize } from "@/training/lib/format";
 import { useApi } from "@/training/lib/query";
 import type { ApplicationStatus } from "@/training/lib/types";
 
+type Fee = { charged: number; paid: number; pending: number; balance: number; currency?: string };
+
 type Detail = {
+  /** the registration fee paid with the application (mobile money) */
+  fee: Fee;
   id: string;
   reference: string;
   full_name: string;
@@ -92,6 +96,7 @@ function ApplicationDetailPage() {
                   ["Address", a.address],
                   ["Previous education", a.previous_education],
                   ["Emergency contact", `${a.emergency_contact_name} · ${a.emergency_contact_phone}`],
+                  ["Registration fee", feeText(a.fee)],
                 ]}
               />
               {a.additional_info && (
@@ -135,6 +140,15 @@ function ApplicationDetailPage() {
       )}
     </QueryView>
   );
+}
+
+function feeText(f: Fee | null) {
+  if (!f || Number(f.charged) <= 0) return "No registration fee";
+  const cur = f.currency ?? "RWF";
+  if (Number(f.paid) >= Number(f.charged)) return <span className="font-semibold text-success">Paid ({formatMoney(Number(f.paid), cur)})</span>;
+  if (Number(f.pending) > 0) return <span className="font-semibold text-warning">Payment waiting for approval on the phone</span>;
+  if (Number(f.paid) > 0) return `${formatMoney(Number(f.paid), cur)} paid of ${formatMoney(Number(f.charged), cur)}`;
+  return <span className="text-muted-foreground">Not paid yet ({formatMoney(Number(f.charged), cur)}); charged on approval if still unpaid</span>;
 }
 
 export default function ApplicationDetail() {

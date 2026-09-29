@@ -63,6 +63,7 @@ export default function TrainingApp() {
               <Route path="contact" element={page("public/Contact")} />
               <Route path="apply" element={page("public/Apply")} />
               <Route path="application-status" element={page("public/ApplicationStatus")} />
+              <Route path="pay/:token" element={page("public/Pay")} />
               <Route path="verify" element={page("public/Verify")} />
               <Route path="verify/:code" element={page("public/Verify")} />
               <Route path="login" element={page("Login")} />

@@ -83,7 +83,13 @@ export async function approveApplication(applicationId: string, adminId: string,
     );
     // Fees become charges in the platform ledger (a database trigger), recorded as this admin
     await actAs(c, adminId);
-    const registration = Number(ip.registration_fee ?? ip.program_registration);
+    // Paid with the application already (by mobile money): only what is left is charged
+    const paidWithApplication = Number(
+      (await queryOne<{ paid: string }>(
+        "SELECT (public.finance_totals_for('training.applications', $1) ->> 'paid') AS paid", [app.id], c,
+      ))?.paid ?? 0,
+    );
+    const registration = Math.max(Number(ip.registration_fee ?? ip.program_registration) - paidWithApplication, 0);
     const tuition = Number(ip.tuition_fee ?? ip.program_tuition);
     if (registration > 0) {
       await c.query(

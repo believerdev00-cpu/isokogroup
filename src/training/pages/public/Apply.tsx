@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { goldButton } from "@/training/features/public/shared";
+import { FeePayment } from "@/training/features/public/FeePayment";
 import { api } from "@/training/lib/api";
 import { errorMessage } from "@/training/lib/auth";
 import { formatDuration, formatLongDate, formatMoney } from "@/training/lib/format";
@@ -144,7 +145,7 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-type Submitted = { reference: string; submitted_at: string; program: string; intake: string };
+type Submitted = { reference: string; submitted_at: string; program: string; intake: string; pay_token: string; fee_due: number; currency: string };
 
 export default function Apply() {
   const [params] = useSearchParams();
@@ -497,6 +498,15 @@ export default function Apply() {
                       <Copy className="mr-1.5 h-4 w-4" /> Copy
                     </Button>
                   </div>
+                  {done.fee_due > 0 && (
+                    <div className="mx-auto mt-8 max-w-md">
+                      <FeePayment token={done.pay_token} />
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        You can also pay later from{" "}
+                        <Link to={`/training-center/pay/${done.pay_token}`} className="font-semibold text-primary underline">your payment page</Link> (keep the link).
+                      </p>
+                    </div>
+                  )}
                   <div className="mx-auto mt-8 max-w-md space-y-2 text-left text-sm">
                     <p className="font-semibold">What happens next</p>
                     <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">

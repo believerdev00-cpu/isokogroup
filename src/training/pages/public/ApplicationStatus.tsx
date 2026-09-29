@@ -6,6 +6,7 @@ import { ConfirmDialog, Facts, Field, StatusBadge } from "@/training/components/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PublicHero } from "@/training/features/public/shared";
+import { FeePayment } from "@/training/features/public/FeePayment";
 import { api } from "@/training/lib/api";
 import { errorMessage } from "@/training/lib/auth";
 import { formatDate, formatLongDate } from "@/training/lib/format";
@@ -22,6 +23,8 @@ type Result = {
   intake_name: string;
   training_starts_on: string;
   student_number: string | null;
+  /** the private payment link, while the registration fee is still owed */
+  pay_token: string | null;
 };
 
 const EXPLAIN: Record<Status, string> = {
@@ -117,6 +120,7 @@ export default function ApplicationStatus() {
                   ]}
                 />
               </div>
+              {result.pay_token && <FeePayment token={result.pay_token} className="mt-5" />}
               {result.decision_note && (
                 <div className="mt-5 rounded-lg bg-muted p-3 text-sm">
                   <p className="font-semibold">Note from the training center</p>

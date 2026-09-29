@@ -52,6 +52,7 @@ applicationsRouter.get("/applications/:id", async (req, res) => {
   const app = await queryOne(
     `SELECT a.*, (a.document_path IS NOT NULL) AS has_document, p.name AS program_name, i.name AS intake_name,
             i.id AS intake_id, s.available_seats, s.capacity, st.student_number, u.full_name AS reviewed_by_name,
+            public.finance_totals_for('training.applications', a.id) AS fee,
             (SELECT json_agg(json_build_object('reference', o.reference, 'program', op.name, 'intake', oi.name, 'status', o.status))
              FROM applications o JOIN intake_programs oip ON oip.id = o.intake_program_id JOIN programs op ON op.id = oip.program_id
              JOIN intakes oi ON oi.id = oip.intake_id WHERE lower(o.email) = lower(a.email) AND o.id <> a.id) AS other_applications
@@ -63,7 +64,7 @@ applicationsRouter.get("/applications/:id", async (req, res) => {
     [param(req, "id")],
   );
   if (!app) throw notFound("Application not found");
-  const { document_path: _d, ...rest } = app;
+  const { document_path: _d, pay_token: _t, ...rest } = app;
   res.json({ data: rest });
 });
 

@@ -22,9 +22,9 @@ const NETWORKS: { id: Network; label: string; hint: string }[] = [
   { id: "spenn", label: "SPENN", hint: "Your SPENN number" },
 ];
 
-/** A private link's token (travel, consultancy, data), or the signed-in customer's own record. */
+/** A private link's token (travel, consultancy, data, a Training Center application), or the signed-in customer's own record. */
 export type MobileMoneyTarget =
-  | { entityTable: "travel_trips" | "consult_requests" | "data_requests"; token: string }
+  | { entityTable: "travel_trips" | "consult_requests" | "data_requests" | "training.applications"; token: string }
   | { entityTable: string; entityId: string };
 
 type Status = { status: string; amount: number; message?: string | null };

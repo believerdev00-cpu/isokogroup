@@ -94,7 +94,9 @@ CALL pg_temp.none($$
     -- token or the signed-in owner is checked, rate-limited; status by payment id
     'mobile_money_available()', 'mobile_money_start(text,uuid,text,text,text,numeric)', 'mobile_money_status(uuid)',
     -- the subscription prices and, when signed in, one's own access (no one else's)
-    'subscription_state()'])
+    'subscription_state()',
+    -- a Training Center applicant's fee, by the application's private payment link (rate-limited)
+    'training_application_payment(text)'])
 $$, 'anonymous visitors can run only the intended elevated functions');
 
 -- Internals of the engines: never callable from the website

@@ -140,7 +140,7 @@ publicRouter.post("/applications", formLimiter, upload.single("document"), async
       const row = await queryOne(
         `INSERT INTO applications (reference, intake_program_id, full_name, date_of_birth, gender, phone, email, address,
            emergency_contact_name, emergency_contact_phone, previous_education, additional_info)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, reference, submitted_at`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, reference, submitted_at, pay_token`,
         [reference, ip.id, body.full_name, body.date_of_birth, body.gender ?? null, body.phone, body.email, body.address,
           body.emergency_contact_name, body.emergency_contact_phone, body.previous_education, body.additional_info],
         c,
@@ -154,16 +154,25 @@ publicRouter.post("/applications", formLimiter, upload.single("document"), async
           email: body.email,
           type: "application_submitted",
           title: `Application received — ${reference}`,
-          body: `Dear ${body.full_name}, we have received your application for ${ip.program_name} (${ip.intake_name}). Your application number is ${reference}. Keep it to check your status online with your email address.`,
-          link: "/application-status",
+          body: `Dear ${body.full_name}, we have received your application for ${ip.program_name} (${ip.intake_name}). Your application number is ${reference}. Keep it to check your status online with your email address. You can pay the registration fee from your phone with your private payment link.`,
+          // the base path is added to links by notify(); this is the application's private payment page
+          link: `/pay/${row!.pay_token}`,
         },
         c,
       );
       await notifyAdminsOfApplication(c, `${body.full_name} applied for ${ip.program_name} (${ip.intake_name})`, row!.id);
       return row!;
     });
+    // The registration fee (owed from now, see the ledger) and the private link to pay it
+    const fee = await queryOne<{ balance: string; currency: string }>(
+      "SELECT (t ->> 'balance') AS balance, coalesce(t ->> 'currency', 'RWF') AS currency FROM public.finance_totals_for('training.applications', $1) t",
+      [application.id],
+    );
     res.status(201).json({
-      data: { reference: application.reference, submitted_at: application.submitted_at, program: ip.program_name, intake: ip.intake_name },
+      data: {
+        reference: application.reference, submitted_at: application.submitted_at, program: ip.program_name, intake: ip.intake_name,
+        pay_token: application.pay_token, fee_due: Number(fee?.balance ?? 0), currency: fee?.currency ?? "RWF",
+      },
     });
   } catch (err) {
     discardUpload(req.file);
@@ -183,6 +192,9 @@ async function findOwnApplication(body: unknown) {
   const { reference, email } = parse(lookup, body);
   const app = await queryOne(
     `SELECT a.id, a.reference, a.full_name, a.status, a.submitted_at, a.reviewed_at,
+            CASE WHEN a.status IN ('pending', 'under_review', 'waitlisted')
+                  AND (public.finance_totals_for('training.applications', a.id) ->> 'balance')::numeric > 0
+                 THEN a.pay_token END AS pay_token,
             CASE WHEN a.status IN ('rejected', 'waitlisted') THEN a.decision_note END AS decision_note,
             p.name AS program_name, i.name AS intake_name, i.training_starts_on, st.student_number
      FROM applications a JOIN intake_programs ip ON ip.id = a.intake_program_id
