@@ -104,9 +104,10 @@ const applicationFields = z.object({
   gender: z.enum(["female", "male", "other", "prefer_not_to_say"]).nullish(),
   phone: z.string().trim().regex(/^[+\d][\d\s-]{6,19}$/, "Enter a valid phone number"),
   email: z.string().trim().toLowerCase().email("Enter a valid email address").max(254),
-  address: z.string().trim().min(2, "Enter your address").max(300),
-  emergency_contact_name: z.string().trim().min(2, "Enter an emergency contact").max(120),
-  emergency_contact_phone: z.string().trim().regex(/^[+\d][\d\s-]{6,19}$/, "Enter a valid emergency contact phone"),
+  // Optional for applicants (asked again at enrolment); checked when given
+  address: z.string().trim().max(300).default(""),
+  emergency_contact_name: z.string().trim().max(120).default(""),
+  emergency_contact_phone: z.union([z.literal(""), z.string().trim().regex(/^[+\d][\d\s-]{6,19}$/, "Enter a valid emergency contact phone")]).default(""),
   previous_education: z.string().trim().min(2, "Tell us your highest education").max(500),
   additional_info: z.string().trim().max(2000).default(""),
 });

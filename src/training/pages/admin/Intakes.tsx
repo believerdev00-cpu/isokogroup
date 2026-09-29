@@ -26,9 +26,11 @@ function Status({ i }: { i: Intake }) {
   return (
     <div className="flex flex-col items-start gap-1">
       <StatusBadge status={i.status} />
-      {i.status_mode === "manual" && !["draft", "completed", "archived"].includes(i.status) && (
-        <span className="text-[11px] text-muted-foreground">Set manually</span>
-      )}
+      {i.status === "open" && i.program_count > 0 ? (
+        <span className="text-[11px] font-semibold text-success">On the website</span>
+      ) : !["completed", "archived"].includes(i.status) ? (
+        <span className="text-[11px] font-semibold text-warning">Not on the website — open it to see why</span>
+      ) : null}
     </div>
   );
 }

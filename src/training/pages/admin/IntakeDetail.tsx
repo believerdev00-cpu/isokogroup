@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { BookOpen, Eye, EyeOff, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { ConfirmDialog, EmptyState, Facts, Field, NativeSelect, PageHeader, QueryView, SeatsMeter, Section, StatusBadge } from "@/training/components/common";
 import { Button } from "@/components/ui/button";
@@ -185,6 +185,61 @@ function OfferingCard({ o, onEdit }: { o: IntakeProgram; onEdit: () => void }) {
   );
 }
 
+/**
+ * Can applicants see this intake? If not, why, and the one thing to do about it.
+ * Mirrors the public list's rule: open, and a program accepting applications with a seat left.
+ */
+function Visibility({ intake: i, onAddProgram, onAction, pending }: { intake: Detail; onAddProgram: () => void; onAction: (k: ActionKey) => void; pending: boolean }) {
+  const bookable = i.programs.filter((o) => o.accepting_applications && o.available_seats > 0);
+  if (i.status === "open" && bookable.length > 0) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-success/40 bg-success/10 p-4">
+        <Eye className="h-5 w-5 shrink-0 text-success" />
+        <p className="min-w-0 flex-1 text-sm">
+          <span className="font-semibold">Applicants can see this intake and apply</span> for {bookable.length} program{bookable.length === 1 ? "" : "s"}, until {formatDate(i.application_closes_on)}.
+        </p>
+        <Button asChild size="sm" variant="outline"><a href="/training-center/intakes" target="_blank" rel="noopener noreferrer">See it on the website</a></Button>
+      </div>
+    );
+  }
+  if (["completed", "archived"].includes(i.status)) return null;
+
+  let why: string;
+  let fix: React.ReactNode = null;
+  const btn = (label: string, onClick: () => void) => (
+    <Button size="sm" onClick={onClick} disabled={pending}>{pending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}{label}</Button>
+  );
+  if (i.programs.length === 0) {
+    why = "It has no programs yet, so there is nothing to apply for.";
+    fix = btn("Add a program", onAddProgram);
+  } else if (i.status === "draft") {
+    why = "It is still a draft.";
+    fix = btn("Publish now", () => onAction(i.application_opens_on > new Date().toISOString().slice(0, 10) ? "open" : "publish"));
+  } else if (i.status === "upcoming") {
+    why = `Applications open on ${formatDate(i.application_opens_on)}.`;
+    fix = btn("Open applications now", () => onAction("open"));
+  } else if (i.status === "closed") {
+    why = "Applications are closed (the deadline passed, or they were closed).";
+    fix = btn("Reopen applications", () => onAction("reopen"));
+  } else if (i.status === "full" || bookable.length === 0) {
+    why = i.programs.some((o) => o.accepting_applications)
+      ? "Every program is full. Add seats to a program below (Edit), or reopen."
+      : "No program is accepting applications. Turn on “Accepting applications” for a program below.";
+    if (i.status === "full") fix = btn("Reopen applications", () => onAction("reopen"));
+  } else {
+    why = "It isn't open for applications.";
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-warning/50 bg-warning/10 p-4">
+      <EyeOff className="h-5 w-5 shrink-0 text-warning" />
+      <p className="min-w-0 flex-1 text-sm">
+        <span className="font-semibold">Applicants can't see this intake.</span> {why}
+      </p>
+      {fix}
+    </div>
+  );
+}
+
 export default function IntakeDetail() {
   const { id } = useParams();
   const q = useApi<Detail>(`/admin/intakes/${id}`);
@@ -218,6 +273,8 @@ export default function IntakeDetail() {
                 </>
               }
             />
+
+            <Visibility intake={i} onAddProgram={() => setAdding(true)} onAction={(key) => run.mutate(key)} pending={run.isPending} />
 
             <Section title="Status" description="Applicants see this intake only while it is Open and has free seats.">
               <div className="flex flex-wrap gap-2">

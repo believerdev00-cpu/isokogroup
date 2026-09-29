@@ -1,13 +1,18 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Loader2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Check, Loader2 } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { Field, Loading, PageHeader, Section } from "@/training/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/training/lib/api";
+import { errorMessage } from "@/training/lib/auth";
+import { formatMoney } from "@/training/lib/format";
 import { useApi, useApiMutation } from "@/training/lib/query";
-import type { Intake } from "@/training/lib/types";
+import type { Intake, Program } from "@/training/lib/types";
+import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Form = {
   name: string;
@@ -19,7 +24,24 @@ type Form = {
   location: string;
 };
 
-const EMPTY: Form = { name: "", description: "", application_opens_on: "", application_closes_on: "", training_starts_on: "", training_ends_on: "", location: "Isoko Training Center, Kigali" };
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const plusDays = (days: number) => iso(new Date(Date.now() + days * 86_400_000));
+
+// A new intake is usually "applications open today for a month, training a week
+// later for three months"; everything can be changed.
+function defaults(): Form {
+  const now = new Date();
+  const month = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  return {
+    name: `${month} Intake`,
+    description: "",
+    application_opens_on: iso(now),
+    application_closes_on: plusDays(30),
+    training_starts_on: plusDays(37),
+    training_ends_on: plusDays(37 + 91),
+    location: "Isoko Training Center, Kigali",
+  };
+}
 
 function dateErrors(f: Form) {
   const e: Partial<Record<keyof Form, string>> = {};
@@ -33,8 +55,13 @@ export default function IntakeForm() {
   const { id } = useParams();
   const editing = !!id;
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const existing = useApi<Intake>(editing ? `/admin/intakes/${id}` : null);
-  const [form, setForm] = useState<Form>(EMPTY);
+  const programs = useApi<Program[]>(editing ? null : "/admin/programs");
+  const [form, setForm] = useState<Form>(() => (editing ? { ...defaults(), name: "" } : defaults()));
+  // Programs offered in a new intake, with their seats
+  const [chosen, setChosen] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<null | "draft" | "publish">(null);
 
   useEffect(() => {
     if (existing.data) {
@@ -51,9 +78,9 @@ export default function IntakeForm() {
     }
   }, [existing.data]);
 
-  const save = useApiMutation((f: Form) => (editing ? api.patch<Intake>(`/admin/intakes/${id}`, f) : api.post<Intake>("/admin/intakes", f)), {
+  const save = useApiMutation((f: Form) => api.patch<Intake>(`/admin/intakes/${id}`, f), {
     invalidate: ["/admin/intakes", "/admin/dashboard"],
-    success: editing ? "Intake saved" : "Intake created. Now add the programs it offers.",
+    success: "Intake saved",
     onSuccess: (i) => navigate(`/training-center/admin/intakes/${i.id}`),
   });
 
@@ -61,34 +88,122 @@ export default function IntakeForm() {
   const errors = dateErrors(form);
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [k]: e.target.value });
   const complete = form.name.trim().length >= 3 && form.application_opens_on && form.application_closes_on && form.training_starts_on && form.training_ends_on;
+  const active = (programs.data ?? []).filter((p) => p.is_active);
+  const picked = Object.entries(chosen);
+  const seatsOk = picked.every(([, s]) => Number(s) > 0);
+
+  // Create the intake, add its programs, and publish it (unless saving a draft)
+  const create = async (publish: boolean) => {
+    if (!complete || Object.keys(errors).length) return;
+    if (publish && picked.length === 0) return toast.error("Choose at least one program so applicants have something to apply for.");
+    if (!seatsOk) return toast.error("Enter how many seats each program has.");
+    setBusy(publish ? "publish" : "draft");
+    let intake: Intake | null = null;
+    try {
+      intake = await api.post<Intake>("/admin/intakes", form);
+      for (const [programId, seats] of picked) {
+        await api.post(`/admin/intakes/${intake.id}/programs`, { program_id: programId, capacity: Number(seats), schedule: "" });
+      }
+      if (publish) await api.post(`/admin/intakes/${intake.id}/publish`);
+      toast.success(
+        publish
+          ? form.application_opens_on <= iso(new Date())
+            ? "Published. Applicants can apply now."
+            : `Published. Applications open on ${new Date(form.application_opens_on).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}.`
+          : "Saved as a draft. Applicants can't see it until you publish.",
+      );
+      qc.invalidateQueries();
+      navigate(`/training-center/admin/intakes/${intake.id}`);
+    } catch (e) {
+      toast.error(errorMessage(e));
+      // Whatever was created is kept; its page shows what is still missing
+      if (intake) navigate(`/training-center/admin/intakes/${intake.id}`);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (Object.keys(errors).length === 0 && complete) save.mutate(form);
+    if (editing) {
+      if (Object.keys(errors).length === 0 && complete) save.mutate(form);
+    } else create(true);
   };
 
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title={editing ? `Edit ${existing.data?.name ?? "intake"}` : "Create intake"}
-        subtitle={editing ? undefined : "New intakes start as drafts. Nobody sees them until you publish."}
+        title={editing ? `Edit ${existing.data?.name ?? "intake"}` : "New intake"}
+        subtitle={editing ? undefined : "Name it, check the dates, choose the programs, then press Publish."}
         back={editing ? { to: `/training-center/admin/intakes/${id}`, label: "Back to intake" } : { to: "/training-center/admin/intakes", label: "Intakes" }}
       />
       <form onSubmit={submit} className="space-y-6">
-        <Section title="About the intake">
+        <Section title="Name">
           <div className="space-y-4">
-            <Field label="Name" htmlFor="name" required hint="For example: January 2027 Intake">
+            <Field label="Intake name" htmlFor="name" required hint="For example: January 2027 Intake">
               <Input id="name" value={form.name} onChange={set("name")} required />
             </Field>
-            <Field label="Description" htmlFor="description" hint="Shown to applicants on the Available Intakes page.">
-              <Textarea id="description" rows={3} value={form.description} onChange={set("description")} />
-            </Field>
-            <Field label="Location" htmlFor="location">
-              <Input id="location" value={form.location} onChange={set("location")} />
+            <Field label="Description (optional)" htmlFor="description" hint="Shown to applicants.">
+              <Textarea id="description" rows={2} value={form.description} onChange={set("description")} />
             </Field>
           </div>
         </Section>
-        <Section title="Dates" description="Applications are accepted automatically between the opening date and the deadline.">
+
+        {!editing && (
+          <Section title="Programs" description="Tick the programs this intake offers and how many students each can take.">
+            {programs.isLoading ? (
+              <Loading />
+            ) : active.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                There are no active programs yet. <Link to="/training-center/admin/programs/new" className="font-semibold text-primary">Create a program</Link> first.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {active.map((p) => {
+                  const on = p.id in chosen;
+                  return (
+                    <li key={p.id} className={cn("flex flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors", on && "border-primary bg-primary/5")}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = { ...chosen };
+                          if (on) delete next[p.id];
+                          else next[p.id] = String(p.max_students || 20);
+                          setChosen(next);
+                        }}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        aria-pressed={on}
+                      >
+                        <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2", on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40")}>
+                          {on && <Check className="h-4 w-4" />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block font-semibold">{p.name}</span>
+                          <span className="block text-xs text-muted-foreground">Tuition {formatMoney(p.tuition_fee)} · Registration {formatMoney(p.registration_fee)}</span>
+                        </span>
+                      </button>
+                      {on && (
+                        <label className="flex items-center gap-2 text-sm">
+                          Seats
+                          <Input
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            className="h-9 w-20"
+                            value={chosen[p.id]}
+                            onChange={(e) => setChosen({ ...chosen, [p.id]: e.target.value })}
+                          />
+                        </label>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Section>
+        )}
+
+        <Section title="Dates" description="Applicants can apply between the opening date and the deadline.">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Applications open" htmlFor="opens" required error={errors.application_opens_on}>
               <Input id="opens" type="date" value={form.application_opens_on} onChange={set("application_opens_on")} required />
@@ -102,14 +217,31 @@ export default function IntakeForm() {
             <Field label="Training ends" htmlFor="ends" required error={errors.training_ends_on}>
               <Input id="ends" type="date" value={form.training_ends_on} onChange={set("training_ends_on")} required />
             </Field>
+            <Field label="Location" htmlFor="location" className="sm:col-span-2">
+              <Input id="location" value={form.location} onChange={set("location")} />
+            </Field>
           </div>
         </Section>
+
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-          <Button type="submit" size="lg" disabled={save.isPending || !complete || Object.keys(errors).length > 0}>
-            {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {editing ? "Save changes" : "Create intake"}
-          </Button>
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
+          {editing ? (
+            <Button type="submit" size="lg" disabled={save.isPending || !complete || Object.keys(errors).length > 0}>
+              {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save changes
+            </Button>
+          ) : (
+            <>
+              <Button type="button" variant="outline" size="lg" disabled={!!busy || !complete} onClick={() => create(false)}>
+                {busy === "draft" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save as draft
+              </Button>
+              <Button type="submit" size="lg" disabled={!!busy || !complete || Object.keys(errors).length > 0}>
+                {busy === "publish" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Publish
+              </Button>
+            </>
+          )}
         </div>
       </form>
     </div>
