@@ -6,6 +6,7 @@ import {
 } from "../api";
 import { Masonry, PinCard, PosterCard, Row, WideCard, LiveBadge } from "../ui";
 import { FinalCta, Hero, heroImage, YouTubeButton } from "../parts";
+import PartnersStrip from "@/components/PartnersStrip";
 
 const SECTIONS = [
   { to: `${ENT}/films`, label: "Films", icon: Film, tint: "from-red-700 to-red-950" },
@@ -173,6 +174,7 @@ export default function EntHome() {
         )}
       </div>
 
+      <PartnersStrip dark className="pb-0" />
       <FinalCta />
     </>
   );

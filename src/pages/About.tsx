@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PartnersStrip from "@/components/PartnersStrip";
 import HeroSection from "@/components/HeroSection";
 import { Button } from "@/components/ui/button";
 import {
@@ -250,6 +251,8 @@ const About = () => {
             </div>
           </div>
         </section>
+
+        <PartnersStrip />
       </main>
 
       <Footer />

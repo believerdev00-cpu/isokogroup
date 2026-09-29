@@ -481,6 +481,14 @@
 @keyframes story-plane { from { transform: translateX(-260px); } to { transform: translateX(300px); } }
 @keyframes story-drift { from { transform: translateX(-16px); } to { transform: translateX(16px); } }
 
+/* Partner logos drift sideways; the row is doubled so the loop is seamless */
+.partners-track { animation: partners-scroll 40s linear infinite; }
+.partners-strip:hover .partners-track { animation-play-state: paused; }
+@keyframes partners-scroll { to { transform: translateX(-50%); } }
+.motion-lite .partners-track { animation: none; width: auto; flex-wrap: wrap; justify-content: center; }
+.motion-lite .partners-track > ul + ul { display: none; }
+.motion-lite .partners-row { flex-wrap: wrap; justify-content: center; padding-right: 0; }
+
 /* Lite motion: keep the interface calm and fast on this device */
 .motion-lite .animate-float-soft,
 .motion-lite .bg-animated-gradient,
