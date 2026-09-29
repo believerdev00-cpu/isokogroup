@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock } from "lucide-react";
-import { formatPrice, useSubscription } from "@/lib/subscription";
+import { firstPeriodName, formatPrice, useSubscription } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
 
 /** "4:32" until the given time, updated every second. */
@@ -33,7 +33,7 @@ export const TrialBanner = () => {
           </span>
         </p>
         <Link to="/subscription" className="font-semibold text-primary hover:underline">
-          Pay {formatPrice(pricing.nextPrice, pricing.currency)} for your first week →
+          Pay {formatPrice(pricing.nextPrice, pricing.currency)} for your {firstPeriodName(pricing.firstPeriodDays)} →
         </Link>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SubscriptionPayment from "@/components/SubscriptionPayment";
-import { formatPeriod, formatPrice, useSubscription } from "@/lib/subscription";
+import { firstPeriodName, formatPeriod, formatPrice, useSubscription } from "@/lib/subscription";
 
 type Props = {
   reason: "no_subscription" | "expired";
@@ -19,7 +19,7 @@ const benefits = [
   "Real-time order tracking",
 ];
 
-// Shown in place of a member page when the free trial, the first week or the
+// Shown in place of a member page when the free trial, the first paid period or the
 // month has ended.
 const SubscriptionRequired = ({ reason }: Props) => {
   const [open, setOpen] = useState(false);
@@ -28,6 +28,7 @@ const SubscriptionRequired = ({ reason }: Props) => {
   const price = formatPrice(pricing.nextPrice, pricing.currency);
   const monthly = formatPrice(pricing.monthlyPrice, pricing.currency);
   const period = formatPeriod(pricing.nextDays);
+  const first = firstPeriodName(pricing.firstPeriodDays);
 
   const title = paymentPending
     ? "We're checking your payment"
@@ -39,7 +40,7 @@ const SubscriptionRequired = ({ reason }: Props) => {
   const text = paymentPending
     ? "Your access opens as soon as we confirm your Mobile Money payment."
     : firstWeek
-      ? `Pay ${price} for your first week to keep using ISOKO GROUP. After that it's ${monthly} a month.`
+      ? `Pay ${price} for your ${first} to keep using ISOKO GROUP. After that it's ${monthly} a month.`
       : `Renew for ${price} to keep using ISOKO GROUP for ${period}.`;
 
   return (
@@ -67,7 +68,7 @@ const SubscriptionRequired = ({ reason }: Props) => {
           {!paymentPending && (
             <Button size="lg" className="w-full gap-2 text-base font-semibold" onClick={() => setOpen(true)}>
               <Sparkles className="h-5 w-5" />
-              {firstWeek ? `Pay ${price} for your first week` : `Renew for ${price} a month`}
+              {firstWeek ? `Pay ${price} for your ${first}` : `Renew for ${price} a month`}
             </Button>
           )}
 
@@ -81,7 +82,7 @@ const SubscriptionRequired = ({ reason }: Props) => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl">{firstWeek ? "Your first week" : "Monthly subscription"}</DialogTitle>
+            <DialogTitle className="text-2xl">{firstWeek ? `Your ${first}` : "Monthly subscription"}</DialogTitle>
             <DialogDescription>
               {firstWeek
                 ? `${price} for ${pricing.firstPeriodDays} days of full access, then ${monthly} a month.`
@@ -90,7 +91,7 @@ const SubscriptionRequired = ({ reason }: Props) => {
           </DialogHeader>
           <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-semibold">{firstWeek ? "First week" : "Monthly plan"}</span>
+              <span className="font-semibold">{firstWeek ? `${first[0].toUpperCase()}${first.slice(1)}` : "Monthly plan"}</span>
               <span className="text-lg text-primary font-bold">{price}</span>
             </div>
             <p className="text-xs text-muted-foreground">Access opens once we confirm your payment.</p>

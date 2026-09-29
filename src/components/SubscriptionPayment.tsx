@@ -15,7 +15,7 @@ type Props = {
 // payment and activates the plan; until then the user sees it as pending.
 const SubscriptionPayment = ({ label, onSubmitted }: Props) => {
   const { subscription, submitPayment, pricing } = useSubscription();
-  // the server decides the price: the first week, or the monthly price after that
+  // the server decides the price: the first period's, or the monthly price after that
   const price = formatPrice(pricing.nextPrice, pricing.currency);
   const { toast } = useToast();
   const [reference, setReference] = useState("");

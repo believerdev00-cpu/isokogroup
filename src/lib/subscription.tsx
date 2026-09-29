@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, Re
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
-// Billing: a new account gets a free trial on its first sign-in (20 minutes by
-// default), then pays 50 RWF for its first week, then 200 RWF for every month
+// Billing: a new account gets a free trial on its first sign-in (10 minutes by
+// default), then pays 50 RWF for its first month, then 200 RWF for every month
 // after. The server decides who has access, until when and at what price
 // (subscription_state); this only shows it, starts the trial and locks the
 // member pages the moment access runs out.
@@ -23,13 +23,13 @@ export type Subscription = {
 
 export type SubscriptionPricing = {
   trialMinutes: number;
-  /** The first paid period: a week (50 RWF) */
+  /** The first paid period: a month (50 RWF); its length is firstPeriodDays */
   firstWeekPrice: number;
   firstPeriodDays: number;
   /** Every period after: a month (200 RWF) */
   monthlyPrice: number;
   periodDays: number;
-  /** This account's next period: the first week until one is paid, then monthly */
+  /** This account's next period: the first one until it is paid, then monthly */
   nextIsFirstWeek: boolean;
   nextPrice: number;
   nextDays: number;
@@ -71,8 +71,8 @@ type SubscriptionContextType = {
 };
 
 const DEFAULT_PRICING: SubscriptionPricing = {
-  trialMinutes: 20, firstWeekPrice: 50, firstPeriodDays: 7, monthlyPrice: 200, periodDays: 30,
-  nextIsFirstWeek: true, nextPrice: 50, nextDays: 7, currency: "RWF",
+  trialMinutes: 10, firstWeekPrice: 50, firstPeriodDays: 30, monthlyPrice: 200, periodDays: 30,
+  nextIsFirstWeek: true, nextPrice: 50, nextDays: 30, currency: "RWF",
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType>({} as SubscriptionContextType);
@@ -216,6 +216,9 @@ export const formatPrice = (amount: number, currency = "RWF") => `${Math.round(a
 /** "1 hour", "90 minutes", "2 hours" */
 export const formatTrial = (minutes: number) =>
   minutes % 60 === 0 ? `${minutes / 60} hour${minutes === 60 ? "" : "s"}` : `${minutes} minute${minutes === 1 ? "" : "s"}`;
+
+/** The first paid period by its length: "first month", "first week" or "first 14 days" */
+export const firstPeriodName = (days: number) => (days === 30 ? "first month" : days === 7 ? "first week" : `first ${days} days`);
 
 /** "7 days" / "30 days" as "a week" / "a month" where they are */
 export const formatPeriod = (days: number) => (days === 7 ? "a week" : days === 30 ? "a month" : `${days} days`);

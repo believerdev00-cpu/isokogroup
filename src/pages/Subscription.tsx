@@ -1,5 +1,5 @@
 import { useAuth } from "@/lib/auth";
-import { formatPeriod, formatPrice, formatTrial } from "@/lib/subscription";
+import { firstPeriodName, formatPeriod, formatPrice, formatTrial } from "@/lib/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Clock } from "lucide-react";
@@ -35,7 +35,7 @@ const Subscription = () => {
           <div className="text-center mb-8 space-y-2">
             <h1 className="text-3xl font-display font-bold">Subscription</h1>
             <p className="text-muted-foreground">
-              Free for {formatTrial(pricing.trialMinutes)}, then {firstWeek} for your first week and {monthly} a month after.
+              Free for {formatTrial(pricing.trialMinutes)}, then {firstWeek} for your {firstPeriodName(pricing.firstPeriodDays)} and {monthly} a month after.
             </p>
           </div>
 
@@ -63,7 +63,7 @@ const Subscription = () => {
                     <p className="text-sm text-muted-foreground">Paid until {accessUntil.toLocaleDateString()}</p>
                   )}
                   <p className="text-sm text-muted-foreground">
-                    {pricing.nextIsFirstWeek ? `First week: ${next}` : `Next month: ${next}`}
+                    {pricing.nextIsFirstWeek ? `${firstPeriodName(pricing.firstPeriodDays).replace(/^f/, "F")}: ${next}` : `Next month: ${next}`}
                   </p>
                 </div>
               </div>
