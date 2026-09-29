@@ -31,7 +31,7 @@ type Status = { status: string; amount: number; message?: string | null };
 
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payments-itecpay`;
 const POLL_MS = 4000;
-const CHECK_EVERY_MS = 20_000;
+const CHECK_EVERY_MS = 6_000; // ItecPay is asked this often, so a declined payment shows within seconds
 const GIVE_UP_MS = 16 * 60_000; // the server stops waiting at 15 minutes
 
 async function callFunction(route: "send" | "check", paymentId: string): Promise<Status | null> {

@@ -18,7 +18,7 @@
 // phone numbers or request bodies.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { mocksAllowed } from "../_shared/environment.ts";
-import { ItecPay, type Network, type VerifyResult } from "./itecpay.ts";
+import { ItecPay, outcomeOf, type Network, type VerifyResult } from "./itecpay.ts";
 
 // No approval by then: stop waiting (a late approval is still recorded). Local
 // tests can shorten it; hosted Supabase always waits 15 minutes.
@@ -83,7 +83,7 @@ async function apply(paymentId: string, eventId: string, status: "successful" | 
 type Due = { payment_id: string; network: Network; amount: number; provider_txn_id: string | null; sent: boolean; age_seconds: number };
 
 /** Asks ItecPay about one waiting payment and records the answer. */
-async function settle(p: Due) {
+async function settle(p: Due, reported?: string | null) {
   let v: VerifyResult | null = null;
   if (p.sent) {
     v = await itecpay.verify({ paymentId: p.payment_id, network: p.network });
@@ -98,6 +98,20 @@ async function settle(p: Due) {
     }
     if (v.kind === "status" && v.outcome === "unknown") {
       console.warn(`payments-itecpay: unknown status "${v.status}" for ${p.payment_id}; still waiting`);
+    }
+    // When MTN or Airtel fail a request, ItecPay's status check answers with an
+    // error ("Payment request failed") instead of a status, and its callback may
+    // say FAILED. The customer is told at once. Recorded as cancelled, not failed:
+    // if money did leave the phone after all, the checks still record it.
+    const failedByCallback = !!reported && outcomeOf(reported) === "failed" && !(v.kind === "status" && v.outcome === "successful");
+    if ((v.kind === "refused" && p.age_seconds >= 10) || failedByCallback) {
+      const why = v.kind === "refused" ? v.message : `ItecPay reported ${String(reported).toLowerCase()}`;
+      console.warn(`payments-itecpay: ${p.payment_id} not paid: ${why}`);
+      await apply(p.payment_id, `declined:${p.payment_id}`, "cancelled", {
+        reason: `The payment didn't go through (${why.slice(0, 120)}). Please try again.`,
+        payload: { source: v.kind === "refused" ? "status_check" : "callback", message: why.slice(0, 200) },
+      });
+      return;
     }
   }
   // Nothing final: stop waiting after a while (ItecPay's answer, if it comes later, still counts)
@@ -190,7 +204,8 @@ Deno.serve(async (req) => {
         const { data: found } = await admin.rpc("mobile_money_by_transaction", { p_transaction_id: txn.slice(0, 100) });
         paymentId = (found as string | null) ?? null;
       }
-      if (paymentId) for (const p of await due(paymentId, 1, true)) await settle(p);
+      const reported = typeof data.status === "string" ? data.status : null;
+      if (paymentId) for (const p of await due(paymentId, 1, true)) await settle(p, reported);
       else console.warn("payments-itecpay: callback for a transaction we don't know");
       return reply(200, { received: true });
     }
