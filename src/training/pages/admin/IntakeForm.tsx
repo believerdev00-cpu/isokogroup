@@ -13,6 +13,8 @@ import { useApi, useApiMutation } from "@/training/lib/query";
 import type { Intake, Program } from "@/training/lib/types";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { createQuickProgram, emptyProgram, programDraftReady, programNameFromIntake, QuickProgramFields, type QuickProgramDraft } from "@/training/features/admin-core/QuickProgram";
 
 type Form = {
   name: string;
@@ -62,6 +64,25 @@ export default function IntakeForm() {
   // Programs offered in a new intake, with their seats
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<null | "draft" | "publish">(null);
+  // A course that doesn't exist yet, created from here
+  const [newProgram, setNewProgram] = useState<QuickProgramDraft | null>(null);
+  const [newSeats, setNewSeats] = useState("30");
+  const [creatingProgram, setCreatingProgram] = useState(false);
+  const addNewProgram = async () => {
+    if (!newProgram) return;
+    setCreatingProgram(true);
+    try {
+      const p = await createQuickProgram(newProgram, Number(newSeats) || 30);
+      await programs.refetch();
+      setChosen((c) => ({ ...c, [p.id]: newSeats || "30" }));
+      setNewProgram(null);
+      toast.success(`${p.name} created and ticked`);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setCreatingProgram(false);
+    }
+  };
 
   useEffect(() => {
     if (existing.data) {
@@ -150,13 +171,30 @@ export default function IntakeForm() {
         </Section>
 
         {!editing && (
-          <Section title="Programs" description="Tick the programs this intake offers and how many students each can take.">
+          <Section
+            title="Programs"
+            description="Tick the courses this intake offers and how many students each can take. Missing one? Create it here."
+            actions={!newProgram && <Button type="button" size="sm" variant="outline" onClick={() => setNewProgram(emptyProgram(programNameFromIntake(form.name)))}><Plus className="mr-1.5 h-4 w-4" />New program</Button>}
+          >
+            {newProgram && (
+              <div className="mb-4 space-y-4 rounded-xl border-2 border-primary/40 bg-primary/5 p-4">
+                <p className="font-semibold">New program</p>
+                <QuickProgramFields draft={newProgram} onChange={setNewProgram} />
+                <Field label="Seats in this intake" htmlFor="qp-seats" required>
+                  <Input id="qp-seats" type="number" min={1} inputMode="numeric" className="w-28" value={newSeats} onChange={(e) => setNewSeats(e.target.value)} />
+                </Field>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setNewProgram(null)}>Cancel</Button>
+                  <Button type="button" onClick={addNewProgram} disabled={creatingProgram || !programDraftReady(newProgram) || !(Number(newSeats) > 0)}>
+                    {creatingProgram && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create and add
+                  </Button>
+                </div>
+              </div>
+            )}
             {programs.isLoading ? (
               <Loading />
             ) : active.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                There are no active programs yet. <Link to="/training-center/admin/programs/new" className="font-semibold text-primary">Create a program</Link> first.
-              </p>
+              !newProgram && <p className="text-sm text-muted-foreground">There are no programs yet. Press <b>New program</b> to create the first one.</p>
             ) : (
               <ul className="space-y-2">
                 {active.map((p) => {

@@ -10,6 +10,8 @@ import { api } from "@/training/lib/api";
 import { formatDate, formatMoney } from "@/training/lib/format";
 import { useApi, useApiMutation } from "@/training/lib/query";
 import type { Intake, IntakeProgram, IntakeStatus, Program } from "@/training/lib/types";
+import { createQuickProgram, emptyProgram, programDraftReady, programNameFromIntake, QuickProgramFields, type QuickProgramDraft } from "@/training/features/admin-core/QuickProgram";
+import { cn } from "@/lib/utils";
 
 type Detail = Intake & { programs: IntakeProgram[] };
 
@@ -43,18 +45,30 @@ const STATUS_EXPLAIN: Record<IntakeStatus, string> = {
   archived: "Kept for records only.",
 };
 
-function OfferingDialog({ intakeId, offering, existingProgramIds, open, onOpenChange }: { intakeId: string; offering: IntakeProgram | null; existingProgramIds: string[]; open: boolean; onOpenChange: (o: boolean) => void }) {
+function OfferingDialog({ intakeId, intakeName, offering, existingProgramIds, open, onOpenChange }: { intakeId: string; intakeName: string; offering: IntakeProgram | null; existingProgramIds: string[]; open: boolean; onOpenChange: (o: boolean) => void }) {
   const programs = useApi<Program[]>(offering ? null : "/admin/programs");
   const available = (programs.data ?? []).filter((p) => p.is_active && !existingProgramIds.includes(p.id));
+  // A new program is the likely choice when the intake is empty and named after a
+  // course we don't have yet (e.g. "Software Development for Beginners")
+  const nameMatches = available.some((p) => intakeName.toLowerCase().includes(p.name.toLowerCase()));
+  const [mode, setMode] = useState<"existing" | "new" | null>(null);
+  const chosenMode = mode ?? (available.length === 0 || (existingProgramIds.length === 0 && !nameMatches) ? "new" : "existing");
+  const [draft, setDraft] = useState<QuickProgramDraft>(() => emptyProgram(existingProgramIds.length === 0 ? programNameFromIntake(intakeName) : ""));
   const [programId, setProgramId] = useState("");
   const [capacity, setCapacity] = useState(String(offering?.capacity ?? ""));
   const [tuition, setTuition] = useState(offering?.tuition_fee != null ? String(offering.tuition_fee) : "");
   const [registration, setRegistration] = useState(offering?.registration_fee != null ? String(offering.registration_fee) : "");
   const [schedule, setSchedule] = useState(offering?.schedule ?? "");
 
-  const chosen = offering ? null : available.find((p) => p.id === programId);
+  const isNew = !offering && chosenMode === "new";
+  const chosen = offering || isNew ? null : available.find((p) => p.id === programId);
   const save = useApiMutation(
-    () => {
+    async () => {
+      const seats = Number(capacity || 30);
+      if (isNew) {
+        const program = await createQuickProgram(draft, seats);
+        return api.post(`/admin/intakes/${intakeId}/programs`, { program_id: program.id, capacity: seats, schedule });
+      }
       const body = {
         capacity: Number(capacity),
         tuition_fee: tuition === "" ? null : Number(tuition),
@@ -65,60 +79,81 @@ function OfferingDialog({ intakeId, offering, existingProgramIds, open, onOpenCh
         ? api.patch(`/admin/intake-programs/${offering.id}`, body)
         : api.post(`/admin/intakes/${intakeId}/programs`, { ...body, program_id: programId });
     },
-    { invalidate: ["/admin/intakes", "/admin/dashboard"], success: offering ? "Program updated" : "Program added to the intake", onSuccess: () => onOpenChange(false) },
+    {
+      invalidate: ["/admin/intakes", "/admin/dashboard", "/admin/programs"],
+      success: offering ? "Program updated" : isNew ? "Program created and added to the intake" : "Program added to the intake",
+      onSuccess: () => onOpenChange(false),
+    },
   );
+  const ready = offering ? Number(capacity) > 0 : isNew ? programDraftReady(draft) && Number(capacity || 30) > 0 : !!programId && Number(capacity) > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{offering ? `Edit ${offering.program_name}` : "Add a program to this intake"}</DialogTitle>
-          <DialogDescription>Leave fees empty to use the program's normal fees.</DialogDescription>
+          <DialogDescription>{isNew ? "Create the course people will apply for; it's added to this intake straight away." : "Leave fees empty to use the program's normal fees."}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           {!offering && (
-            <Field label="Program" htmlFor="program" required>
-              <NativeSelect
-                id="program"
-                value={programId}
-                onChange={(e) => {
-                  setProgramId(e.target.value);
-                  const p = available.find((x) => x.id === e.target.value);
-                  if (p && !capacity) setCapacity(String(p.max_students));
-                }}
-              >
-                <option value="">Choose a program…</option>
-                {available.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </NativeSelect>
-              {programs.data && available.length === 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Every active program is already in this intake. <Link to="/training-center/admin/programs/new" className="font-semibold text-primary">Create a program</Link>
-                </p>
-              )}
-            </Field>
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-semibold">
+              {(["existing", "new"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  disabled={m === "existing" && available.length === 0}
+                  className={cn("rounded-md px-3 py-2 disabled:opacity-40", chosenMode === m ? "bg-background shadow-sm" : "text-muted-foreground")}
+                >
+                  {m === "existing" ? "A program we already have" : "A new program"}
+                </button>
+              ))}
+            </div>
           )}
-          <Field label="Seats (capacity)" htmlFor="capacity" required hint={offering ? `${offering.enrolled} already enrolled` : undefined}>
-            <Input id="capacity" type="number" min={1} inputMode="numeric" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
+          {isNew ? (
+            <QuickProgramFields draft={draft} onChange={setDraft} />
+          ) : (
+            !offering && (
+              <Field label="Program" htmlFor="program" required>
+                <NativeSelect
+                  id="program"
+                  value={programId}
+                  onChange={(e) => {
+                    setProgramId(e.target.value);
+                    const p = available.find((x) => x.id === e.target.value);
+                    if (p && !capacity) setCapacity(String(p.max_students));
+                  }}
+                >
+                  <option value="">Choose a program…</option>
+                  {available.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </NativeSelect>
+              </Field>
+            )
+          )}
+          <Field label="Seats" htmlFor="capacity" required hint={offering ? `${offering.enrolled} already enrolled` : "How many students this intake can take for it."}>
+            <Input id="capacity" type="number" min={1} inputMode="numeric" value={capacity} placeholder={isNew ? "30" : undefined} onChange={(e) => setCapacity(e.target.value)} />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tuition fee" htmlFor="tuition" hint={`Default: ${formatMoney(offering?.program_tuition_fee ?? chosen?.tuition_fee ?? null)}`}>
-              <Input id="tuition" type="number" min={0} inputMode="numeric" value={tuition} onChange={(e) => setTuition(e.target.value)} />
-            </Field>
-            <Field label="Registration fee" htmlFor="registration" hint={`Default: ${formatMoney(offering?.program_registration_fee ?? chosen?.registration_fee ?? null)}`}>
-              <Input id="registration" type="number" min={0} inputMode="numeric" value={registration} onChange={(e) => setRegistration(e.target.value)} />
-            </Field>
-          </div>
-          <Field label="Schedule" htmlFor="schedule" hint="Shown to applicants, e.g. Mon–Fri, 8:00–10:00">
+          {!isNew && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Tuition fee" htmlFor="tuition" hint={`Default: ${formatMoney(offering?.program_tuition_fee ?? chosen?.tuition_fee ?? null)}`}>
+                <Input id="tuition" type="number" min={0} inputMode="numeric" value={tuition} onChange={(e) => setTuition(e.target.value)} />
+              </Field>
+              <Field label="Registration fee" htmlFor="registration" hint={`Default: ${formatMoney(offering?.program_registration_fee ?? chosen?.registration_fee ?? null)}`}>
+                <Input id="registration" type="number" min={0} inputMode="numeric" value={registration} onChange={(e) => setRegistration(e.target.value)} />
+              </Field>
+            </div>
+          )}
+          <Field label="Schedule (optional)" htmlFor="schedule" hint="Shown to applicants, e.g. Mon–Fri, 8:00–10:00">
             <Input id="schedule" value={schedule} onChange={(e) => setSchedule(e.target.value)} />
           </Field>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !(Number(capacity) > 0) || (!offering && !programId)}>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !ready}>
             {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {offering ? "Save" : "Add program"}
+            {offering ? "Save" : isNew ? "Create and add" : "Add program"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -341,6 +376,7 @@ export default function IntakeDetail() {
               <OfferingDialog
                 key={editing?.id ?? "new"}
                 intakeId={i.id}
+                intakeName={i.name}
                 offering={editing}
                 existingProgramIds={i.programs.map((p) => p.program_id)}
                 open
