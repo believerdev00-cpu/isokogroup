@@ -204,12 +204,15 @@ export async function uploadDisplayImage(folder: string, file: File) {
   return { path, w: lg.w, h: lg.h };
 }
 
-export const MEDIA_TYPES = ["video/mp4", "video/webm", "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav"];
+/** The Supabase free plan refuses any single upload above 50 MB. */
+export const MAX_UPLOAD_MB = 50;
+
+export const MEDIA_TYPES = ["video/mp4", "video/webm", "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav"];
 
 /** Uploads a full film or episode to the private bucket (staff) and returns its path. */
 export async function uploadMediaFile(folder: string, file: File) {
   if (!MEDIA_TYPES.includes(file.type)) throw new Error("Please choose an MP4 or WebM video, or an MP3, M4A, AAC or WAV audio file.");
-  if (file.size > 500 * 1024 * 1024) throw new Error("Files must be under 500 MB. Put longer films on a video host.");
+  if (file.size > MAX_UPLOAD_MB * 1024 * 1024) throw new Error(`Files must be under ${MAX_UPLOAD_MB} MB. Put longer videos on YouTube and paste the link.`);
   const path = `${folder}/${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}`;
   unwrap(await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, { contentType: file.type, upsert: false }));
   return path;

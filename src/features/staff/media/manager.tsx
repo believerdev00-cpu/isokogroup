@@ -3,22 +3,24 @@
 // publish / unpublish / schedule / feature / archive / delete actions. The
 // database enforces who may do this (media staff and admins) and the rules that
 // protect people; the checks here only explain them before saving.
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Eye, EyeOff, ImagePlus, Loader2, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
+import { Archive, Check, ChevronDown, Eye, EyeOff, MoreVertical, ImagePlus, Loader2, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { db, errorText, unwrap } from "@/features/services/api";
-import { mediaUrl, uploadDisplayImage, uploadMediaFile, youtubeId, type Status } from "@/features/entertainment/api";
+import { MAX_UPLOAD_MB, mediaUrl, uploadDisplayImage, uploadMediaFile, youtubeId, type Status } from "@/features/entertainment/api";
 import { EmptyState, Pill } from "../common";
 
 type Row = Record<string, unknown> & { id: string };
@@ -34,6 +36,8 @@ export type Field = {
   folder?: string;
   required?: boolean;
   help?: string;
+  /** asked for up front; the rest waits under "More details" */
+  basic?: boolean;
   show?: (draft: Row) => boolean;
   wide?: boolean;
 };
@@ -55,6 +59,10 @@ export type EntityConfig = {
   scope?: Record<string, unknown>;
   order?: string;
   validate?: (draft: Row) => string | null;
+  /** last touches to what is saved (e.g. a web name made from the name) */
+  prepare?: (payload: Record<string, unknown>) => void;
+  /** what to say once it is added, when it has parts to add next */
+  extrasHint?: string;
   /** parts edited inside the editor once the item exists (gallery, credits, episodes) */
   extras?: (row: Row) => ReactNode;
   /** buttons on each row of the list */
@@ -90,7 +98,7 @@ function clean(draft: Row, fields: Field[]) {
 }
 
 // ============== THE MANAGER ==============
-export function EntityManager({ config, parent, compact }: { config: EntityConfig; parent?: { column: string; id: string }; compact?: boolean }) {
+export function EntityManager({ config, parent, compact, openKey }: { config: EntityConfig; parent?: { column: string; id: string }; compact?: boolean; openKey?: string }) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Status | "all">("all");
@@ -98,6 +106,23 @@ export function EntityManager({ config, parent, compact }: { config: EntityConfi
   const [deleting, setDeleting] = useState<Row | null>(null);
   const scope = useMemo(() => ({ ...(config.scope ?? {}), ...(parent ? { [parent.column]: parent.id } : {}) }), [config.scope, parent]);
   const key = ["media-admin", config.table, scope];
+  // Opened from a shortcut ("Add a film" etc.): the form is open right away. The
+  // address keeps ?new= until the form closes (the page may mount twice while it
+  // animates in, and each copy must open it).
+  const [params, setParams] = useSearchParams();
+  const fromShortcut = !!openKey && params.get("new") === openKey;
+  useEffect(() => {
+    if (fromShortcut) setEditing((e) => e ?? ({ id: "", ...(config.defaults ?? {}), ...scope } as Row));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromShortcut]);
+  const closeEditor = () => {
+    setEditing(null);
+    if (fromShortcut) {
+      const next = new URLSearchParams(params);
+      next.delete("new");
+      setParams(next, { replace: true });
+    }
+  };
 
   const list = useQuery({
     queryKey: key,
@@ -154,7 +179,7 @@ export function EntityManager({ config, parent, compact }: { config: EntityConfi
             ))}
           </div>
         )}
-        <Button className="ml-auto gap-1.5" size={compact ? "sm" : "default"} onClick={() => setEditing({ id: "", ...(config.defaults ?? {}), ...scope } as Row)}>
+        <Button className="ml-auto gap-1.5" size={compact ? "sm" : "default"} onClick={() => setEditing({ id: "", ...(config.defaults ?? {}), ...(config.order === "number" ? { number: Math.max(0, ...(list.data ?? []).map((r) => Number(r.number) || 0)) + 1 } : {}), ...scope } as Row)}>
           <Plus className="h-4 w-4" /> Add {config.noun.toLowerCase()}
         </Button>
       </div>
@@ -188,23 +213,31 @@ export function EntityManager({ config, parent, compact }: { config: EntityConfi
                     {config.subtitle?.(r)}
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-0.5">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
                   {config.rowActions?.(r)}
-                  {config.featurable && (
-                    <Button variant="ghost" size="icon" aria-label={r.featured ? "Stop featuring" : "Feature"} onClick={() => update.mutate({ id: r.id, patch: { featured: !r.featured } })}>
-                      <Star className={cn("h-4 w-4", r.featured && "fill-amber-400 text-amber-400")} />
-                    </Button>
+                  {config.publishable && st !== "published" && (
+                    <Button size="sm" className="gap-1.5" onClick={() => setStatusOf(r, "published")}><Eye className="h-4 w-4" /> Publish</Button>
                   )}
-                  {config.publishable && (st === "published" ? (
-                    <Button variant="ghost" size="icon" aria-label="Unpublish" onClick={() => setStatusOf(r, "draft")}><EyeOff className="h-4 w-4" /></Button>
-                  ) : (
-                    <Button variant="ghost" size="icon" aria-label="Publish" onClick={() => setStatusOf(r, "published")}><Eye className="h-4 w-4" /></Button>
-                  ))}
-                  {config.publishable && st !== "archived" && (
-                    <Button variant="ghost" size="icon" className="hidden sm:inline-flex" aria-label="Archive" onClick={() => setStatusOf(r, "archived")}><Archive className="h-4 w-4" /></Button>
-                  )}
-                  <Button variant="ghost" size="icon" aria-label="Edit" onClick={() => setEditing(r)}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" aria-label="Delete" onClick={() => setDeleting(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditing(r)}><Pencil className="h-4 w-4" /> Edit</Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-9 w-9" aria-label="More actions"><MoreVertical className="h-4 w-4" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {config.publishable && st === "published" && (
+                        <DropdownMenuItem onClick={() => setStatusOf(r, "draft")}><EyeOff className="mr-2 h-4 w-4" /> Hide from the website</DropdownMenuItem>
+                      )}
+                      {config.featurable && (
+                        <DropdownMenuItem onClick={() => update.mutate({ id: r.id, patch: { featured: !r.featured } })}>
+                          <Star className="mr-2 h-4 w-4" /> {r.featured ? "Stop featuring" : "Feature it"}
+                        </DropdownMenuItem>
+                      )}
+                      {config.publishable && st !== "archived" && (
+                        <DropdownMenuItem onClick={() => setStatusOf(r, "archived")}><Archive className="mr-2 h-4 w-4" /> Archive (keep, but hide)</DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleting(r)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </li>
             );
@@ -212,7 +245,7 @@ export function EntityManager({ config, parent, compact }: { config: EntityConfi
         </ul>
       )}
 
-      {editing && <Editor config={config} initial={editing} scope={scope} onClose={() => setEditing(null)} />}
+      {editing && <Editor config={config} initial={editing} scope={scope} onClose={closeEditor} />}
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
@@ -233,105 +266,148 @@ export function EntityManager({ config, parent, compact }: { config: EntityConfi
 }
 
 // ============== EDITOR ==============
+// Asks for the essentials only (fields marked basic); everything else waits
+// under "More details". Publishing is one button, not a status to pick.
 function Editor({ config, initial, scope, onClose }: { config: EntityConfig; initial: Row; scope: Record<string, unknown>; onClose: () => void }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState<Row>(initial);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<null | "draft" | "publish" | "save">(null);
   const [created, setCreated] = useState(false);
   const set = (patch: Record<string, unknown>) => setDraft((d) => ({ ...d, ...patch }));
+  const shown = config.fields.filter((f) => !f.show || f.show(draft));
+  const basic = shown.filter((f) => f.basic);
+  const more = shown.filter((f) => !f.basic);
+  const isPublished = draft.status === "published";
 
-  // The first save adds it and keeps the editor open, so its parts (gallery,
-  // credits, episodes) can be added; later saves update it and close.
-  const save = async () => {
-    const shown = config.fields.filter((f) => !f.show || f.show(draft));
+  const save = async (mode: "draft" | "publish" | "save") => {
     const missing = shown.find((f) => f.required && (draft[f.key] == null || String(draft[f.key]).trim() === ""));
-    if (missing) return toast.error(`${missing.label} is required.`);
-    const problem = config.validate?.(draft);
+    if (missing) return toast.error(`Please add the ${missing.label.toLowerCase()}.`);
+    const status = mode === "publish" ? "published" : mode === "draft" ? (draft.status === "scheduled" ? "scheduled" : "draft") : (draft.status ?? "draft");
+    const next: Row = { ...draft, status };
+    const problem = config.validate?.(next);
     if (problem) return toast.error(problem);
-    const payload: Record<string, unknown> = { ...clean(draft, config.fields), ...scope };
+    const payload: Record<string, unknown> = { ...clean(next, config.fields), ...scope };
     if (config.publishable) {
-      payload.status = draft.status ?? "draft";
-      payload.publish_at = draft.status === "scheduled" ? draft.publish_at || null : null;
-      payload.is_demo = !!draft.is_demo;
+      payload.status = status;
+      payload.publish_at = status === "scheduled" ? next.publish_at || null : null;
+      payload.is_demo = !!next.is_demo;
     }
-    if (config.featurable) payload.featured = !!draft.featured;
-    if (!draft.id && config.slug) {
-      payload.slug = `${slugify(String(draft[config.titleKey] ?? ""))}-${Math.random().toString(36).slice(2, 6)}`;
-    }
-    setSaving(true);
+    if (config.featurable) payload.featured = !!next.featured;
+    config.prepare?.(payload);
+    if (!next.id && config.slug) payload.slug = `${slugify(String(next[config.titleKey] ?? ""))}-${Math.random().toString(36).slice(2, 6)}`;
+    setSaving(mode);
     try {
-      if (!draft.id) {
+      if (!next.id) {
         const saved = unwrap(await db.from(config.table).insert(payload).select("*").single()) as Row;
-        toast.success(`${config.noun} added`);
-        setDraft(saved);
-        setCreated(true);
+        toast.success(status === "published" ? `${config.noun} published. It's on the website now.` : `${config.noun} saved as a draft.`);
+        qc.invalidateQueries({ queryKey: ["media-admin", config.table] });
+        qc.invalidateQueries({ queryKey: ["ent"] });
+        // Things with parts (gallery, episodes, cast) stay open so those can be added next
+        if (config.extras) {
+          setDraft(saved);
+          setCreated(true);
+        } else onClose();
       } else {
-        unwrap(await db.from(config.table).update(payload).eq("id", draft.id));
-        toast.success("Saved");
+        unwrap(await db.from(config.table).update(payload).eq("id", next.id));
+        toast.success(mode === "publish" ? "Published. It's on the website now." : "Saved.");
+        qc.invalidateQueries({ queryKey: ["media-admin", config.table] });
+        qc.invalidateQueries({ queryKey: ["ent"] });
         onClose();
       }
-      qc.invalidateQueries({ queryKey: ["media-admin", config.table] });
-      qc.invalidateQueries({ queryKey: ["ent"] });
     } catch (e) {
       toast.error(errorText(e));
     } finally {
-      setSaving(false);
+      setSaving(null);
     }
   };
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto" aria-describedby={undefined} onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>{draft.id ? `Edit ${config.noun.toLowerCase()}` : `New ${config.noun.toLowerCase()}`}</DialogTitle>
+          <DialogTitle>{created ? `${config.noun} added` : draft.id ? `Edit ${config.noun.toLowerCase()}` : `Add ${config.noun.toLowerCase()}`}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {config.fields.filter((f) => !f.show || f.show(draft)).map((f) => (
-            <FieldInput key={f.key} field={f} draft={draft} set={set} />
-          ))}
-          {config.publishable && <PublishFields draft={draft} set={set} featurable={config.featurable} />}
-        </div>
-        {draft.id ? (config.extras && <div className="mt-2">{config.extras(draft)}</div>) : config.extras ? (
-          <p className="text-sm text-muted-foreground">Add it first; then you can add its gallery, people or episodes here.</p>
-        ) : null}
-        <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 flex justify-end gap-2 border-t bg-background px-6 py-3">
-          <Button variant="outline" onClick={onClose}>{created ? "Done" : "Cancel"}</Button>
-          <Button onClick={save} disabled={saving} className="gap-1.5">
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />} {draft.id ? "Save" : `Add ${config.noun.toLowerCase()}`}
-          </Button>
+
+        {created ? (
+          <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+            {isPublished ? "It's on the website now." : "Saved as a draft."} {config.extrasHint ?? "You can add more below, or press Done."}
+          </p>
+        ) : (
+          <>
+            <div className="grid gap-4">
+              {basic.map((f) => <FieldInput key={f.key} field={{ ...f, wide: true }} draft={draft} set={set} />)}
+            </div>
+            {(more.length > 0 || config.publishable) && (
+              <details className="group rounded-xl border">
+                <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold">
+                  More details (optional)
+                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="grid gap-4 border-t p-4 sm:grid-cols-2">
+                  {more.map((f) => <FieldInput key={f.key} field={f} draft={draft} set={set} />)}
+                  {config.publishable && <PublishOptions draft={draft} set={set} featurable={config.featurable} />}
+                </div>
+              </details>
+            )}
+          </>
+        )}
+
+        {draft.id && config.extras && <div className="mt-1">{config.extras(draft)}</div>}
+
+        <div className="sticky bottom-0 -mx-6 -mb-6 mt-2 flex flex-wrap justify-end gap-2 border-t bg-background px-6 py-3">
+          {created ? (
+            <Button onClick={onClose}>Done</Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              {!config.publishable ? (
+                <Button onClick={() => save("save")} disabled={!!saving} className="gap-1.5">
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save
+                </Button>
+              ) : !draft.id || !isPublished ? (
+                <>
+                  <Button variant="outline" onClick={() => save("draft")} disabled={!!saving} className="gap-1.5">
+                    {saving === "draft" && <Loader2 className="h-4 w-4 animate-spin" />} Save as draft
+                  </Button>
+                  <Button onClick={() => save("publish")} disabled={!!saving} className="gap-1.5">
+                    {saving === "publish" && <Loader2 className="h-4 w-4 animate-spin" />} Publish
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => save("save")} disabled={!!saving} className="gap-1.5">
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />} Save changes
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function PublishFields({ draft, set, featurable }: { draft: Row; set: (p: Record<string, unknown>) => void; featurable?: boolean }) {
-  const status = (draft.status as Status) ?? "draft";
+function PublishOptions({ draft, set, featurable }: { draft: Row; set: (p: Record<string, unknown>) => void; featurable?: boolean }) {
+  const later = draft.status === "scheduled";
   return (
-    <div className="grid gap-3 rounded-xl border bg-muted/40 p-3 sm:col-span-2 sm:grid-cols-2">
-      <label className="grid gap-1.5 text-sm font-medium">
-        Status
-        <select value={status} onChange={(e) => set({ status: e.target.value })} className="h-10 rounded-md border bg-background px-3">
-          <option value="draft">Draft (only staff see it)</option>
-          <option value="published">Published</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="archived">Archived</option>
-        </select>
+    <div className="grid gap-3 sm:col-span-2">
+      <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm font-medium">
+        <span>Publish later<span className="block text-xs font-normal text-muted-foreground">It goes on the website by itself at the time you choose. Then press “Save as draft”.</span></span>
+        <Switch checked={later} onCheckedChange={(v) => set({ status: v ? "scheduled" : "draft", publish_at: v ? draft.publish_at ?? null : null })} />
       </label>
-      {status === "scheduled" && (
+      {later && (
         <label className="grid gap-1.5 text-sm font-medium">
-          Goes public at
+          Goes on the website at
           <Input type="datetime-local" value={toLocal(draft.publish_at)} onChange={(e) => set({ publish_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
         </label>
       )}
       {featurable && (
-        <label className="flex items-center justify-between gap-3 text-sm font-medium">
-          Featured (shown first and in the hero)
+        <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm font-medium">
+          <span>Feature it<span className="block text-xs font-normal text-muted-foreground">Shown first, and in the big banner.</span></span>
           <Switch checked={!!draft.featured} onCheckedChange={(v) => set({ featured: v })} />
         </label>
       )}
-      <label className="flex items-center justify-between gap-3 text-sm font-medium">
-        Demo content (labelled “Demo” on the site)
+      <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm font-medium">
+        <span>Sample content<span className="block text-xs font-normal text-muted-foreground">Labelled “Demo” on the website.</span></span>
         <Switch checked={!!draft.is_demo} onCheckedChange={(v) => set({ is_demo: v })} />
       </label>
     </div>
@@ -478,61 +554,109 @@ function ImageInput({ value, folder, onChange }: { value: string | null; folder:
   );
 }
 
-/** Where a film or episode plays: a private file for subscribers, or YouTube (free items only). */
+/**
+ * The video or audio: upload a file (kept private, for subscribers unless marked
+ * free) or paste a YouTube link (free for everyone). The length and, for
+ * episodes, audio or video are filled in from the file itself.
+ */
 function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string, unknown>) => void; folder: string }) {
-  const source = (draft.watch_source as string | null) ?? "";
+  const source = (draft.watch_source as string | null) ?? null;
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"file" | "youtube">(source === "youtube" ? "youtube" : "file");
+
   const upload = async (file: File | undefined) => {
     if (!file) return;
+    if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      toast.error(`This file is ${Math.round(file.size / 1024 / 1024)} MB; uploads can be at most ${MAX_UPLOAD_MB} MB. Put it on YouTube (it can be “Unlisted”) and paste the link instead.`);
+      setMode("youtube");
+      return;
+    }
     setBusy(true);
     try {
-      set({ watch_source: "storage", watch_ref: await uploadMediaFile(folder, file) });
-      toast.success("File uploaded");
+      const minutes = await mediaMinutes(file);
+      const path = await uploadMediaFile(folder, file);
+      set({
+        watch_source: "storage", watch_ref: path,
+        ...(minutes && !draft.duration_minutes ? { duration_minutes: minutes } : {}),
+        ...("format" in draft || folder === "episodes" ? { format: file.type.startsWith("audio") ? "audio" : "video" } : {}),
+      });
+      toast.success("Uploaded");
     } catch (e) {
       toast.error(errorText(e));
     } finally {
       setBusy(false);
+      if (input.current) input.current.value = "";
     }
   };
+
   return (
     <div className="grid gap-3 rounded-xl border p-3 sm:col-span-2">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1.5 text-sm font-medium">
-          Plays from
-          <select
-            value={source}
-            onChange={(e) => set({ watch_source: e.target.value || null, watch_ref: null, ...(e.target.value === "youtube" ? { is_free: true } : {}) })}
-            className="h-10 rounded-md border bg-background px-3"
-          >
-            <option value="">Not available yet</option>
-            <option value="storage">Isoko file (subscribers only)</option>
-            <option value="youtube">YouTube (free to watch)</option>
-          </select>
-        </label>
-        <label className="flex items-center justify-between gap-3 text-sm font-medium">
-          Free to watch
-          <Switch checked={!!draft.is_free} disabled={source === "youtube"} onCheckedChange={(v) => set({ is_free: v })} />
-        </label>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">Video or audio</span>
+        <div className="flex gap-1 rounded-lg bg-muted p-1 text-xs font-semibold">
+          <button type="button" onClick={() => setMode("file")} className={cn("rounded-md px-2.5 py-1", mode === "file" ? "bg-background shadow-sm" : "text-muted-foreground")}>Upload a file</button>
+          <button type="button" onClick={() => setMode("youtube")} className={cn("rounded-md px-2.5 py-1", mode === "youtube" ? "bg-background shadow-sm" : "text-muted-foreground")}>YouTube link</button>
+        </div>
       </div>
-      {source === "youtube" && (
-        <label className="grid gap-1.5 text-sm font-medium">
-          YouTube link or video id
-          <Input value={String(draft.watch_ref ?? "")} onChange={(e) => set({ watch_ref: e.target.value })} placeholder="https://www.youtube.com/watch?v=…" />
-          {draft.watch_ref && !youtubeId(String(draft.watch_ref)) && <span className="text-xs text-destructive">That isn't a YouTube link we recognise.</span>}
-        </label>
-      )}
-      {source === "storage" && (
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={busy} onClick={() => input.current?.click()}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {draft.watch_ref ? "Replace file" : "Upload video or audio"}
-          </Button>
-          <span className="truncate text-muted-foreground">{draft.watch_ref ? String(draft.watch_ref) : "MP4, WebM, MP3, M4A, AAC or WAV, up to 500 MB"}</span>
-          <input ref={input} type="file" accept="video/mp4,video/webm,audio/mpeg,audio/mp4,audio/aac,audio/wav" hidden onChange={(e) => upload(e.target.files?.[0])} />
+
+      {mode === "file" ? (
+        source === "storage" && draft.watch_ref ? (
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400"><Check className="h-4 w-4" /> File uploaded</span>
+            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => input.current?.click()}>Replace</Button>
+            <button type="button" className="text-xs text-muted-foreground underline" onClick={() => set({ watch_source: null, watch_ref: null })}>Remove</button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => input.current?.click()}
+            className="flex flex-col items-center gap-1 rounded-lg border-2 border-dashed p-5 text-sm text-muted-foreground hover:border-primary hover:text-foreground"
+          >
+            {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+            <span className="font-semibold text-foreground">{busy ? "Uploading…" : "Choose a video or audio file"}</span>
+            <span className="text-xs">MP4, WebM, MP3, M4A, AAC or WAV · up to {MAX_UPLOAD_MB} MB</span>
+          </button>
+        )
+      ) : (
+        <div className="grid gap-1.5">
+          <Input
+            value={source === "youtube" ? String(draft.watch_ref ?? "") : ""}
+            onChange={(e) => set(e.target.value.trim() ? { watch_source: "youtube", watch_ref: e.target.value, is_free: true } : { watch_source: null, watch_ref: null })}
+            placeholder="Paste the YouTube link"
+          />
+          {source === "youtube" && draft.watch_ref && !youtubeId(String(draft.watch_ref)) ? (
+            <span className="text-xs text-destructive">That doesn't look like a YouTube link.</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">Anyone can watch YouTube videos. Set the video to “Unlisted” on YouTube if it shouldn't show up there.</span>
+          )}
         </div>
       )}
+
+      {source === "storage" && (
+        <label className="flex items-center justify-between gap-3 text-sm">
+          <span>Free for everyone <span className="text-muted-foreground">(otherwise subscribers only)</span></span>
+          <Switch checked={!!draft.is_free} onCheckedChange={(v) => set({ is_free: v })} />
+        </label>
+      )}
+      <input ref={input} type="file" accept="video/mp4,video/webm,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/x-wav" hidden onChange={(e) => upload(e.target.files?.[0])} />
     </div>
   );
+}
+
+/** A media file's length in whole minutes, read by the browser (null if it can't tell). */
+function mediaMinutes(file: File): Promise<number | null> {
+  return new Promise((resolve) => {
+    const el = document.createElement(file.type.startsWith("audio") ? "audio" : "video");
+    const url = URL.createObjectURL(file);
+    const done = (v: number | null) => { URL.revokeObjectURL(url); resolve(v); };
+    el.preload = "metadata";
+    el.onloadedmetadata = () => done(Number.isFinite(el.duration) ? Math.max(1, Math.round(el.duration / 60)) : null);
+    el.onerror = () => done(null);
+    setTimeout(() => done(null), 8000);
+    el.src = url;
+  });
 }
 
 // ============== GALLERY IMAGES ==============
