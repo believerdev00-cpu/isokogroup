@@ -33,7 +33,8 @@ export default function PlanTrip() {
   const [name, setName] = useState((user?.user_metadata?.full_name as string) ?? "");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState(user?.email ?? "");
-  const [message, setMessage] = useState("");
+  // "Plan a trip here" on a destination card says where they want to go
+  const [message, setMessage] = useState(() => (params.get("place") ? `I'd like to visit ${params.get("place")!.slice(0, 40)}.` : ""));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ reference: string; token: string } | null>(null);

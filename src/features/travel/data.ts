@@ -1,3 +1,9 @@
+import kigali from "@/assets/travel/kigali.webp";
+import akagera from "@/assets/travel/akagera.webp";
+import musanze from "@/assets/travel/musanze.webp";
+import volcanoes from "@/assets/hero/travel.webp";
+import nyungwe from "@/assets/travel/nyungwe.webp";
+import lakeKivu from "@/assets/travel/lake-kivu.webp";
 import { BedDouble, Car, Compass, HeartHandshake, Home, PlaneLanding, PlaneTakeoff, type LucideIcon } from "lucide-react";
 
 export type Need = "airport_pickup" | "hotel" | "bnb" | "transport" | "activities" | "airport_dropoff" | "plan_everything";
@@ -42,13 +48,21 @@ export const STATUS_LABEL: Record<TripStatus, string> = {
   cancelled: "Cancelled",
 };
 
+// Photos: Unsplash (no credit required) or Flickr/Wikimedia under CC BY / CC BY-SA,
+// credited on the card as their licences ask.
 export const DESTINATIONS = [
-  { name: "Kigali", text: "Rwanda's clean, green capital: culture, food, art and history.", tint: "from-emerald-800 to-emerald-950" },
-  { name: "Akagera", text: "Savannah safaris with lions, elephants, giraffes and rhinos.", tint: "from-amber-700 to-orange-900" },
-  { name: "Musanze", text: "The gateway to the volcanoes, caves and mountain villages.", tint: "from-teal-700 to-emerald-900" },
-  { name: "Volcanoes", text: "Trek to meet the mountain gorillas in their forest home.", tint: "from-green-800 to-slate-900" },
-  { name: "Nyungwe", text: "Ancient rainforest, chimpanzees and the canopy walkway.", tint: "from-lime-800 to-green-950" },
-  { name: "Lake Kivu", text: "Beaches, boat trips and sunsets on one of Africa's great lakes.", tint: "from-sky-700 to-blue-900" },
+  { name: "Kigali", text: "Rwanda's clean, green capital: culture, food, art and history.", tag: "City", image: kigali,
+    credit: { by: "Unsplash", license: "Unsplash License", url: "https://unsplash.com/photos/the-sun-is-setting-over-a-city-with-tall-buildings-b-HnOOPRfTI" } },
+  { name: "Akagera", text: "Savannah safaris with lions, elephants, giraffes and rhinos.", tag: "Safari", image: akagera,
+    credit: { by: "Unsplash", license: "Unsplash License", url: "https://unsplash.com/photos/giraffe-on-brown-grass-field-during-daytime-yyndnnjmS-c" } },
+  { name: "Musanze", text: "The gateway to the volcanoes, caves and mountain villages.", tag: "Mountains", image: musanze,
+    credit: { by: "Thomson Safaris", license: "CC BY 2.0", url: "https://www.flickr.com/photos/52278382@N06/6583316045" } },
+  { name: "Volcanoes", text: "Trek to meet the mountain gorillas in their forest home.", tag: "Gorillas", image: volcanoes,
+    credit: { by: "Emmanuel Kwizera", license: "CC BY-SA 4.0", url: "https://commons.wikimedia.org/w/index.php?curid=92779696" } },
+  { name: "Nyungwe", text: "Ancient rainforest, chimpanzees and the canopy walkway.", tag: "Rainforest", image: nyungwe,
+    credit: { by: "François Terrier", license: "CC BY 2.0", url: "https://www.flickr.com/photos/59728762@N03/5700560655" } },
+  { name: "Lake Kivu", text: "Beaches, boat trips and sunsets on one of Africa's great lakes.", tag: "Lakeside", image: lakeKivu,
+    credit: { by: "Unsplash", license: "Unsplash License", url: "https://unsplash.com/photos/a-scenic-view-of-a-lake-and-a-highway-WnGwfbViulY" } },
 ];
 
 export type Package = { id: string; name: string; days: number; summary: string; includes: string[]; from_price: number | null; currency: string; is_active: boolean; sort: number };

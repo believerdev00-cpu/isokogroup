@@ -115,12 +115,32 @@ export default function TravelHome() {
         <div className="container max-w-5xl">
           <h2 className="font-display text-3xl font-bold sm:text-4xl">Explore Rwanda</h2>
           <p className="mt-3 max-w-2xl text-muted-foreground sm:text-lg">Six places our guests love. Mention any of them when you plan your trip.</p>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {DESTINATIONS.map((d) => (
-              <article key={d.name} className={cn("card-interactive relative flex min-h-[190px] flex-col justify-end overflow-hidden rounded-2xl bg-gradient-to-br p-6 text-white", d.tint)}>
-                <Hills className="absolute inset-x-0 top-0 h-24 w-full rotate-180 opacity-60" />
-                <h3 className="relative font-display text-2xl font-bold">{d.name}</h3>
-                <p className="relative mt-1 text-sm text-white/85">{d.text}</p>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {DESTINATIONS.map((d, i) => (
+              <article
+                key={d.name}
+                className={cn(
+                  "group relative flex min-h-[300px] flex-col justify-end overflow-hidden rounded-3xl text-white shadow-lg ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-2xl",
+                  i === 0 && "lg:col-span-2",
+                  i === DESTINATIONS.length - 1 && "sm:col-span-2 lg:col-span-3",
+                )}
+              >
+                <img src={d.image} alt={`${d.name}, Rwanda`} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/0" aria-hidden />
+                <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-900 backdrop-blur">{d.tag}</span>
+                <div className="relative p-6">
+                  <h3 className="font-display text-3xl font-bold drop-shadow">{d.name}</h3>
+                  <p className="mt-1 max-w-md text-sm text-white/90">{d.text}</p>
+                  <Link
+                    to={`/travel/plan?place=${encodeURIComponent(d.name)}`}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-emerald-900 transition group-hover:gap-2.5"
+                  >
+                    Plan a trip here <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+                <a href={d.credit.url} target="_blank" rel="noopener noreferrer" className="absolute bottom-2 right-3 text-[10px] text-white/55 hover:text-white">
+                  Photo: {d.credit.by} · {d.credit.license}
+                </a>
               </article>
             ))}
           </div>
