@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The public pages of www.isokogroups.com, for search engines (robots.txt points here).
+     Pages behind a sign-in, staff and admin pages, and private customer links are left out on purpose. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://www.isokogroups.com/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.isokogroups.com/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/services</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.isokogroups.com/subscription</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/become-seller</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/track</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <url><loc>https://www.isokogroups.com/software</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/software/booking</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <url><loc>https://www.isokogroups.com/travel</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/travel/plan</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <url><loc>https://www.isokogroups.com/consultancy</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/consultancy/request</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/data-analysis</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/data-analysis/request</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <url><loc>https://www.isokogroups.com/entertainment</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/entertainment/films</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/entertainment/podcasts</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/entertainment/live</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/entertainment/events</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/entertainment/fashion</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/entertainment/photo-studio</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/entertainment/art-design</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <url><loc>https://www.isokogroups.com/training-center</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.isokogroups.com/training-center/programs</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/training-center/intakes</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/training-center/apply</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/training-center/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/training-center/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.isokogroups.com/training-center/verify</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+</urlset>
