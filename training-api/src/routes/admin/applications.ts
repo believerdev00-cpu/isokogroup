@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
-import { query, queryOne, withTransaction } from "../../db.js";
-import { notFound, optionalDate, param, parse, uuid } from "../../lib/http.js";
+import { actAs, query, queryOne, withTransaction } from "../../db.js";
+import { badRequest, conflict, notFound, optionalDate, param, parse, uuid } from "../../lib/http.js";
+import { logActivity } from "../../services/activity.js";
 import { currentUser } from "../../middleware/auth.js";
 import { approveApplication, decideApplication } from "../../services/enrollment.js";
 import { nextNumber, yearOf } from "../../services/numbers.js";
@@ -75,6 +76,68 @@ applicationsRouter.get("/applications/:id/document", async (req, res) => {
 });
 
 const note = z.object({ note: z.string().trim().max(1000).nullish() });
+
+// An admin corrects an application still being considered: the applicant's
+// details, or the program it is for (another offering, in any intake still
+// running). Moving it re-prices the registration fee in the ledger (database
+// trigger application_fee_moved). Once approved, the student's profile is the
+// record to edit instead.
+const applicationEdit = z.object({
+  intake_program_id: uuid,
+  full_name: z.string().trim().min(3).max(120),
+  date_of_birth: optionalDate,
+  gender: z.enum(["female", "male", "other", "prefer_not_to_say"]).nullable(),
+  phone: z.string().trim().regex(/^[+\d][\d\s-]{6,19}$/, "Enter a valid phone number"),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(254),
+  address: z.string().trim().max(300),
+  emergency_contact_name: z.string().trim().max(120),
+  emergency_contact_phone: z.union([z.literal(""), z.string().trim().regex(/^[+\d][\d\s-]{6,19}$/, "Enter a valid emergency contact phone")]),
+  previous_education: z.string().trim().max(500),
+  additional_info: z.string().trim().max(2000),
+}).partial();
+
+applicationsRouter.patch("/applications/:id", async (req, res) => {
+  const id = param(req, "id");
+  const admin = currentUser(req);
+  const b = parse(applicationEdit, req.body ?? {});
+  const fields = Object.keys(b) as (keyof typeof b)[];
+  if (fields.length === 0) throw badRequest("Nothing to update");
+  const row = await withTransaction(async (c) => {
+    // the ledger (a fee re-priced by a move) records who did it
+    await actAs(c, admin.id);
+    const current = await queryOne("SELECT * FROM applications WHERE id = $1 FOR UPDATE", [id], c);
+    if (!current) throw notFound("Application not found");
+    if (!["pending", "under_review", "waitlisted"].includes(current.status)) {
+      throw badRequest(current.status === "approved"
+        ? "This application was approved: edit the student's profile instead"
+        : `This application was ${current.status}; reset it to pending first to change it`);
+    }
+    const target = b.intake_program_id ?? current.intake_program_id;
+    if (b.intake_program_id && b.intake_program_id !== current.intake_program_id) {
+      const ip = await queryOne(
+        `SELECT ip.id FROM intake_programs ip JOIN intakes i ON i.id = ip.intake_id
+         WHERE ip.id = $1 AND i.status NOT IN ('completed', 'archived')`, [b.intake_program_id], c);
+      if (!ip) throw badRequest("Choose a program in an intake that is still running");
+    }
+    const email = b.email ?? current.email;
+    const duplicate = await queryOne(
+      `SELECT reference FROM applications WHERE intake_program_id = $1 AND lower(email) = lower($2)
+       AND id <> $3 AND status NOT IN ('rejected', 'withdrawn')`, [target, email, id], c);
+    if (duplicate) throw conflict(`This person already has an application for that program (${duplicate.reference})`);
+    const updated = await queryOne(
+      `UPDATE applications SET ${fields.map((f, i) => `${f} = $${i + 2}`).join(", ")} WHERE id = $1 RETURNING *`,
+      [id, ...fields.map((f) => b[f] ?? null)], c);
+    const changed = fields.filter((f) => String(current[f] ?? "") !== String(updated![f] ?? ""));
+    if (changed.length) {
+      await logActivity(admin.id, b.intake_program_id && b.intake_program_id !== current.intake_program_id
+        ? "application.moved" : "application.edited", "application", id,
+        { reference: current.reference, fields: changed, from_intake_program: current.intake_program_id, to_intake_program: target }, c);
+    }
+    return updated!;
+  });
+  const { document_path: _d, pay_token: _t, ...rest } = row;
+  res.json({ data: rest });
+});
 
 applicationsRouter.post("/applications/:id/approve", async (req, res) => {
   const { note: n } = parse(note, req.body ?? {});

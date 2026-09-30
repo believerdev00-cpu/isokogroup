@@ -54,7 +54,12 @@ export type PublicOffering = {
   capacity: number;
   enrolled: number;
   available_seats: number;
+  /** no longer bookable: full, not accepting, or past its own deadline */
   is_full: boolean;
+  /** this program's application deadline (its own, or the intake's) */
+  application_closes_on?: string;
+  /** past this program's own deadline */
+  is_closed?: boolean;
 };
 
 export type PublicIntake = {
@@ -107,6 +112,8 @@ export type IntakeProgram = {
   program_registration_fee: number;
   schedule: string;
   accepting_applications: boolean;
+  /** this program's own application deadline (YYYY-MM-DD); null: the intake's */
+  application_closes_on: string | null;
   pending_applications: number;
   waitlisted: number;
   class_count: number;
@@ -164,6 +171,8 @@ export type Announcement = {
   body: string;
   audience: "all" | "students" | "trainers" | "intake" | "class";
   created_at: string;
+  /** when an admin last corrected it */
+  updated_at?: string | null;
   class_code?: string | null;
   intake_name?: string | null;
   author?: string | null;

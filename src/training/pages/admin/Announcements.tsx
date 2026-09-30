@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Megaphone, Plus, Trash2 } from "lucide-react";
+import { Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
 import { ConfirmDialog, EmptyState, Field, NativeSelect, PageHeader, Pill, QueryView } from "@/training/components/common";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -26,6 +26,14 @@ export default function Announcements() {
   const [form, setForm] = useState({ title: "", body: "", audience: "students" as Announcement["audience"], intake_id: "", class_id: "" });
   const classes = useApi<ClassSummary[]>(creating && form.audience === "class" ? "/admin/classes?status=active" : null);
   const [deleting, setDeleting] = useState<Announcement | null>(null);
+  // correcting the text of one already sent (its audience stays; nobody is notified again)
+  const [editing, setEditing] = useState<Announcement | null>(null);
+  const [draft, setDraft] = useState({ title: "", body: "" });
+  const edit = useApiMutation(() => api.patch(`/admin/announcements/${editing!.id}`, draft), {
+    invalidate: ["/admin/announcements"],
+    success: "Announcement updated",
+    onSuccess: () => setEditing(null),
+  });
 
   const create = useApiMutation(
     () =>
@@ -92,11 +100,17 @@ export default function Announcements() {
                       <p className="mt-1 whitespace-pre-line text-sm">{a.body}</p>
                       <p className="mt-2 text-xs text-muted-foreground">
                         {a.author ?? "—"} · {formatDateTime(a.created_at)}
+                        {a.updated_at && <> · edited {formatDateTime(a.updated_at)}</>}
                       </p>
                     </div>
-                    <Button size="icon" variant="ghost" className="shrink-0 text-destructive" aria-label={`Delete ${a.title}`} onClick={() => setDeleting(a)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex shrink-0 gap-1">
+                      <Button size="icon" variant="ghost" aria-label={`Edit ${a.title}`} onClick={() => { setEditing(a); setDraft({ title: a.title, body: a.body }); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="text-destructive" aria-label={`Delete ${a.title}`} onClick={() => setDeleting(a)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </li>
               ))}
@@ -143,6 +157,26 @@ export default function Announcements() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setCreating(false)}>Cancel</Button>
             <Button type="submit" form="announcement" disabled={!valid || create.isPending}>Send announcement</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit announcement</DialogTitle>
+            <DialogDescription>The corrected text replaces the old one in everyone's portal. Nobody is notified again.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Field label="Title" htmlFor="e-title" required>
+              <Input id="e-title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+            </Field>
+            <Field label="Message" htmlFor="e-body" required>
+              <Textarea id="e-body" rows={5} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+            </Field>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button onClick={() => edit.mutate()} disabled={edit.isPending || draft.title.trim().length < 2 || draft.body.trim().length < 2}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

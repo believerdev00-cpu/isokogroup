@@ -54,7 +54,7 @@ export function OfferingCard({ offering, intakeSlug, currency }: { offering: Pub
           <p className="text-xs font-semibold uppercase tracking-wider text-gold">{offering.category}</p>
           <h3 className="mt-1 text-lg font-bold">{offering.name}</h3>
         </div>
-        {offering.is_full && <StatusBadge status="full" label="FULL" />}
+        {offering.is_full && <StatusBadge status={offering.is_closed ? "closed" : "full"} label={offering.is_closed ? "CLOSED" : "FULL"} />}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {formatDuration(offering.duration_value, offering.duration_unit)}
@@ -73,10 +73,18 @@ export function OfferingCard({ offering, intakeSlug, currency }: { offering: Pub
           <dt className="text-xs text-muted-foreground">Registration</dt>
           <dd className="font-semibold">{formatMoney(offering.registration_fee, currency)}</dd>
         </div>
+        {offering.application_closes_on && (
+          <div className="col-span-2">
+            <dt className="text-xs text-muted-foreground">Apply by</dt>
+            <dd className="font-semibold">{formatLongDate(offering.application_closes_on)}</dd>
+          </div>
+        )}
       </dl>
       <div className="mt-5 flex flex-1 items-end">
         {offering.is_full ? (
-          <p className="text-sm font-medium text-muted-foreground">This program is full for this intake.</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            {offering.is_closed ? "Applications for this program have closed." : "This program is full for this intake."}
+          </p>
         ) : (
           <Button asChild className={cn("w-full", goldButton)}>
             <Link to={applyLink(intakeSlug, offering.intake_program_id)}>Apply Now</Link>

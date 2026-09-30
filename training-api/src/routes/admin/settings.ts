@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { query, queryOne, withTransaction } from "../../db.js";
-import { badRequest, param, parse, uuid } from "../../lib/http.js";
+import { badRequest, notFound, param, parse, uuid } from "../../lib/http.js";
 import { currentUser } from "../../middleware/auth.js";
 import { logActivity } from "../../services/activity.js";
 import { notify } from "../../services/notifications.js";
@@ -110,6 +110,27 @@ settingsRouter.post("/announcements", async (req, res) => {
     return a;
   });
   res.status(201).json({ data: row });
+});
+
+// Corrects the text. Who it went to stays as it was, and nobody is notified again.
+settingsRouter.patch("/announcements/:id", async (req, res) => {
+  const admin = currentUser(req);
+  const b = parse(
+    z.object({ title: z.string().trim().min(2).max(160), body: z.string().trim().min(2).max(4000) }).partial(),
+    req.body ?? {},
+  );
+  if (!b.title && !b.body) throw badRequest("Nothing to update");
+  const row = await withTransaction(async (c) => {
+    const a = await queryOne(
+      "UPDATE announcements SET title = coalesce($2, title), body = coalesce($3, body), updated_at = now() WHERE id = $1 RETURNING *",
+      [param(req, "id"), b.title ?? null, b.body ?? null],
+      c,
+    );
+    if (!a) throw notFound("Announcement not found");
+    await logActivity(admin.id, "announcement.edited", "announcement", a.id, { fields: Object.keys(b) }, c);
+    return a;
+  });
+  res.json({ data: row });
 });
 
 settingsRouter.delete("/announcements/:id", async (req, res) => {

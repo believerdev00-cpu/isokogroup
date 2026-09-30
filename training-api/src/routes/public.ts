@@ -42,7 +42,8 @@ publicRouter.get("/programs/:slug", async (req, res) => {
   if (!program) throw notFound("Program not found");
   const d = await today();
   const offerings = await query(
-    `SELECT i.name AS intake_name, i.slug AS intake_slug, i.training_starts_on, i.application_closes_on,
+    `SELECT i.name AS intake_name, i.slug AS intake_slug, i.training_starts_on,
+            coalesce(s.application_closes_on, i.application_closes_on) AS application_closes_on,
             ip.id AS intake_program_id, s.available_seats
      FROM intake_programs ip JOIN intakes i ON i.id = ip.intake_id
      JOIN intake_program_stats s ON s.intake_program_id = ip.id
@@ -70,7 +71,11 @@ async function availableIntakes(slug?: string) {
               'tuition_fee', coalesce(ip.tuition_fee, p.tuition_fee),
               'registration_fee', coalesce(ip.registration_fee, p.registration_fee),
               'capacity', s.capacity, 'enrolled', s.enrolled, 'available_seats', s.available_seats,
-              'is_full', (s.available_seats = 0 OR NOT s.accepting_applications)
+              -- this program's own deadline, or the intake's
+              'application_closes_on', coalesce(s.application_closes_on, i.application_closes_on),
+              'is_closed', (s.application_closes_on IS NOT NULL AND $1::date > s.application_closes_on),
+              'is_full', (s.available_seats = 0 OR NOT s.accepting_applications
+                          OR (s.application_closes_on IS NOT NULL AND $1::date > s.application_closes_on))
             ) ORDER BY p.name) AS programs
      FROM intakes i
      JOIN intake_programs ip ON ip.intake_id = i.id
@@ -80,7 +85,8 @@ async function availableIntakes(slug?: string) {
        AND (i.status_mode = 'manual' OR $1::date BETWEEN i.application_opens_on AND i.application_closes_on)
        AND ($2::text IS NULL OR i.slug = $2)
        AND EXISTS (SELECT 1 FROM intake_program_stats s2 WHERE s2.intake_id = i.id
-                   AND s2.accepting_applications AND s2.available_seats > 0)
+                   AND s2.accepting_applications AND s2.available_seats > 0
+                   AND (s2.application_closes_on IS NULL OR $1::date <= s2.application_closes_on))
      GROUP BY i.id
      ORDER BY i.training_starts_on`,
     [d, slug ?? null],

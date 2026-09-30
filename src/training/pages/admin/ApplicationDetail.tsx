@@ -1,14 +1,16 @@
-import { FileText } from "lucide-react";
+import { useState } from "react";
+import { FileText, Pencil } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Facts, PageHeader, QueryView, Section, StatusBadge } from "@/training/components/common";
 import { Button } from "@/components/ui/button";
 import { ApplicationActions, ApprovalResultHost } from "@/training/features/admin-core/shared";
+import { EditApplicationDialog } from "@/training/features/admin-core/EditApplication";
 import { openApiFile } from "@/training/lib/api";
 import { formatDate, formatDateTime, formatMoney, humanize } from "@/training/lib/format";
 import { useApi } from "@/training/lib/query";
 import type { ApplicationStatus } from "@/training/lib/types";
 
-type Fee = { charged: number; paid: number; pending: number; balance: number; currency?: string };
+type Fee = { charged: number; credits?: number; paid: number; pending: number; balance: number; currency?: string };
 
 type Detail = {
   /** the registration fee paid with the application (mobile money) */
@@ -45,6 +47,7 @@ type Detail = {
 function ApplicationDetailPage() {
   const { id } = useParams();
   const q = useApi<Detail>(`/admin/applications/${id}`);
+  const [editing, setEditing] = useState(false);
   return (
     <QueryView query={q}>
       {(a) => (
@@ -84,7 +87,13 @@ function ApplicationDetailPage() {
           </Section>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Section title="Applicant" className="lg:col-span-2">
+            <Section
+              title="Applicant"
+              className="lg:col-span-2"
+              actions={["pending", "under_review", "waitlisted"].includes(a.status) && (
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}><Pencil className="mr-1.5 h-4 w-4" />Edit or move</Button>
+              )}
+            >
               <Facts
                 items={[
                   ["Program", a.program_name],
@@ -96,7 +105,7 @@ function ApplicationDetailPage() {
                   ["Address", a.address],
                   ["Previous education", a.previous_education],
                   ["Emergency contact", `${a.emergency_contact_name} · ${a.emergency_contact_phone}`],
-                  ["Registration fee", feeText(a.fee)],
+                  ["Registration fee", feeText(a.fee, ["pending", "under_review", "waitlisted"].includes(a.status))],
                 ]}
               />
               {a.additional_info && (
@@ -136,19 +145,25 @@ function ApplicationDetailPage() {
               </Section>
             </div>
           </div>
+          {editing && <EditApplicationDialog app={a} open onOpenChange={setEditing} />}
         </div>
       )}
     </QueryView>
   );
 }
 
-function feeText(f: Fee | null) {
-  if (!f || Number(f.charged) <= 0) return "No registration fee";
+// While the application is open, what it owes is the charges less waivers (a
+// moved application has both); once decided, the fee is settled elsewhere and
+// the original charge is shown.
+function feeText(f: Fee | null, open: boolean) {
+  if (!f) return "No registration fee";
+  const due = open ? Number(f.charged) - Number(f.credits ?? 0) : Number(f.charged);
+  if (due <= 0) return "No registration fee";
   const cur = f.currency ?? "RWF";
-  if (Number(f.paid) >= Number(f.charged)) return <span className="font-semibold text-success">Paid ({formatMoney(Number(f.paid), cur)})</span>;
+  if (Number(f.paid) >= due) return <span className="font-semibold text-success">Paid ({formatMoney(Number(f.paid), cur)})</span>;
   if (Number(f.pending) > 0) return <span className="font-semibold text-warning">Payment waiting for approval on the phone</span>;
-  if (Number(f.paid) > 0) return `${formatMoney(Number(f.paid), cur)} paid of ${formatMoney(Number(f.charged), cur)}`;
-  return <span className="text-muted-foreground">Not paid yet ({formatMoney(Number(f.charged), cur)}); charged on approval if still unpaid</span>;
+  if (Number(f.paid) > 0) return `${formatMoney(Number(f.paid), cur)} paid of ${formatMoney(due, cur)}`;
+  return <span className="text-muted-foreground">Not paid yet ({formatMoney(due, cur)}); charged on approval if still unpaid</span>;
 }
 
 export default function ApplicationDetail() {

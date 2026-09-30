@@ -193,7 +193,17 @@ const offeringFields = z.object({
   registration_fee: money.nullable().optional(),
   schedule: z.string().trim().max(300).default(""),
   accepting_applications: z.boolean().default(true),
+  // this program's own application deadline; null: the intake's
+  application_closes_on: date.nullable().optional(),
 });
+
+/** A program's own deadline can't be before the intake opens to applicants */
+async function checkOfferingDeadline(intakeId: string, deadline: string | null | undefined) {
+  if (!deadline) return;
+  const intake = await queryOne<{ application_opens_on: string }>(
+    "SELECT to_char(application_opens_on, 'YYYY-MM-DD') AS application_opens_on FROM intakes WHERE id = $1", [intakeId]);
+  if (intake && deadline < intake.application_opens_on) throw badRequest("The program's deadline must be on or after the day applications open");
+}
 
 catalogRouter.post("/intakes/:id/programs", async (req, res) => {
   const intakeId = param(req, "id");
@@ -204,10 +214,13 @@ catalogRouter.post("/intakes/:id/programs", async (req, res) => {
   const program = await queryOne("SELECT id, is_active FROM programs WHERE id = $1", [b.program_id]);
   if (!program) throw notFound("Program not found");
   if (!program.is_active) throw badRequest("This program is inactive");
+  await checkOfferingDeadline(intakeId, b.application_closes_on);
   const row = await queryOne(
-    `INSERT INTO intake_programs (intake_id, program_id, capacity, tuition_fee, registration_fee, schedule, accepting_applications)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [intakeId, b.program_id, b.capacity, b.tuition_fee ?? null, b.registration_fee ?? null, b.schedule, b.accepting_applications],
+    `INSERT INTO intake_programs (intake_id, program_id, capacity, tuition_fee, registration_fee, schedule, accepting_applications,
+                                 application_closes_on)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [intakeId, b.program_id, b.capacity, b.tuition_fee ?? null, b.registration_fee ?? null, b.schedule, b.accepting_applications,
+      b.application_closes_on ?? null],
   ).catch((err) => {
     if (err.code === "23505") throw conflict("This program is already in the intake");
     throw err;
@@ -223,6 +236,11 @@ catalogRouter.patch("/intake-programs/:id", async (req, res) => {
     const stats = await queryOne("SELECT enrolled FROM intake_program_stats WHERE intake_program_id = $1", [id]);
     if (!stats) throw notFound("Program offering not found");
     if (b.capacity < stats.enrolled) throw badRequest(`${stats.enrolled} students are already enrolled; capacity can't be lower`);
+  }
+  if (b.application_closes_on) {
+    const ip = await queryOne<{ intake_id: string }>("SELECT intake_id FROM intake_programs WHERE id = $1", [id]);
+    if (!ip) throw notFound("Program offering not found");
+    await checkOfferingDeadline(ip.intake_id, b.application_closes_on);
   }
   const fields = Object.keys(b) as (keyof typeof b)[];
   if (fields.length === 0) throw badRequest("Nothing to update");

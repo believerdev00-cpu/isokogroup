@@ -6,6 +6,7 @@ import { today } from "./settings.js";
  * Keeps automatic intakes in step with their dates and seats:
  *   before the opening date      → upcoming
  *   after the closing date        → closed
+ *   every program past its own deadline → closed (a program may close early)
  *   no program with a free seat   → full
  *   otherwise                     → open
  * Intakes an admin has pinned (manual mode) and draft/completed/archived ones are
@@ -19,8 +20,13 @@ export async function refreshIntakeStatuses(client: Queryable = pool, intakeId?:
               CASE
                 WHEN $1::date < i.application_opens_on THEN 'upcoming'
                 WHEN $1::date > i.application_closes_on THEN 'closed'
+                WHEN EXISTS (SELECT 1 FROM intake_program_stats s WHERE s.intake_id = i.id)
+                 AND NOT EXISTS (SELECT 1 FROM intake_program_stats s WHERE s.intake_id = i.id
+                                 AND (s.application_closes_on IS NULL OR $1::date <= s.application_closes_on))
+                  THEN 'closed'
                 WHEN NOT EXISTS (SELECT 1 FROM intake_program_stats s
-                                 WHERE s.intake_id = i.id AND s.accepting_applications AND s.available_seats > 0)
+                                 WHERE s.intake_id = i.id AND s.accepting_applications AND s.available_seats > 0
+                                   AND (s.application_closes_on IS NULL OR $1::date <= s.application_closes_on))
                   THEN 'full'
                 ELSE 'open'
               END AS new_status
@@ -60,10 +66,11 @@ export async function refreshIntakeStatuses(client: Queryable = pool, intakeId?:
 /**
  * The condition for accepting an application to an intake program, as SQL over
  * aliases i (intakes) and s (intake_program_stats); `todayParam` is the $n holding
- * today's date. An admin's manual "open" overrides the dates; a free seat is
- * always required.
+ * today's date. An admin's manual "open" overrides the intake's dates; a
+ * program's own deadline (when it has one) and a free seat always apply.
  */
 export const acceptingSql = (todayParam: string) => `
   i.status = 'open'
   AND (i.status_mode = 'manual' OR (${todayParam}::date BETWEEN i.application_opens_on AND i.application_closes_on))
-  AND s.accepting_applications AND s.available_seats > 0`;
+  AND s.accepting_applications AND s.available_seats > 0
+  AND (s.application_closes_on IS NULL OR ${todayParam}::date <= s.application_closes_on)`;

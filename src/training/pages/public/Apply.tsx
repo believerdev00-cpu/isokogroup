@@ -322,11 +322,13 @@ export default function Apply() {
                             >
                               <div className="flex items-start justify-between gap-2">
                                 <span className="text-lg font-bold">{p.name}</span>
-                                {p.is_full && <StatusBadge status="full" label="FULL" />}
+                                {p.is_full && <StatusBadge status={p.is_closed ? "closed" : "full"} label={p.is_closed ? "CLOSED" : "FULL"} />}
                               </div>
                               <p className="mt-0.5 text-sm text-muted-foreground">
                                 {formatDuration(p.duration_value, p.duration_unit)}
                                 {p.schedule && ` · ${p.schedule}`}
+                                {p.application_closes_on && p.application_closes_on !== i.application_closes_on && !p.is_closed
+                                  && ` · apply by ${formatLongDate(p.application_closes_on)}`}
                               </p>
                               <div className="my-3">
                                 <SeatsMeter enrolled={p.enrolled} capacity={p.capacity} compact />

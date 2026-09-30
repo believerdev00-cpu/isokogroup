@@ -22,6 +22,10 @@ export default async function setup() {
     "20260925150100_training_hardening.sql",
     // also (re)defines the public-schema pieces that tie training to the payment and notification engines
     "20260925160000_training_on_engines.sql",
+    // registration fee on the ledger, applicants' payment links
+    "20260929100000_training_application_fee.sql",
+    // a deadline per program, moving applications, editable announcements
+    "20260930110000_training_admin_edits.sql",
   ].map((name) =>
     fs.readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), "utf8"),
   );
