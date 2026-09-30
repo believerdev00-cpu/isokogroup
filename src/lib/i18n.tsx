@@ -116,7 +116,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   // CTA
   "cta.joinToday": { en: "Join Today", rw: "Iyandikishe Uyu Munsi" },
   "cta.title": { en: "Start for Just", rw: "Tangira ku" },
-  "cta.subtitle": { en: "Try every ISOKO GROUP service free for 10 minutes, then 50 RWF for your first month and 200 RWF a month after. Pay with Mobile Money.", rw: "Gerageza serivisi zose za ISOKO GROUP ku buntu mu minota 10, hanyuma 50 RWF ukwezi kwa mbere na 200 RWF buri kwezi. Ishyura ukoresheje Mobile Money." },
+  "cta.subtitle": { en: "Try every ISOKO GROUP service free for 10 minutes, then 50 RWF for 7 days or 200 RWF for a month. Sellers: 1,500 RWF a month. Pay with Mobile Money.", rw: "Gerageza serivisi zose za ISOKO GROUP ku buntu mu minota 10, hanyuma 50 RWF ku minsi 7 cyangwa 200 RWF ku kwezi. Abacuruzi: 1,500 RWF ku kwezi. Ishyura ukoresheje Mobile Money." },
   "story.title": { en: "See what we do", rw: "Reba ibyo dukora", sw: "Tazama tunachofanya", fr: "Découvrez ce que nous faisons", zh: "看看我们做什么" },
   "story.sub": { en: "Watch the pictures, or tap the speaker to listen.", rw: "Reba amashusho, cyangwa ukande ku kimenyetso cy'ijwi wumve.", sw: "Tazama picha, au bonyeza spika usikilize.", fr: "Regardez les images, ou touchez le haut-parleur pour écouter.", zh: "观看图片，或点击喇叭收听。" },
   "story.intro": { en: "ISOKO GROUP: many services in one place, on your phone.", rw: "ISOKO GROUP: serivisi nyinshi ahantu hamwe, kuri telefoni yawe.", sw: "ISOKO GROUP: huduma nyingi mahali pamoja, kwenye simu yako.", fr: "ISOKO GROUP : de nombreux services en un seul endroit, sur votre téléphone.", zh: "ISOKO GROUP：多种服务，一站汇聚，尽在手机。" },
@@ -165,7 +165,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "auth.passwordSaved": { en: "Password changed. You're signed in here and signed out everywhere else.", rw: "Ijambo ry'ibanga ryahinduwe. Winjiye hano, kandi wasohowe ahandi hose." },
   "auth.linkInvalid": { en: "This reset link is invalid or has expired. Ask for a new one.", rw: "Iyi link ntikora cyangwa yataye agaciro. Saba indi nshya." },
   "auth.newLink": { en: "Get a new link", rw: "Saba link nshya" },
-  "auth.subscription": { en: "Free for 10 minutes, then 50 RWF for your first month and 200 RWF a month", rw: "Ubuntu mu minota 10, hanyuma 50 RWF ukwezi kwa mbere na 200 RWF buri kwezi" },
+  "auth.subscription": { en: "Free for 10 minutes, then 50 RWF for 7 days or 200 RWF for a month", rw: "Ubuntu mu minota 10, hanyuma 50 RWF ku minsi 7 cyangwa 200 RWF ku kwezi" },
 
   // Seller
   "seller.title": { en: "Become a Seller", rw: "Ba Umucuruzi" },
@@ -198,7 +198,7 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "admin.totalUsers": { en: "Total Users", rw: "Abakoresha Bose" },
   "admin.totalOrders": { en: "Total Orders", rw: "Ibyo Bakoze Byose" },
   "admin.revenue": { en: "Revenue", rw: "Amafaranga Yinjiye" },
-  "admin.commission": { en: "Commission (10%)", rw: "Komisiyo (10%)" },
+  "admin.commission": { en: "Commission", rw: "Komisiyo" },
 };
 
 type I18nContextType = {

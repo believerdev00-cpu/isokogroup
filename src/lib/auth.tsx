@@ -6,7 +6,7 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any; alreadyRegistered: boolean }>;
+  signUp: (email: string, password: string, fullName: string, registerAs?: "buyer" | "seller") => Promise<{ error: any; alreadyRegistered: boolean }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -42,13 +42,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  // registerAs "seller": the account pays the seller registration fee and is
+  // taken to the seller application after confirming its email
+  const signUp = async (email: string, password: string, fullName: string, registerAs: "buyer" | "seller" = "buyer") => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
+        data: registerAs === "seller" ? { full_name: fullName, register_as: "seller" } : { full_name: fullName },
+        emailRedirectTo: registerAs === "seller" ? `${window.location.origin}/become-seller` : window.location.origin,
       },
     });
     // With email confirmation on, an address that already has an account gets no

@@ -1,20 +1,22 @@
 import { MessageCircle } from "lucide-react";
-import { ICT_CONTACT } from "@/lib/company";
+import { localPhone, siteSettingsNow, useSiteSettings } from "@/lib/siteSettings";
 import { cn } from "@/lib/utils";
 
 // ICT and software requests go to the ICT team on WhatsApp for faster help and
-// project discussions. Other departments keep their own contact numbers.
+// project discussions. Other departments keep their own contact numbers. The
+// number is a site setting (Admin > Settings).
 
-export const ICT_MESSAGE =
-  "Thank you for your interest in our ICT services. To ensure faster assistance and detailed project discussions, please contact our ICT team directly on WhatsApp: 0790176547.";
+export const ictMessage = (number: string) =>
+  `Thank you for your interest in our ICT services. To ensure faster assistance and detailed project discussions, please contact our ICT team directly on WhatsApp: ${localPhone(number).replace(/\s/g, "")}.`;
 
 export function ictWhatsappLink(topic?: string) {
   const text = `Hello Isoko ICT team, I'm interested in ${topic ?? "your ICT services"}.`;
-  return `https://wa.me/${ICT_CONTACT.whatsapp}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${siteSettingsNow().whatsappIct}?text=${encodeURIComponent(text)}`;
 }
 
 /** The notice with a prominent WhatsApp button, for ICT service pages, request forms and checkouts. */
 export function IctWhatsAppNotice({ topic, className }: { topic?: string; className?: string }) {
+  const { whatsappIct } = useSiteSettings();
   return (
     <aside
       className={cn(
@@ -26,14 +28,14 @@ export function IctWhatsAppNotice({ topic, className }: { topic?: string; classN
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1f9d55] text-white">
         <MessageCircle className="h-6 w-6" aria-hidden />
       </span>
-      <p className="flex-1 text-sm leading-relaxed">{ICT_MESSAGE}</p>
+      <p className="flex-1 text-sm leading-relaxed">{ictMessage(whatsappIct)}</p>
       <a
         href={ictWhatsappLink(topic)}
         target="_blank"
         rel="noopener noreferrer"
         className="press inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-[#1f9d55] px-6 text-base font-semibold text-white hover:bg-[#188047]"
       >
-        <MessageCircle className="h-5 w-5" aria-hidden /> WhatsApp {ICT_CONTACT.display}
+        <MessageCircle className="h-5 w-5" aria-hidden /> WhatsApp {localPhone(whatsappIct).replace(/\s/g, "")}
       </a>
     </aside>
   );
@@ -41,13 +43,14 @@ export function IctWhatsAppNotice({ topic, className }: { topic?: string; classN
 
 /** A floating WhatsApp button that stays visible on ICT service pages. */
 export function IctWhatsAppFloat({ topic, compact = false }: { topic?: string; compact?: boolean }) {
+  const display = localPhone(useSiteSettings().whatsappIct).replace(/\s/g, "");
   return (
     <a
       href={ictWhatsappLink(topic)}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Chat with the ICT team on WhatsApp, ${ICT_CONTACT.display}`}
-      title={`WhatsApp ${ICT_CONTACT.display}`}
+      aria-label={`Chat with the ICT team on WhatsApp, ${display}`}
+      title={`WhatsApp ${display}`}
       className={cn(
         "press fixed bottom-5 right-5 z-40 inline-flex h-14 items-center gap-2 rounded-full bg-[#1f9d55] font-semibold text-white shadow-xl hover:bg-[#188047]",
         compact ? "w-14 justify-center" : "px-4 sm:px-5",

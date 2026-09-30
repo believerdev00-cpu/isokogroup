@@ -95,6 +95,8 @@ CALL pg_temp.none($$
     'mobile_money_available()', 'mobile_money_start(text,uuid,text,text,text,numeric)', 'mobile_money_status(uuid)',
     -- the subscription prices and, when signed in, one's own access (no one else's)
     'subscription_state()',
+    -- the company's public details and prices shown on every page (a fixed list of keys)
+    'site_settings()',
     -- a Training Center applicant's fee, by the application's private payment link (rate-limited)
     'training_application_payment(text)'])
 $$, 'anonymous visitors can run only the intended elevated functions');

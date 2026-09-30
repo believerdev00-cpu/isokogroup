@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import CouriersAdmin from "@/components/admin/CouriersAdmin";
+import SubscriptionPaymentsAdmin from "@/components/admin/SubscriptionPaymentsAdmin";
+import SiteSettingsAdmin from "@/components/admin/SiteSettingsAdmin";
 import TrainingCenterAdmin from "@/components/admin/TrainingCenterAdmin";
 import ServiceStaffAdmin from "@/components/admin/ServiceStaffAdmin";
 import DeliveriesAnalytics from "@/components/admin/DeliveriesAnalytics";
@@ -41,7 +43,6 @@ const Admin = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [books, setBooks] = useState<any[]>([]);
   const [logisticsRequests, setLogisticsRequests] = useState<any[]>([]);
   const [packagingRequests, setPackagingRequests] = useState<any[]>([]);
@@ -91,12 +92,11 @@ const Admin = () => {
   }, [user]);
 
   const fetchAll = async () => {
-    const [profilesRes, ordersRes, commissionsRes, productsRes, subsRes, booksRes, logRes, packRes, sellerRes, entRes, payoutsRes, swRes] = await Promise.all([
+    const [profilesRes, ordersRes, commissionsRes, productsRes, booksRes, logRes, packRes, sellerRes, entRes, payoutsRes, swRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.from("commissions").select("*").order("created_at", { ascending: false }),
       supabase.from("products").select("*").order("created_at", { ascending: false }),
-      supabase.from("subscriptions").select("*").order("created_at", { ascending: false }),
       supabase.from("books").select("*").order("created_at", { ascending: false }),
       (supabase as any).from("logistics_requests").select("*").order("created_at", { ascending: false }),
       (supabase as any).from("packaging_requests").select("*").order("created_at", { ascending: false }),
@@ -109,7 +109,6 @@ const Admin = () => {
     setOrders(ordersRes.data || []);
     setCommissions(commissionsRes.data || []);
     setProducts(productsRes.data || []);
-    setSubscriptions(subsRes.data || []);
     setBooks(booksRes.data || []);
     setLogisticsRequests(logRes.data || []);
     setPackagingRequests(packRes.data || []);
@@ -368,16 +367,6 @@ const Admin = () => {
     fetchAll();
   };
 
-  const pendingSubscriptionPayments = subscriptions.filter((s) => s.payment_submitted_at);
-
-  const handleActivateSubscription = async (id: string) => {
-    // Activates for 30 days and notifies the user
-    const { error } = await (supabase as any).rpc("activate_subscription", { p_subscription_id: id });
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Subscription activated" });
-    fetchAll();
-  };
-
   const handleUpdateCommissionStatus = async (id: string, status: string) => {
     const { error } = await (supabase as any).from("commissions").update({ status }).eq("id", id);
     if (error) {
@@ -518,6 +507,7 @@ const Admin = () => {
               <TabsTrigger value="payouts">Payouts</TabsTrigger>
               <TabsTrigger value="software">Software</TabsTrigger>
               <TabsTrigger value="audit">Audit log</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             <TabsContent value="my"><MyOverview /></TabsContent>
@@ -625,39 +615,13 @@ const Admin = () => {
             </TabsContent>
 
             {/* Users */}
+            {/* Site settings: contacts, payment accounts, social links, commission, subscription prices */}
+            <TabsContent value="settings" className="space-y-6">
+              <SiteSettingsAdmin />
+            </TabsContent>
+
             <TabsContent value="users" className="space-y-6">
-              {pendingSubscriptionPayments.length > 0 && (
-                <Card>
-                  <CardHeader><CardTitle>Subscription payments to confirm ({pendingSubscriptionPayments.length})</CardTitle></CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Reference</TableHead>
-                          <TableHead>Submitted</TableHead>
-                          <TableHead></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pendingSubscriptionPayments.map((s) => {
-                          const owner = profiles.find((p) => p.user_id === s.user_id);
-                          return (
-                            <TableRow key={s.id}>
-                              <TableCell className="font-medium">{owner?.full_name || s.user_id.slice(0, 8)}</TableCell>
-                              <TableCell className="font-mono">{s.payment_reference}</TableCell>
-                              <TableCell>{new Date(s.payment_submitted_at).toLocaleString()}</TableCell>
-                              <TableCell className="text-right">
-                                <Button size="sm" onClick={() => handleActivateSubscription(s.id)}>Confirm payment</Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              )}
+              <SubscriptionPaymentsAdmin />
               <Card>
                 <CardHeader><CardTitle>{t("admin.users")} Management ({profiles.length})</CardTitle></CardHeader>
                 <CardContent>
@@ -761,8 +725,11 @@ const Admin = () => {
                             </TableCell>
                             <TableCell>
                               {a.status === "pending" ? (
-                                <div className="flex gap-2">
-                                  <Button size="sm" onClick={() => handleApproveApplication(a)}>Approve</Button>
+                                <div className="space-y-2">
+                                  {/* a seller is approved by confirming their 1,500 RWF seller subscription payment */}
+                                  <p className="max-w-[14rem] text-xs text-muted-foreground">
+                                    Approved when their seller subscription payment is confirmed (Users tab, Subscription payments).
+                                  </p>
                                   <Button size="sm" variant="destructive" onClick={() => handleRejectApplication(a)}>Reject</Button>
                                 </div>
                               ) : (

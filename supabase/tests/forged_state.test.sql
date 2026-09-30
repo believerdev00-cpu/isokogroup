@@ -12,6 +12,13 @@ INSERT INTO auth.users (id, email, aud, role) VALUES
   ('00000000-0000-4000-8000-00000000000b', 'fs-buyer@test.local', 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-00000000000c', 'fs-admin@test.local', 'authenticated', 'authenticated');
 INSERT INTO public.user_roles (user_id, role) VALUES ('00000000-0000-4000-8000-00000000000c', 'admin');
+-- The member services need a running trial or paid period
+-- (20260930100000_subscription_manual_momo.sql): the test users are in their trial
+SELECT set_config('isoko.subscription_internal', 'on', true);
+INSERT INTO public.subscriptions (user_id, status, plan, trial_started_at, trial_expires_at)
+SELECT id, 'trial', 'trial', now(), now() + interval '1 day' FROM auth.users u
+WHERE email LIKE '%@test.local' AND NOT EXISTS (SELECT 1 FROM public.subscriptions s WHERE s.user_id = u.id);
+SELECT set_config('isoko.subscription_internal', '', true);
 
 -- Checks after a call are separate statements on purpose: an uncorrelated
 -- subquery in the same SELECT as pg_temp.refused() is evaluated before the call.
@@ -55,6 +62,12 @@ SELECT pg_temp.expect(pg_temp.refused(:seller, $$
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$
   SELECT public.approve_seller_application((SELECT id FROM public.seller_applications WHERE user_id = auth.uid())) $$),
   'non-admin cannot approve a seller application');
+-- (a seller is approved with a confirmed 1,500 RWF seller subscription payment: 20260930130000)
+SELECT set_config('isoko.subscription_internal', 'on', true);
+INSERT INTO public.subscription_payments (subscription_id, user_id, plan, amount, reference, reference_key, status, confirmed_at, period_starts_at, period_ends_at)
+SELECT id, user_id, 'seller', 1500, 'FS-SELLER-1', 'FSSELLER1', 'confirmed', now(), now(), now() + interval '1 month'
+FROM public.subscriptions WHERE user_id = :seller;
+SELECT set_config('isoko.subscription_internal', '', true);
 SELECT pg_temp.expect(NOT pg_temp.refused(:admin, $$
   SELECT public.approve_seller_application((SELECT id FROM public.seller_applications
     WHERE user_id = '00000000-0000-4000-8000-00000000000a')) $$), 'admin approves the application');

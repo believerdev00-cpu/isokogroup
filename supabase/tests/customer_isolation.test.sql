@@ -56,7 +56,9 @@ VALUES ('00000000-0000-4000-8000-00000000a1a2', '00000000-0000-4000-8000-0000000
 INSERT INTO public.logistics_requests (user_id, pickup, dropoff) VALUES (:a, 'Nyabugogo', 'Kimironko');
 INSERT INTO public.software_bookings (user_id, full_name, email, phone, service_type, project_description)
 VALUES (:a, 'Customer A', 'iso-a@test.local', '0788000001', 'website', 'A shop website');
-INSERT INTO public.subscriptions (user_id) VALUES (:a);
+SELECT set_config('isoko.subscription_internal', 'on', true);
+INSERT INTO public.subscriptions (user_id, trial_started_at, trial_expires_at) VALUES (:a, now(), now() + interval '10 minutes');
+SELECT set_config('isoko.subscription_internal', '', true);
 INSERT INTO public.support_requests (business_id, message) VALUES (:a, 'Help with my dashboard');
 INSERT INTO public.business_datasets (business_id) VALUES (:a);
 INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number)

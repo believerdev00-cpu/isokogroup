@@ -140,7 +140,12 @@ SELECT value FROM public.platform_settings WHERE key = 'rate_limit_multiplier';
 ## 5. Schedule the notification sender and the payment checker
 
 Emails (including new students' temporary passwords) wait in the queue until
-`notifications-dispatch` runs. Run it every minute, either with Dashboard >
+`notifications-dispatch` runs. Each run also moves subscriptions along
+(`subscription_sweep`): it marks ended trials and paid periods expired and
+raises the "trial ends in 2 minutes", "24 hours / 1 hour left" and "expired"
+messages. Access itself never waits for it (the database checks the dates on
+every request), but those e-mails do, so a 10-minute trial needs the
+every-minute schedule. Run it every minute, either with Dashboard >
 Integrations > Cron > Create job (type "Supabase Edge Function" or "HTTP
 request": `POST https://oswetaksxcepublsjyrt.supabase.co/functions/v1/notifications-dispatch`
 with header `Authorization: Bearer <service_role key>`, schedule `* * * * *`),

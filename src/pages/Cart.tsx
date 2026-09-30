@@ -8,7 +8,7 @@ import { Trash2, ShoppingBag, Minus, Plus, Smartphone, Landmark, Zap } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { COMPANY_PAYMENT } from "@/lib/company";
+import { useSiteSettings } from "@/lib/siteSettings";
 
 type CartRow = {
   id: string;
@@ -26,6 +26,8 @@ type CartRow = {
 
 const Cart = () => {
   const { user } = useAuth();
+  // the company's MoMo and bank accounts (Admin > Settings)
+  const company = useSiteSettings();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [items, setItems] = useState<CartRow[]>([]);
@@ -184,8 +186,8 @@ const Cart = () => {
                 <label className="text-sm font-medium">Payment method</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { k: "momo", name: "MTN MoMo", type: "Mobile Money", recipient: COMPANY_PAYMENT.momo.name, icon: Smartphone },
-                    { k: "bank", name: "Bank of Kigali", type: "Bank Transfer", recipient: COMPANY_PAYMENT.bank.name, icon: Landmark },
+                    { k: "momo", name: "MTN MoMo", type: "Mobile Money", recipient: company.momo.name, icon: Smartphone },
+                    { k: "bank", name: company.bank.name, type: "Bank Transfer", recipient: company.bank.accountName, icon: Landmark },
                     { k: "auto", name: "SSD", type: "Automatic Payment", recipient: "—", icon: Zap },
                   ].map((opt) => {
                     const Icon = opt.icon;
@@ -210,25 +212,25 @@ const Cart = () => {
               <div className="rounded-lg border border-border bg-background p-3 text-xs space-y-1">
                 {paymentMethod === "momo" && (
                   <>
-                    <p className="font-semibold">{COMPANY_PAYMENT.momo.label}</p>
-                    <p>Send to: <span className="font-mono text-primary">{COMPANY_PAYMENT.momo.number}</span></p>
-                    <p>Name: {COMPANY_PAYMENT.momo.name}</p>
-                    <p className="text-muted-foreground">{COMPANY_PAYMENT.momo.note}</p>
+                    <p className="font-semibold">{company.momo.label}</p>
+                    <p>Send to: <span className="font-mono text-primary">{company.momo.code}</span></p>
+                    <p>Name: {company.momo.name}</p>
+                    <p className="text-muted-foreground">Use your Order ID as the reference.</p>
                   </>
                 )}
                 {paymentMethod === "bank" && (
                   <>
-                    <p className="font-semibold">{COMPANY_PAYMENT.bank.label}</p>
-                    <p>{COMPANY_PAYMENT.bank.bank}</p>
-                    <p>Account: <span className="font-mono text-primary">{COMPANY_PAYMENT.bank.account}</span></p>
-                    <p>Name: {COMPANY_PAYMENT.bank.name}</p>
-                    {COMPANY_PAYMENT.bank.swift && <p className="text-muted-foreground">SWIFT: {COMPANY_PAYMENT.bank.swift}</p>}
+                    <p className="font-semibold">Bank Transfer</p>
+                    <p>{company.bank.name}</p>
+                    <p>Account: <span className="font-mono text-primary">{company.bank.accountNumber}</span></p>
+                    <p>Name: {company.bank.accountName}</p>
+                    {company.bank.swift && <p className="text-muted-foreground">SWIFT: {company.bank.swift}</p>}
                   </>
                 )}
                 {paymentMethod === "auto" && (
                   <>
-                    <p className="font-semibold">{COMPANY_PAYMENT.auto.label}</p>
-                    <p className="text-muted-foreground">{COMPANY_PAYMENT.auto.note}</p>
+                    <p className="font-semibold">Automatic Payment (SSD)</p>
+                    <p className="text-muted-foreground">Coming soon — use MoMo or Bank for now.</p>
                   </>
                 )}
               </div>

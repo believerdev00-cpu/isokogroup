@@ -15,6 +15,13 @@ INSERT INTO auth.users (id, email, aud, role) VALUES
   ('00000000-0000-4000-8000-0000000000c4', 'md-driver@test.local', 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000c5', 'md-other@test.local', 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000c6', 'md-staff@test.local', 'authenticated', 'authenticated');
+-- The member services need a running trial or paid period
+-- (20260930100000_subscription_manual_momo.sql): the test users are in their trial
+SELECT set_config('isoko.subscription_internal', 'on', true);
+INSERT INTO public.subscriptions (user_id, status, plan, trial_started_at, trial_expires_at)
+SELECT id, 'trial', 'trial', now(), now() + interval '1 day' FROM auth.users u
+WHERE email LIKE '%@test.local' AND email <> 'md-other@test.local' AND NOT EXISTS (SELECT 1 FROM public.subscriptions s WHERE s.user_id = u.id);
+SELECT set_config('isoko.subscription_internal', '', true);
 INSERT INTO public.user_roles (user_id, role) VALUES
   ('00000000-0000-4000-8000-0000000000c1', 'seller'),
   ('00000000-0000-4000-8000-0000000000c3', 'admin'),
@@ -149,14 +156,17 @@ INSERT INTO storage.objects (bucket_id, name) VALUES ('books', 'content/md-book.
 SELECT pg_temp.expect((SELECT bool_and(NOT public) FROM storage.buckets WHERE id IN ('books', 'entertainment')), 'the library buckets are private');
 SELECT pg_temp.expect(pg_temp.visible(:other, $$SELECT 1 FROM storage.objects WHERE name IN ('content/md-book.pdf', 'media/md-film.mp4')$$) = 0,
   'no subscription: no library files');
-INSERT INTO public.subscriptions (user_id, status, trial_ends_at) VALUES (:other, 'trial', now() + interval '3 days');
+-- (the dates are moved as the database owner, past the subscription guard)
+SELECT set_config('isoko.subscription_internal', 'on', true);
+INSERT INTO public.subscriptions (user_id, status, trial_expires_at) VALUES (:other, 'trial', now() + interval '3 days');
 SELECT pg_temp.expect(pg_temp.visible(:other, $$SELECT 1 FROM storage.objects WHERE name IN ('content/md-book.pdf', 'media/md-film.mp4')$$) = 2,
   'a running trial opens them');
-UPDATE public.subscriptions SET trial_ends_at = now() - interval '1 day' WHERE user_id = :other;
+UPDATE public.subscriptions SET trial_expires_at = now() - interval '1 day' WHERE user_id = :other;
 SELECT pg_temp.expect(pg_temp.visible(:other, $$SELECT 1 FROM storage.objects WHERE name = 'content/md-book.pdf'$$) = 0, 'an ended trial doesn''t');
-UPDATE public.subscriptions SET status = 'active', expires_at = now() + interval '20 days' WHERE user_id = :other;
+UPDATE public.subscriptions SET status = 'active', plan = 'monthly', expires_at = now() + interval '20 days' WHERE user_id = :other;
 SELECT pg_temp.expect(pg_temp.visible(:other, $$SELECT 1 FROM storage.objects WHERE name = 'content/md-book.pdf'$$) = 1, 'an active plan does');
 UPDATE public.subscriptions SET expires_at = now() - interval '1 minute' WHERE user_id = :other;
+SELECT set_config('isoko.subscription_internal', '', true);
 SELECT pg_temp.expect(pg_temp.visible(:other, $$SELECT 1 FROM storage.objects WHERE name = 'content/md-book.pdf'$$) = 0, 'an expired plan doesn''t');
 SELECT pg_temp.expect(pg_temp.visible(:admin, $$SELECT 1 FROM storage.objects WHERE name = 'content/md-book.pdf'$$) = 1, 'admins always can');
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { MailCheck } from "lucide-react";
+import { MailCheck, ShoppingBag, Store } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -13,6 +13,9 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
+import { formatPrice } from "@/lib/subscription";
+import { useSiteSettings } from "@/lib/siteSettings";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/isoko-logo.jpeg";
 
 // A confirmation link is on its way (just registered), or is still needed (tried to log in unconfirmed)
@@ -30,14 +33,19 @@ const Login = () => {
   const [success, setSuccess] = useState(false);
   const [tab, setTab] = useState("login");
   const [notice, setNotice] = useState<Notice | null>(null);
+  // Register as a normal user / buyer (as before), or as a seller (pays the seller registration fee)
+  const [registerAs, setRegisterAs] = useState<"buyer" | "seller">("buyer");
+  const { sellerMonthlyPrice, momo } = useSiteSettings();
 
   // Signed in (just now, or already when they opened this page): once this account's
   // subscription is known, go where they were heading, or to Subscription if they
   // have no access yet.
+  // Someone who registered as a seller continues with the seller application and its fee.
   useEffect(() => {
     if (authLoading || subLoading || !user) return;
+    const sellerRegistrant = user.user_metadata?.register_as === "seller";
     const id = window.setTimeout(
-      () => navigate(isActive ? from ?? "/" : "/subscription", { replace: true }),
+      () => navigate(sellerRegistrant ? from ?? "/become-seller" : isActive ? from ?? "/" : "/subscription", { replace: true }),
       success ? 1200 : 0,
     );
     return () => window.clearTimeout(id);
@@ -73,6 +81,7 @@ const Login = () => {
       email,
       form.get("password") as string,
       (form.get("fullname") as string).trim(),
+      registerAs,
     );
     setLoading(false);
     if (error) {
@@ -181,6 +190,31 @@ const Login = () => {
               <TabsContent value="register">
                 <form className="space-y-4" onSubmit={handleRegister}>
                   <div className="space-y-2">
+                    <Label>Register as</Label>
+                    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Register as">
+                      {([
+                        { key: "buyer", icon: ShoppingBag, title: "Normal user / Buyer", text: "Shop and use every Isoko service" },
+                        { key: "seller", icon: Store, title: "Seller", text: `Sell your products or property · ${formatPrice(sellerMonthlyPrice)} a month` },
+                      ] as const).map((o) => (
+                        <button
+                          key={o.key}
+                          type="button"
+                          role="radio"
+                          aria-checked={registerAs === o.key}
+                          onClick={() => setRegisterAs(o.key)}
+                          className={cn(
+                            "flex flex-col items-start gap-1 rounded-lg border-2 p-3 text-left transition-colors",
+                            registerAs === o.key ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+                          )}
+                        >
+                          <o.icon className="h-5 w-5 text-primary" aria-hidden />
+                          <span className="text-sm font-semibold">{o.title}</span>
+                          <span className="text-xs text-muted-foreground">{o.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="fullname">{t("auth.fullName")}</Label>
                     <Input id="fullname" name="fullname" placeholder="Your full name" required />
                   </div>
@@ -195,7 +229,15 @@ const Login = () => {
                   <Button className="w-full" size="lg" disabled={loading}>
                     {loading ? "..." : t("auth.createAccount")}
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">{t("auth.subscription")}</p>
+                  {registerAs === "seller" ? (
+                    <p className="text-xs text-muted-foreground text-center">
+                      After confirming your email you fill in the seller application and pay the seller subscription, {formatPrice(sellerMonthlyPrice)} a month, to our Mobile Money
+                      code <span className="font-mono">{momo.code}</span>. Your seller account opens once an Isoko admin confirms the payment; it
+                      includes everything a normal user gets, so you don't pay the 50 or 200 RWF subscription.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center">{t("auth.subscription")}</p>
+                  )}
                 </form>
               </TabsContent>
             </Tabs>

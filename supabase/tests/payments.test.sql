@@ -15,6 +15,13 @@ INSERT INTO auth.users (id, email, aud, role) VALUES
   ('00000000-0000-4000-8000-0000000000f5', 'pay-finance@test.local', 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000f6', 'pay-admin@test.local', 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000f7', 'pay-seller@test.local', 'authenticated', 'authenticated');
+-- The member services need a running trial or paid period
+-- (20260930100000_subscription_manual_momo.sql): the test users are in their trial
+SELECT set_config('isoko.subscription_internal', 'on', true);
+INSERT INTO public.subscriptions (user_id, status, plan, trial_started_at, trial_expires_at)
+SELECT id, 'trial', 'trial', now(), now() + interval '1 day' FROM auth.users u
+WHERE email LIKE '%@test.local' AND NOT EXISTS (SELECT 1 FROM public.subscriptions s WHERE s.user_id = u.id);
+SELECT set_config('isoko.subscription_internal', '', true);
 INSERT INTO public.user_roles (user_id, role) VALUES
   ('00000000-0000-4000-8000-0000000000f3', 'travel_staff'),
   ('00000000-0000-4000-8000-0000000000f4', 'consultancy_staff'),
@@ -325,16 +332,16 @@ SELECT pg_temp.expect(pg_temp.visible('00000000-0000-4000-8000-0000000000f2',
 
 -- ---------- Subscriptions ----------
 SELECT pg_temp.refused('00000000-0000-4000-8000-0000000000f2', $$SELECT public.start_trial()$$);
-SELECT pg_temp.expect(NOT pg_temp.refused('00000000-0000-4000-8000-0000000000f2', $$SELECT public.submit_subscription_payment('MP-SUB-1')$$),
+SELECT pg_temp.expect(NOT pg_temp.refused('00000000-0000-4000-8000-0000000000f2', $$SELECT public.submit_subscription_payment('week', 'Payer Name', 'MP-SUB-1')$$),
   'subscriber reports a payment');
-SELECT pg_temp.expect(pg_temp.refused('00000000-0000-4000-8000-0000000000f2', $$SELECT public.submit_subscription_payment('MP-SUB-2')$$),
+SELECT pg_temp.expect(pg_temp.refused('00000000-0000-4000-8000-0000000000f2', $$SELECT public.submit_subscription_payment('week', 'Payer Name', 'MP-SUB-2')$$),
   'a second report waits until the first is checked');
 SELECT pg_temp.expect(NOT pg_temp.refused('00000000-0000-4000-8000-0000000000f5',
   $$SELECT public.activate_subscription((SELECT id FROM public.subscriptions WHERE user_id = '00000000-0000-4000-8000-0000000000f2'))$$),
-  'finance activates the subscription');
+  'finance confirms the waiting subscription payment');
 SELECT pg_temp.expect((SELECT status FROM public.subscriptions WHERE user_id = '00000000-0000-4000-8000-0000000000f2') = 'active'
   AND (pg_temp.totals('subscriptions', (SELECT id FROM public.subscriptions WHERE user_id = '00000000-0000-4000-8000-0000000000f2')) ->> 'paid')::numeric = 50,
-  'active, with the first month (50) on record');
+  'active, with the first week (50) on record');
 
 -- ---------- Software ----------
 SELECT pg_temp.refused(NULL, $$INSERT INTO public.software_bookings (full_name, email, phone, service_type, project_description)

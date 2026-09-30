@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { Mail, Phone, MapPin, Youtube, Instagram } from "lucide-react";
+import { Mail, Phone, MapPin, Youtube, Instagram, Facebook, Twitter, Linkedin, MessageCircle, Globe } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { mapEmbedUrl, mapLinkUrl, SOCIAL_NETWORKS, telHref, useSiteSettings, type SocialNetwork } from "@/lib/siteSettings";
 import logo from "@/assets/isoko-logo.jpeg";
 import {
   Popover,
@@ -8,44 +9,24 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const socials = [
-  {
-    name: "YouTube",
-    Icon: Youtube,
-    links: [
-      { label: "ISOKO ENTERTAINMENT", url: "https://youtu.be/KjN65T1qA7c?si=8RPTzXJNhZI1b3Bs" },
-      { label: "Isoko Group ", url: "https://youtube.com/shorts/2zXVi01BI9s?si=ly0LXTSTdbTkWYJk" },
-      { label: "Isoko Studioz", url: "https://youtube.com/shorts/SRKsJk6D8aY?si=uhQ0Xgu3dqUvsZ6h" },
-    ],
-  },
-  {
-    name: "Instagram",
-    Icon: Instagram,
-    links: [
-      { label: "Star Wax", url: "https://www.instagram.com/p/DXv9vurjI45/?igsh=dTg1OTk0ODlpZGNp" },
-      { label: "Isoko Studioz", url: "https://www.instagram.com/p/DU0vkdpDete/?igsh=MWp2cHVkYzVxdTZlaw==" },
-      { label: "Isoko Group Logistics", url: "https://www.instagram.com/reel/DWvjvOkCE8p/?igsh=MTQwNmd5eWZ2c2FkZA==" },
-      { label: "Isoko Group Ltd", url: "https://www.instagram.com/isokogrou?igsh=bXM1OHpndno0Y3Bv" },
-    ],
-  },
-  {
-    name: "TikTok",
-    // Lucide has no TikTok icon — use inline SVG
-    Icon: (props: React.SVGProps<SVGSVGElement>) => (
-      <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
-        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.69a8.16 8.16 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1.84-.07Z" />
-      </svg>
-    ),
-    links: [
-      { label: "Isoko Group Ltd", url: "https://vt.tiktok.com/ZS9a6kw2e/" },
-      { label: "Isoko Studioz", url: "https://vt.tiktok.com/ZS9aMNuVe/" },
-      { label: "Isoko Movie", url: "https://vt.tiktok.com/ZS9aMx5rj/" },
-    ],
-  },
-];
+const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  // Lucide has no TikTok icon
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.69a8.16 8.16 0 0 0 4.77 1.52V6.76a4.85 4.85 0 0 1-1.84-.07Z" />
+  </svg>
+);
+
+const NETWORK_ICON: Record<SocialNetwork, React.ComponentType<{ className?: string }>> = {
+  youtube: Youtube, instagram: Instagram, tiktok: TikTokIcon, facebook: Facebook, x: Twitter,
+  linkedin: Linkedin, whatsapp: MessageCircle, other: Globe,
+};
 
 const Footer = () => {
   const { t } = useI18n();
+  // contacts, map and social links: Admin > Settings
+  const site = useSiteSettings();
+  const socials = SOCIAL_NETWORKS.map((n) => ({ name: n.name, Icon: NETWORK_ICON[n.key], links: site.social.filter((l) => l.network === n.key) }))
+    .filter((g) => g.links.length > 0);
   return (
     <footer className="bg-card text-foreground border-t border-border">
       <div className="container py-16">
@@ -87,18 +68,18 @@ const Footer = () => {
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary shrink-0" />
-                <a href="mailto:isokogrou93@gmail.com" className="hover:text-primary transition-colors break-all">isokogrou93@gmail.com</a>
+                <a href={`mailto:${site.email}`} className="hover:text-primary transition-colors break-all">{site.email}</a>
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <div className="flex flex-col">
-                  <a href="tel:+250788481648" className="hover:text-primary transition-colors">0788 481 648</a>
-                  <a href="tel:+250793736574" className="hover:text-primary transition-colors">0793 736 574</a>
-                  <a href="tel:+250790176547" className="hover:text-primary transition-colors">0790 176 547</a>
+                  {site.phones.map((p) => (
+                    <a key={p} href={telHref(p)} className="hover:text-primary transition-colors">{p}</a>
+                  ))}
                 </div>
               </li>
               <li className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary shrink-0" /> Kimironko, KG 15 Ave (around the market), Kigali
+                <MapPin className="h-4 w-4 text-primary shrink-0" /> {site.address}
               </li>
             </ul>
           </div>
@@ -111,7 +92,7 @@ const Footer = () => {
           <div className="rounded-xl overflow-hidden border border-border">
             <iframe
               title="ISOKO GROUP location"
-              src="https://www.google.com/maps?q=Kimironko+Market,+KG+15+Ave,+Kigali&output=embed"
+              src={mapEmbedUrl(site.mapQuery)}
               width="100%"
               height="280"
               loading="lazy"
@@ -120,7 +101,7 @@ const Footer = () => {
             />
           </div>
           <a
-            href="https://www.google.com/maps/search/?api=1&query=Kimironko+Market+KG+15+Ave+Kigali"
+            href={mapLinkUrl(site.mapQuery)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block mt-2 text-sm text-primary hover:underline"
@@ -144,7 +125,7 @@ const Footer = () => {
                   <div className="flex flex-col">
                     {links.map((l) => (
                       <a
-                        key={l.url}
+                        key={`${l.label}${l.url}`}
                         href={l.url}
                         target="_blank"
                         rel="noopener noreferrer"

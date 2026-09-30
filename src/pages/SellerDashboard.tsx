@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Package, ShoppingCart, DollarSign, TrendingUp, Plus, Upload, User, Bell, Wallet } from "lucide-react";
 import { Navigate } from "react-router-dom";
-import { COMMISSION_RATE, COMPANY_PAYMENT } from "@/lib/company";
+import { useSiteSettings } from "@/lib/siteSettings";
 import ShipmentDialog from "@/components/ShipmentDialog";
 import { Truck } from "lucide-react";
 
@@ -23,6 +23,8 @@ const categories = ["Electronics", "Fashion", "Food & Drink", "Crafts", "Home", 
 
 const SellerDashboard = () => {
   const { user, loading: authLoading } = useAuth();
+  // the marketplace commission (Admin > Settings); each order keeps the rate it was placed at
+  const { commissionPercent } = useSiteSettings();
   const { t } = useI18n();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -491,13 +493,13 @@ const SellerDashboard = () => {
                         <TableHeader><TableRow>
                           <TableHead>Order</TableHead>
                           <TableHead>Sale</TableHead>
-                          <TableHead>Company keeps (7%)</TableHead>
-                          <TableHead>You get (93%)</TableHead>
+                          <TableHead>Company keeps ({commissionPercent}%)</TableHead>
+                          <TableHead>You get ({100 - commissionPercent}%)</TableHead>
                           <TableHead></TableHead>
                         </TableRow></TableHeader>
                         <TableBody>
                           {eligibleOrders.map((o) => {
-                            const commission = Math.round(o.total_amount * COMMISSION_RATE);
+                            const commission = Math.round((o.total_amount * commissionPercent) / 100);
                             const net = o.total_amount - commission;
                             return (
                               <TableRow key={o.id}>

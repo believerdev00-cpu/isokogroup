@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock } from "lucide-react";
-import { firstPeriodName, formatPrice, useSubscription } from "@/lib/subscription";
+import { formatPrice, planName, useSubscription } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
 
 /** "4:32" until the given time, updated every second. */
@@ -19,22 +19,41 @@ const TrialCountdown = ({ until, className }: { until: Date; className?: string 
   return <span className={cn("tabular-nums", className)}>{text}</span>;
 };
 
-/** A bar on member pages during the free trial: time left, and what comes next. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * A bar on member pages: the free trial's countdown, or, in the last 24 hours
+ * of a paid period, when it ends (it doesn't renew by itself).
+ */
 export const TrialBanner = () => {
-  const { status, isActive, accessUntil, pricing } = useSubscription();
-  if (!isActive || status !== "trial" || !accessUntil) return null;
+  const { status, isActive, accessUntil, pricing, paymentPending } = useSubscription();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(t);
+  }, []);
+  if (!isActive || !accessUntil) return null;
+  const endingPaid = status === "active" && accessUntil.getTime() - now < DAY_MS;
+  if (status !== "trial" && !endingPaid) return null;
+  const price = formatPrice(pricing.nextPrice, pricing.currency);
   return (
     <div className="border-b border-primary/30 bg-primary/10 text-sm" role="status">
       <div className="container flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
         <p className="flex items-center gap-2">
           <Clock className="h-4 w-4 shrink-0 text-primary" aria-hidden />
           <span>
-            Free trial: <TrialCountdown until={accessUntil} className="font-semibold" /> left
+            {status === "trial" ? "Free trial: " : "Your subscription expires in "}
+            <TrialCountdown until={accessUntil} className="font-semibold" />
+            {status === "trial" ? " left" : ""}
           </span>
         </p>
-        <Link to="/subscription" className="font-semibold text-primary hover:underline">
-          Pay {formatPrice(pricing.nextPrice, pricing.currency)} for your {firstPeriodName(pricing.firstPeriodDays)} →
-        </Link>
+        {paymentPending ? (
+          <span className="text-muted-foreground">Your payment is awaiting confirmation</span>
+        ) : (
+          <Link to="/subscription" className="font-semibold text-primary hover:underline">
+            {planName(pricing.nextPlan)}: pay {price} →
+          </Link>
+        )}
       </div>
     </div>
   );

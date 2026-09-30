@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -7,15 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, Upload, FileCheck2, X, Clock, XCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { formatPrice, useSubscription } from "@/lib/subscription";
+import { useSiteSettings } from "@/lib/siteSettings";
+import SubscriptionPayment from "@/components/SubscriptionPayment";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const rules = [
-  "10% monthly commission on profits",
+const rules = (commissionPercent: number, sellerMonthlyPrice: number) => [
+  `${commissionPercent}% commission on each sale`,
   "Products must meet quality standards",
   "ID verification required",
-  "Active subscription required (50 RWF the first month, then 200 RWF a month)",
+  `Seller subscription: ${formatPrice(sellerMonthlyPrice)} a month (includes everything a normal user gets; no 50 or 200 RWF subscription)`,
 ];
 
 const MAX_ID_SIZE = 5 * 1024 * 1024; // 5MB
@@ -23,6 +26,10 @@ const ALLOWED_ID_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", 
 
 const BecomeSeller = () => {
   const { user } = useAuth();
+  // the seller subscription (Admin > Settings); it includes normal access, so applying needs none
+  const { commissionPercent, sellerMonthlyPrice } = useSiteSettings();
+  // after applying, the seller plan is the one to pay
+  const { refresh: refreshSubscription } = useSubscription();
   const { t } = useI18n();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -146,6 +153,7 @@ const BecomeSeller = () => {
       setFullname(""); setBusiness(""); setEmail(""); setPhone(""); setIdNumber("");
       clearFile();
       fetchApplication();
+      refreshSubscription();
     }
   };
 
@@ -187,13 +195,27 @@ const BecomeSeller = () => {
           <div className="rounded-xl border border-border bg-card p-8 mb-8">
             <h2 className="text-xl font-semibold mb-4">{t("seller.rules")}</h2>
             <ul className="space-y-3">
-              {rules.map((r) => (
+              {rules(commissionPercent, sellerMonthlyPrice).map((r) => (
                 <li key={r} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" /> {r}
                 </li>
               ))}
             </ul>
           </div>
+
+          {/* The seller subscription (1,500 RWF a month): once an admin confirms it, the application is approved */}
+          {!checkingApp && existingApp?.status === "pending" && (
+            <div className="mb-8 rounded-xl border-2 border-primary bg-card p-6 space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold">Pay your seller subscription</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your application is saved. {formatPrice(sellerMonthlyPrice)} a month covers everything a normal user gets plus your seller
+                  dashboard; you don't pay the 50 or 200 RWF subscription. Your seller account opens once an Isoko admin confirms the payment.
+                </p>
+              </div>
+              <SubscriptionPayment onSubmitted={fetchApplication} />
+            </div>
+          )}
 
           {/* Application status banner */}
           {!checkingApp && existingApp && statusConfig[existingApp.status as keyof typeof statusConfig] && (() => {

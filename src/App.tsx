@@ -12,6 +12,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { SubscriptionProvider } from "@/lib/subscription";
 import { ThemeProvider } from "@/lib/theme";
+import { SiteSettingsProvider } from "@/lib/siteSettings";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Logistics from "./pages/Logistics";
@@ -64,6 +65,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <SiteSettingsProvider>
     <ThemeProvider>
       <I18nProvider>
         <AuthProvider>
@@ -129,6 +131,7 @@ const App = () => (
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>
+    </SiteSettingsProvider>
   </QueryClientProvider>
 );
 

@@ -3,7 +3,7 @@
 // staff read and write the service's tables directly, under row-level security.
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ISOKO_CONTACT } from "@/lib/company";
+import { siteSettingsNow } from "@/lib/siteSettings";
 
 export type ServiceKey = "travel" | "consultancy" | "data";
 
@@ -66,7 +66,7 @@ export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
 // ============== CONTACT ==============
 export function whatsappLink(text: string) {
-  return `https://wa.me/${ISOKO_CONTACT.whatsapp}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${siteSettingsNow().whatsappOffice}?text=${encodeURIComponent(text)}`;
 }
 
 /** WhatsApp link to a customer (staff side). Accepts local Rwandan numbers too. */

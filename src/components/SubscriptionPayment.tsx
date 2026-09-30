@@ -1,74 +1,188 @@
-import { useState } from "react";
-import { Clock, CreditCard } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, CheckCircle, Clock, ImagePlus, Smartphone, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatPrice, useSubscription } from "@/lib/subscription";
+import { Label } from "@/components/ui/label";
+import { formatPrice, planDuration, planIncludes, planName, useSubscription, type PaidPlan } from "@/lib/subscription";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { COMPANY_PAYMENT } from "@/lib/company";
+import { useSiteSettings } from "@/lib/siteSettings";
 
 type Props = {
-  label?: string;
   onSubmitted?: () => void;
 };
 
-// Pay by MoMo, then send the transaction reference. An admin confirms the
-// payment and activates the plan; until then the user sees it as pending.
-const SubscriptionPayment = ({ label, onSubmitted }: Props) => {
-  const { subscription, submitPayment, pricing } = useSubscription();
-  // the server decides the price: the first period's, or the monthly price after that
-  const price = formatPrice(pricing.nextPrice, pricing.currency);
-  const { toast } = useToast();
-  const [reference, setReference] = useState("");
-  const [sending, setSending] = useState(false);
+const MAX_SCREENSHOT = 5 * 1024 * 1024; // the payment-proofs bucket's limit
+const SCREENSHOT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
 
-  if (subscription?.payment_submitted_at) {
+// The customer pays the company Mobile Money code directly, then tells us who
+// paid and gives the transaction ID or a screenshot of the payment message.
+// Nothing is verified automatically: the report stays pending, with no access,
+// until an Isoko admin finds the money on the company account and confirms it.
+const SubscriptionPayment = ({ onSubmitted }: Props) => {
+  const { submitPayment, pricing, pendingPayment, lastRejection } = useSubscription();
+  const { toast } = useToast();
+  const company = useSiteSettings();
+  // the plans this account may choose: 7 days or a month, or the seller plan on the seller path
+  const choices = pricing.plans;
+  const [chosen, setChosen] = useState<PaidPlan>(pricing.nextPlan);
+  const plan = choices.find((p) => p.plan === chosen) ?? choices[0];
+  const price = formatPrice(plan?.price ?? pricing.nextPrice, pricing.currency);
+  const [payerName, setPayerName] = useState("");
+  const [reference, setReference] = useState("");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [sending, setSending] = useState(false);
+  // the plans arrive with the server's answer
+  useEffect(() => setChosen(pricing.nextPlan), [pricing.nextPlan]);
+
+  if (pendingPayment) {
     return (
-      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-left space-y-1">
+      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-left space-y-2" role="status">
         <p className="font-semibold flex items-center gap-2">
-          <Clock className="h-4 w-4 text-primary" /> Payment submitted — awaiting confirmation
+          <Clock className="h-4 w-4 text-primary" /> Your {formatPrice(pendingPayment.amount, pricing.currency)} payment is awaiting confirmation
         </p>
         <p className="text-muted-foreground">
-          Reference: <span className="font-mono">{subscription.payment_reference}</span>. We'll notify you once
-          it's confirmed.
+          {pendingPayment.reference ? <>Transaction ID <span className="font-mono text-foreground">{pendingPayment.reference}</span>. </> : "Screenshot received. "}
+          An Isoko admin checks it against our Mobile Money account; your {planName(pendingPayment.plan)} (
+          {planDuration(pendingPayment.plan, pricing.weekDays)}) starts once it is confirmed. We'll tell you here and by e-mail.
         </p>
       </div>
     );
   }
 
-  const handleSubmit = async () => {
-    if (!reference.trim()) {
-      toast({ title: "Payment reference required", description: "Enter the MoMo transaction ID.", variant: "destructive" });
+  const pickScreenshot = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    if (f && !SCREENSHOT_TYPES.includes(f.type)) {
+      toast({ title: "Use a photo or screenshot", description: "JPG, PNG, WEBP or HEIC.", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    if (f && f.size > MAX_SCREENSHOT) {
+      toast({ title: "The screenshot is too big", description: "Up to 5 MB.", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    setScreenshot(f);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (payerName.trim().length < 2) {
+      toast({ title: "Enter the name of the person who paid", variant: "destructive" });
+      return;
+    }
+    const hasReference = reference.replace(/[^A-Za-z0-9]/g, "").length >= 4;
+    if (!hasReference && !screenshot) {
+      toast({ title: "Add the transaction ID or a screenshot", description: "Either one is enough.", variant: "destructive" });
       return;
     }
     setSending(true);
-    const result = await submitPayment(reference.trim());
+    const result = await submitPayment({
+      plan: plan?.plan ?? pricing.nextPlan,
+      payerName: payerName.trim(),
+      reference: hasReference ? reference.trim() : undefined,
+      screenshot,
+    });
     setSending(false);
     if (result?.error) {
-      toast({ title: "Error", description: result.error.message, variant: "destructive" });
+      toast({ title: "Payment not sent", description: result.error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Payment submitted", description: "We'll activate your subscription once the payment is confirmed." });
+    toast({ title: "Payment sent", description: "It is awaiting confirmation. Access starts once an admin confirms it." });
     onSubmitted?.();
   };
 
   return (
-    <div className="space-y-3 text-left">
-      <div className="rounded-lg bg-muted/30 p-3 text-sm">
-        <p className="text-muted-foreground">Pay {price} via {COMPANY_PAYMENT.momo.label}</p>
-        <p className="font-mono font-semibold">{COMPANY_PAYMENT.momo.number}</p>
-        <p className="text-xs text-muted-foreground">Account: {COMPANY_PAYMENT.momo.name}</p>
+    <form className="space-y-4 text-left" onSubmit={handleSubmit}>
+      {choices.length > 1 ? (
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Choose your plan">
+          {choices.map((p) => (
+            <button
+              key={p.plan}
+              type="button"
+              role="radio"
+              aria-checked={p.plan === plan?.plan}
+              onClick={() => setChosen(p.plan)}
+              className={cn(
+                "rounded-lg border-2 p-3 text-left transition-colors",
+                p.plan === plan?.plan ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+              )}
+            >
+              <span className="flex items-center justify-between gap-3">
+                <span className="font-semibold">{planName(p.plan)}</span>
+                <span className="font-bold text-primary">{formatPrice(p.price, pricing.currency)}</span>
+              </span>
+              <span className="block text-xs text-muted-foreground">{planDuration(p.plan, p.days ?? pricing.weekDays)} · {planIncludes(p.plan)}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        plan && (
+          <div className="rounded-lg border-2 border-primary bg-primary/5 p-3">
+            <span className="flex items-center justify-between gap-3">
+              <span className="font-semibold">{planName(plan.plan)}</span>
+              <span className="font-bold text-primary">{price}</span>
+            </span>
+            <span className="block text-xs text-muted-foreground">{planDuration(plan.plan, plan.days ?? pricing.weekDays)} · {planIncludes(plan.plan)}</span>
+          </div>
+        )
+      )}
+
+      {lastRejection && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm" role="alert">
+          <p className="font-semibold flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-4 w-4" /> Your last payment was not confirmed
+          </p>
+          <p className="text-muted-foreground">Reason: {lastRejection.reason}. Send it again below.</p>
+        </div>
+      )}
+
+      <div className="rounded-lg bg-muted/40 p-4 text-sm space-y-1">
+        <p className="font-semibold flex items-center gap-2">
+          <Smartphone className="h-4 w-4 text-primary" /> Pay {price} to our Mobile Money
+        </p>
+        <p className="font-mono text-lg font-bold tracking-wide">{pricing.momoCode || company.momo.code}</p>
+        <p className="text-muted-foreground">{company.momo.label} · {company.momo.name}</p>
       </div>
-      <Input
-        value={reference}
-        onChange={(e) => setReference(e.target.value)}
-        placeholder="MoMo transaction ID"
-        aria-label="MoMo transaction ID"
-      />
-      <Button className="w-full gap-2" size="lg" onClick={handleSubmit} disabled={sending}>
-        <CreditCard className="h-4 w-4" />
-        {sending ? "Sending…" : label ?? `I have paid ${price}`}
+
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="sub-payer">Name of the person who paid</Label>
+          <Input id="sub-payer" autoComplete="name" value={payerName} onChange={(e) => setPayerName(e.target.value)} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="sub-ref">Transaction ID</Label>
+          <Input id="sub-ref" placeholder="From your MoMo message" value={reference} onChange={(e) => setReference(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="sub-shot">Or a screenshot of the payment</Label>
+          <input ref={fileRef} id="sub-shot" type="file" accept="image/*" className="sr-only" onChange={pickScreenshot} />
+          {screenshot ? (
+            <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+              <span className="flex min-w-0 items-center gap-2">
+                <CheckCircle className="h-4 w-4 shrink-0 text-primary" /> <span className="truncate">{screenshot.name}</span>
+              </span>
+              <Button type="button" variant="ghost" size="icon" aria-label="Remove the screenshot"
+                onClick={() => { setScreenshot(null); if (fileRef.current) fileRef.current.value = ""; }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="outline" className="w-full gap-2" onClick={() => fileRef.current?.click()}>
+              <ImagePlus className="h-4 w-4" /> Add a screenshot
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Button type="submit" className="w-full" size="lg" disabled={sending}>
+        {sending ? "Sending…" : `I have paid ${price}`}
       </Button>
-    </div>
+      <p className="text-xs text-muted-foreground">
+        Access starts once an Isoko admin confirms the payment on our Mobile Money account. We'll tell you here and by e-mail.
+      </p>
+    </form>
   );
 };
 

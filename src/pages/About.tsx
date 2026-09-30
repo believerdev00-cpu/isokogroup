@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import logo from "@/assets/isoko-logo.jpeg";
 import JourneyTimeline from "@/components/about/JourneyTimeline";
+import { telHref, useSiteSettings } from "@/lib/siteSettings";
 
 const pillars = [
   {
@@ -78,6 +79,8 @@ const values = [
 ];
 
 const About = () => {
+  // office, phones and email: Admin > Settings
+  const site = useSiteSettings();
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -224,22 +227,22 @@ const About = () => {
               <div className="rounded-xl border border-border bg-background p-6 space-y-2">
                 <MapPin className="h-5 w-5 text-primary" />
                 <p className="font-semibold">Office</p>
-                <p className="text-sm text-muted-foreground">Kimironko, KG 15 Ave (around the market), Kigali</p>
+                <p className="text-sm text-muted-foreground">{site.address}</p>
               </div>
               <div className="rounded-xl border border-border bg-background p-6 space-y-2">
                 <Phone className="h-5 w-5 text-primary" />
                 <p className="font-semibold">Phone</p>
                 <div className="flex flex-col text-sm text-muted-foreground">
-                  <a href="tel:+250788481648" className="hover:text-primary">0788 481 648</a>
-                  <a href="tel:+250793736574" className="hover:text-primary">0793 736 574</a>
-                  <a href="tel:+250790176547" className="hover:text-primary">0790 176 547</a>
+                  {site.phones.map((p) => (
+                    <a key={p} href={telHref(p)} className="hover:text-primary">{p}</a>
+                  ))}
                 </div>
               </div>
               <div className="rounded-xl border border-border bg-background p-6 space-y-2">
                 <Mail className="h-5 w-5 text-primary" />
                 <p className="font-semibold">Email</p>
-                <a href="mailto:isokogrou93@gmail.com" className="text-sm text-muted-foreground hover:text-primary break-all">
-                  isokogrou93@gmail.com
+                <a href={`mailto:${site.email}`} className="text-sm text-muted-foreground hover:text-primary break-all">
+                  {site.email}
                 </a>
               </div>
             </div>

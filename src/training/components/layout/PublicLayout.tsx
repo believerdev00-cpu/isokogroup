@@ -7,7 +7,7 @@ import { useApi } from "@/training/lib/query";
 import type { Center } from "@/training/lib/types";
 import { cn } from "@/lib/utils";
 import { IctWhatsAppFloat, ictWhatsappLink } from "@/components/IctWhatsApp";
-import { ICT_CONTACT } from "@/lib/company";
+import { localPhone, useSiteSettings } from "@/lib/siteSettings";
 import { MessageCircle } from "lucide-react";
 
 const NAV = [
@@ -26,6 +26,7 @@ export function useCenter() {
 // and footer, with the Training Center's own menu underneath the header.
 export default function PublicLayout() {
   const { user } = useAuth();
+  const { whatsappIct } = useSiteSettings();
   const { pathname } = useLocation();
 
   return (
@@ -87,7 +88,7 @@ export default function PublicLayout() {
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
               <MessageCircle className="h-4 w-4 text-[#1f9d55]" aria-hidden />
-              Questions about a program? WhatsApp us on <span className="font-semibold text-foreground">{ICT_CONTACT.display}</span>
+              Questions about a program? WhatsApp us on <span className="font-semibold text-foreground">{localPhone(whatsappIct)}</span>
             </a>
           </div>
         )}

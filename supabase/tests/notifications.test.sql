@@ -13,6 +13,13 @@ INSERT INTO auth.users (id, email, aud, role) VALUES
   ('00000000-0000-4000-8000-0000000000e3', 'nt-driver@test.local', 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000e4', 'nt-travel@test.local', 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000e5', 'nt-admin@test.local', 'authenticated', 'authenticated');
+-- The member services need a running trial or paid period
+-- (20260930100000_subscription_manual_momo.sql): the test users are in their trial
+SELECT set_config('isoko.subscription_internal', 'on', true);
+INSERT INTO public.subscriptions (user_id, status, plan, trial_started_at, trial_expires_at)
+SELECT id, 'trial', 'trial', now(), now() + interval '1 day' FROM auth.users u
+WHERE email LIKE '%@test.local' AND NOT EXISTS (SELECT 1 FROM public.subscriptions s WHERE s.user_id = u.id);
+SELECT set_config('isoko.subscription_internal', '', true);
 INSERT INTO public.user_roles (user_id, role) VALUES
   ('00000000-0000-4000-8000-0000000000e2', 'seller'),
   ('00000000-0000-4000-8000-0000000000e3', 'driver'),

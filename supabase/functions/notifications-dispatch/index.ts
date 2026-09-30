@@ -6,6 +6,11 @@
 // same message), sends them, and records the result; failures are retried with
 // growing delays, up to 5 attempts. In-app notifications don't pass through
 // here: they are written when the event happens.
+//
+// Each run first moves subscriptions along (subscription_sweep): trials and
+// paid periods that ended are marked expired, and the "ends in 2 minutes /
+// 24 hours / 1 hour" and "expired" messages are raised, so they go out in the
+// same run.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { configuredProviders, type Channel } from "./channels.ts";
 
@@ -54,6 +59,10 @@ Deno.serve(async (req) => {
   if (!isServiceRole(req)) return reply(403, { error: "Forbidden" });
 
   const counts: Record<string, number> = {};
+  // A failed sweep must not stop the messages already waiting
+  const { data: moved, error: sweepError } = await admin.rpc("subscription_sweep");
+  if (sweepError) console.error(`notifications-dispatch: subscription sweep failed: ${sweepError.message}`);
+  else counts.subscriptions_moved = Number(moved ?? 0);
   const templates = await providerTemplates();
   for (let batch = 0; batch < MAX_BATCHES; batch++) {
     const { data, error } = await admin.rpc("notification_claim", { p_limit: BATCH });

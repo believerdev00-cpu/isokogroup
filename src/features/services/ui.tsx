@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MobileMoneyPay, useMobileMoneyAvailable, type MobileMoneyTarget } from "@/features/finance/MobileMoneyPay";
-import { COMPANY_PAYMENT } from "@/lib/company";
+import { useSiteSettings } from "@/lib/siteSettings";
 import { cn } from "@/lib/utils";
 import { errorText, formatMoney, whatsappLink, type ServiceKey } from "./api";
 
@@ -335,6 +335,7 @@ export function PaymentBox({
   onPaid?: () => void;
 }) {
   const remaining = Math.max(total - paid, 0);
+  const company = useSiteSettings();
   const phoneAvailable = useMobileMoneyAvailable(currency) && Boolean(mobileMoney);
   const [open, setOpen] = useState(false);
   const [method, setMethod] = useState<"phone" | "momo" | "bank">("momo");
@@ -416,14 +417,14 @@ export function PaymentBox({
           <div className="rounded-xl bg-muted/60 p-4 text-sm">
             {method === "momo" ? (
               <>
-                <p className="font-semibold">{COMPANY_PAYMENT.momo.label}</p>
-                <p>Pay to <span className="font-semibold">{COMPANY_PAYMENT.momo.name}</span>: <span className="font-mono">{COMPANY_PAYMENT.momo.number}</span></p>
+                <p className="font-semibold">{company.momo.label}</p>
+                <p>Pay to <span className="font-semibold">{company.momo.name}</span>: <span className="font-mono">{company.momo.code}</span></p>
               </>
             ) : (
               <>
-                <p className="font-semibold">{COMPANY_PAYMENT.bank.bank}</p>
-                <p>{COMPANY_PAYMENT.bank.name} · <span className="font-mono">{COMPANY_PAYMENT.bank.account}</span></p>
-                {COMPANY_PAYMENT.bank.swift && <p>SWIFT: <span className="font-mono">{COMPANY_PAYMENT.bank.swift}</span></p>}
+                <p className="font-semibold">{company.bank.name}</p>
+                <p>{company.bank.accountName} · <span className="font-mono">{company.bank.accountNumber}</span></p>
+                {company.bank.swift && <p>SWIFT: <span className="font-mono">{company.bank.swift}</span></p>}
               </>
             )}
             <p className="mt-2 text-muted-foreground">Use <span className="font-mono font-semibold text-foreground">{reference}</span> as the payment reference.</p>
