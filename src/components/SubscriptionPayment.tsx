@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle, Clock, ImagePlus, Smartphone, X } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { formatPrice, planDuration, planIncludes, planName, useSubscription, typ
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/lib/siteSettings";
+import PayToCompany from "@/components/PayToCompany";
 import { trackEvent } from "@/lib/analytics";
 
 type Props = {
@@ -141,13 +142,8 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
         </div>
       )}
 
-      <div className="rounded-lg bg-muted/40 p-4 text-sm space-y-1">
-        <p className="font-semibold flex items-center gap-2">
-          <Smartphone className="h-4 w-4 text-primary" /> Pay {price} to our Mobile Money
-        </p>
-        <p className="font-mono text-lg font-bold tracking-wide">{pricing.momoCode || company.momo.code}</p>
-        <p className="text-muted-foreground">{company.momo.label} · {company.momo.name}</p>
-      </div>
+      {/* Tap the code to dial it, or copy it; people abroad or without Mobile Money transfer to the bank account */}
+      <PayToCompany code={pricing.momoCode || company.momo.code} amount={price} />
 
       <div className="space-y-3">
         <div className="space-y-1.5">
@@ -156,7 +152,7 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="sub-ref">Transaction ID</Label>
-          <Input id="sub-ref" placeholder="From your MoMo message" value={reference} onChange={(e) => setReference(e.target.value)} />
+          <Input id="sub-ref" placeholder="From your MoMo message or bank transfer receipt" value={reference} onChange={(e) => setReference(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="sub-shot">Or a screenshot of the payment</Label>

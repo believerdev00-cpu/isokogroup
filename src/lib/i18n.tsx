@@ -319,6 +319,20 @@ export const translations: Record<string, Partial<Record<Lang, string>>> = {
   "consent.text": { en: "With your permission, Isoko uses Google's tag to show you relevant Isoko ads later and to count visits. You can decline; the website works the same.", rw: "Niba ubyemeye, Isoko ikoresha ikimenyetso cya Google kugira ngo ikwereke amatangazo ya Isoko akwiriye nyuma no kubara abasura. Ushobora kubyanga; urubuga rukora kimwe.", sw: "Kwa ruhusa yako, Isoko hutumia lebo ya Google kukuonyesha matangazo ya Isoko yanayokufaa baadaye na kuhesabu ziara. Unaweza kukataa; tovuti inafanya kazi vilevile.", fr: "Avec votre accord, Isoko utilise la balise Google pour vous montrer plus tard des annonces Isoko pertinentes et compter les visites. Vous pouvez refuser ; le site fonctionne de la même façon.", zh: "经您同意，Isoko 使用 Google 代码在之后向您展示相关的 Isoko 广告并统计访问量。您可以拒绝，网站功能不受影响。" },
   "consent.accept": { en: "Accept", rw: "Emera", sw: "Kubali", fr: "Accepter", zh: "接受" },
   "consent.decline": { en: "Decline", rw: "Anga", sw: "Kataa", fr: "Refuser", zh: "拒绝" },
+
+  // Paying the company: the Mobile Money code (tap to dial) and the bank account
+  "pay.momoTitle": { en: "Pay to our Mobile Money", rw: "Ishyura kuri Mobile Money yacu", sw: "Lipa kwa Mobile Money yetu", fr: "Payez sur notre Mobile Money", zh: "支付到我们的 Mobile Money" },
+  "pay.momoTitleAmount": { en: "Pay {amount} to our Mobile Money", rw: "Ishyura {amount} kuri Mobile Money yacu", sw: "Lipa {amount} kwa Mobile Money yetu", fr: "Payez {amount} sur notre Mobile Money", zh: "向我们的 Mobile Money 支付 {amount}" },
+  "pay.tapToDial": { en: "Tap the code to dial it", rw: "Kanda kode uyihamagare", sw: "Gusa msimbo ili kuupiga", fr: "Touchez le code pour le composer", zh: "点击代码即可拨号" },
+  "pay.copy": { en: "Copy", rw: "Koporora", sw: "Nakili", fr: "Copier", zh: "复制" },
+  "pay.copied": { en: "Copied", rw: "Byakoporowe", sw: "Imenakiliwa", fr: "Copié", zh: "已复制" },
+  "pay.bankTitle": { en: "Outside Rwanda or no Mobile Money? Bank transfer", rw: "Uri hanze y'u Rwanda cyangwa nta Mobile Money ufite? Ohereza kuri banki", sw: "Uko nje ya Rwanda au huna Mobile Money? Hamisho la benki", fr: "Hors du Rwanda ou sans Mobile Money ? Virement bancaire", zh: "在卢旺达境外或没有 Mobile Money？银行转账" },
+  "pay.bankHint": { en: "Transfer to the company account below, then enter the transfer reference or upload the receipt.", rw: "Ohereza kuri konti ya kompanyi iri hano, hanyuma wandike nimero y'ikohereza cyangwa wohereze inyemezabwishyu.", sw: "Hamisha kwenye akaunti ya kampuni hapa chini, kisha andika kumbukumbu ya hamisho au pakia risiti.", fr: "Virez sur le compte de la société ci-dessous, puis indiquez la référence du virement ou envoyez le reçu.", zh: "转账到下方公司账户，然后填写转账参考号或上传收据。" },
+  "pay.bank": { en: "Bank", rw: "Banki", sw: "Benki", fr: "Banque", zh: "银行" },
+  "pay.accountNumber": { en: "Account number", rw: "Nimero ya konti", sw: "Namba ya akaunti", fr: "Numéro de compte", zh: "账号" },
+  "pay.accountName": { en: "Account name", rw: "Izina rya konti", sw: "Jina la akaunti", fr: "Nom du compte", zh: "账户名称" },
+  "pay.swift": { en: "SWIFT / BIC", rw: "SWIFT / BIC", sw: "SWIFT / BIC", fr: "SWIFT / BIC", zh: "SWIFT / BIC" },
+  "pay.reference": { en: "Use {reference} as the payment reference.", rw: "Koresha {reference} nk'ikimenyetso cy'ubwishyu.", sw: "Tumia {reference} kama kumbukumbu ya malipo.", fr: "Indiquez {reference} comme référence du paiement.", zh: "请使用 {reference} 作为付款参考号。" },
 };
 
 export type TranslateVars = Record<string, string | number>;

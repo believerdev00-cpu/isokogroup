@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/lib/siteSettings";
+import { MomoCodeLink } from "@/components/PayToCompany";
 
 type CartRow = {
   id: string;
@@ -213,7 +214,7 @@ const Cart = () => {
                 {paymentMethod === "momo" && (
                   <>
                     <p className="font-semibold">{company.momo.label}</p>
-                    <p>Send to: <span className="font-mono text-primary">{company.momo.code}</span></p>
+                    <p>Send to: <MomoCodeLink code={company.momo.code} /></p>
                     <p>Name: {company.momo.name}</p>
                     <p className="text-muted-foreground">Use your Order ID as the reference.</p>
                   </>

@@ -134,5 +134,18 @@ export const telHref = (phone: string) => {
   return `tel:${digits.startsWith("0") ? `+250${digits.slice(1)}` : digits}`;
 };
 
+/**
+ * Dialer link for the company Mobile Money code ("*182*8*1*871951#"): tapping
+ * it opens the phone app with the code filled in, as the phone numbers in the
+ * footer do. "#" must be written %23 in a link. A plain number is a tel: link.
+ * (iPhones refuse to dial codes with * and # from a link; the pages offer a
+ * Copy button next to it for them.)
+ */
+export const ussdHref = (code: string) => {
+  const value = code.trim();
+  if (!/[*#]/.test(value)) return telHref(value);
+  return `tel:${value.replace(/[^\d*#+]/g, "").replace(/#/g, "%23")}`;
+};
+
 export const mapEmbedUrl = (query: string) => `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
 export const mapLinkUrl = (query: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;

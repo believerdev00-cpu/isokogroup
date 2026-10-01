@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MobileMoneyPay, useMobileMoneyAvailable, type MobileMoneyTarget } from "@/features/finance/MobileMoneyPay";
 import { useSiteSettings } from "@/lib/siteSettings";
+import { MomoCodeLink } from "@/components/PayToCompany";
 import { cn } from "@/lib/utils";
 import { errorText, formatMoney, whatsappLink, type ServiceKey } from "./api";
 
@@ -418,7 +419,7 @@ export function PaymentBox({
             {method === "momo" ? (
               <>
                 <p className="font-semibold">{company.momo.label}</p>
-                <p>Pay to <span className="font-semibold">{company.momo.name}</span>: <span className="font-mono">{company.momo.code}</span></p>
+                <p>Pay to <span className="font-semibold">{company.momo.name}</span>: <MomoCodeLink code={company.momo.code} /></p>
               </>
             ) : (
               <>

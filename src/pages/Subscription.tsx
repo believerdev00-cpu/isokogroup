@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import SubscriptionPayment from "@/components/SubscriptionPayment";
 import TrialCountdown from "@/components/TrialCountdown";
 import { cn } from "@/lib/utils";
+import PayToCompany, { MomoCodeLink } from "@/components/PayToCompany";
 
 const PLANS: Plan[] = ["trial", "week", "monthly", "seller"];
 
@@ -85,7 +86,7 @@ const Subscription = () => {
             <h1 className="text-3xl font-display font-bold">Subscription</h1>
             <p className="text-muted-foreground">
               Free for {formatTrial(pricing.trialMinutes)}, then {week} for 7 days or {monthly} for a month of full access.
-              Sellers pay {seller} a month, which includes everything. Pay by Mobile Money to {pricing.momoCode}.
+              Sellers pay {seller} a month, which includes everything. Pay by Mobile Money to <MomoCodeLink code={pricing.momoCode} />, or by bank transfer.
             </p>
           </div>
 
@@ -123,9 +124,10 @@ const Subscription = () => {
             <Card>
               <CardContent className="pt-6 space-y-3 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Pay {formatPrice(offer.nextPrice, offer.currency)} to <span className="font-mono font-semibold text-foreground">{pricing.momoCode}</span>,
-                  then sign in and send us the transaction ID. Your access starts once an Isoko admin confirms the payment.
+                  Pay {formatPrice(offer.nextPrice, offer.currency)} by Mobile Money or bank transfer, then sign in and send us the transaction ID or a receipt.
+                  Your access starts once an Isoko admin confirms the payment.
                 </p>
+                <PayToCompany code={pricing.momoCode} amount={formatPrice(offer.nextPrice, offer.currency)} className="text-left" />
                 <Button asChild size="lg" className="w-full sm:w-auto">
                   <Link to="/login" state={{ from: "/subscription" }}>Sign in to send your payment details</Link>
                 </Button>

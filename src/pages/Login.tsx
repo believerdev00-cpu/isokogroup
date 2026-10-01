@@ -15,6 +15,7 @@ import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/subscription";
 import { useSiteSettings } from "@/lib/siteSettings";
+import { MomoCodeLink } from "@/components/PayToCompany";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/isoko-logo.jpeg";
@@ -269,7 +270,7 @@ const Login = () => {
                   {registerAs === "seller" ? (
                     <p className="text-xs text-muted-foreground text-center">
                       After confirming your email you fill in the seller application and pay the seller subscription, {formatPrice(sellerMonthlyPrice)} a month, to our Mobile Money
-                      code <span className="font-mono">{momo.code}</span>. Your seller account opens once an Isoko admin confirms the payment; it
+                      code <MomoCodeLink code={momo.code} /> (or by bank transfer). Your seller account opens once an Isoko admin confirms the payment; it
                       includes everything a normal user gets, so you don't pay the 50 or 200 RWF subscription.
                     </p>
                   ) : (
