@@ -1,4 +1,6 @@
 // Senders for the notification channels. Configured per channel with
+//   EMAIL_PROVIDER=resend with RESEND_API_KEY and EMAIL_FROM (see resend.ts):
+//     the company's sender, Isoko Groups <noreply@isokogroups.com>
 //   EMAIL_PROVIDER=smtp with SMTP_HOST, SMTP_PORT (465), SMTP_SECURE (true),
 //     SMTP_USER, SMTP_PASSWORD and EMAIL_FROM: any mail server or email service
 //     that accepts SMTP (the Training Center's mailbox, for example)
@@ -10,6 +12,7 @@
 import nodemailer from "npm:nodemailer@10.0.10";
 import { mocksAllowed } from "../_shared/environment.ts";
 import { twilioProvider } from "./twilio.ts";
+import { resendProvider } from "./resend.ts";
 
 export type Channel = "email" | "whatsapp" | "sms";
 
@@ -107,6 +110,7 @@ export function configuredProviders(env: Env) {
       // a mock would mark messages sent that nobody received
       providers.set(channel, mocksAllowed(env) ? mockProvider() : `The mock ${channel} provider is for local development only`);
     }
+    else if (name === "resend" && channel === "email") providers.set(channel, resendProvider(env));
     else if (name === "smtp" && channel === "email") providers.set(channel, smtpProvider(env));
     else if (name === "twilio" && channel !== "email") providers.set(channel, twilioProvider(env, channel));
     else providers.set(channel, `The ${channel} provider "${name}" is not supported yet`);

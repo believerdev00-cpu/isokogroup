@@ -1,7 +1,7 @@
 # Authentication emails through Resend
 
 Confirm-your-email and reset-your-password messages for isokogroups.com, sent
-from **Isoko Groups <no-reply@isokogroups.com>** through Resend.
+from **Isoko Groups <noreply@isokogroups.com>** through Resend.
 
 ## Why the register page says "email rate limit exceeded"
 
@@ -48,39 +48,39 @@ and 200 RWF subscriptions, approvals or payments is touched by any of this.
    "Sending access", restricted to the domain if you like. Copy it once: it
    is a password, shown only at creation.
 
-## 2. AfriRegister: adding the DNS records
+## 2. The DNS records (they live in Vercel, not at AfriRegister)
 
-1. Sign in to the AfriRegister client area, open **Domains** (or "My
-   Domains"), choose `isokogroups.com` and open its **DNS management** (the
-   menu is named "Manage DNS", "DNS Management" or "Zone Editor" depending on
-   the panel version). If the domain's name servers point somewhere else
-   (for example to a hosting provider or Cloudflare), the records go in that
-   provider's DNS panel instead: the name servers decide who answers.
-2. Before adding anything, read the records already there and note:
-   - every `TXT` record on the root (`@` or `isokogroups.com`) whose value
-     starts with `v=spf1`. A domain may have **only one** SPF record on a
-     host; two of them make SPF fail for everyone. Resend's SPF goes on
-     `send`, so a root SPF is normally left alone. If Resend ever asks for
-     an SPF on the root as well, merge it into the existing record (one
-     `v=spf1 ... ~all` line with both `include:` parts) rather than adding a
-     second one;
-   - whether `_dmarc` and `resend._domainkey` already exist (they should
-     not; if they do, send me what is there before changing them);
-   - the existing `MX` records on the root. Leave them: they are your
-     incoming mail. Resend's `MX` is on `send`, not on the root.
-3. Add each record from the Resend page:
-   - **Host / Name**: what Resend shows, without the domain if the panel adds
-     it for you (`resend._domainkey`, `send`, `_dmarc`). Some panels want the
-     full name (`resend._domainkey.isokogroups.com`); the panel's existing
-     records show which style it uses.
-   - **Type**: `TXT` or `MX` as shown.
-   - **Value**: pasted exactly. For the `MX`, the priority Resend shows (for
-     example 10).
-   - **TTL**: the default is fine.
-4. Do not delete or edit any other record, in particular the `A`/`CNAME`
-   records that point the website at Vercel and the root `MX` records.
-5. Back in Resend, press **Verify DNS Records**. Propagation usually takes
-   minutes, sometimes a few hours. The domain shows **Verified** when done.
+AfriRegister is the registrar, but the domain's name servers are
+`ns1.vercel-dns.com` and `ns2.vercel-dns.com`, so Vercel answers every DNS
+query for isokogroups.com. DNS records are managed in Vercel (team
+`isoko-groups` > Domains > isokogroups.com > DNS Records, or
+`vercel dns ls isokogroups.com`), and a record added at AfriRegister would have
+no effect.
+
+The Resend records were added there on 2026-10-01 and the domain shows
+**Verified** in Resend:
+
+| Host | Type | Value | TTL |
+| --- | --- | --- | --- |
+| `@` | TXT | `resend-domain-verification=…` (from Resend) | 60 |
+| `resend._domainkey` | TXT | `p=…` (the DKIM key from Resend) | 60 |
+| `send` | MX | `feedback-smtp.eu-west-1.amazonses.com`, priority 10 | 60 |
+| `send` | TXT | `v=spf1 include:amazonses.com ~all` | 60 |
+
+What was there before stays as it was: the Google site-verification TXT on
+the root, Vercel's default CAA records, and the ALIAS records that point the
+website at Vercel. Notes for later changes:
+
+- There is still **no DMARC** record (`_dmarc`). Resend recommends one;
+  `v=DMARC1; p=none;` is the safe start (report only). Add it in the Vercel
+  zone when you decide to.
+- There is **no MX record on the root**, so no mailbox receives mail at
+  isokogroups.com addresses. Sending from `noreply@` does not need one. If
+  staff should read mail at an isokogroups.com address, that needs a mail
+  provider and its own records, separate from Resend.
+- Resend's SPF is on the `send` subdomain. If an SPF record is ever added on
+  the root for another sender, keep it to **one** `v=spf1` record per host;
+  two make SPF fail.
 
 ## 3. Supabase: custom SMTP
 
@@ -90,14 +90,14 @@ Dashboard > project `oswetaksxcepublsjyrt` > **Authentication > SMTP Settings**
 | Setting | Value |
 | --- | --- |
 | Enable Custom SMTP | on |
-| Sender email | `no-reply@isokogroups.com` |
+| Sender email | `noreply@isokogroups.com` |
 | Sender name | `Isoko Groups` |
 | Host | `smtp.resend.com` |
 | Port number | `465` |
 | Username | `resend` |
 | Password | the Resend API key from step 1.3 |
 
-Save. The sender domain must be the verified one; `no-reply@` needs no
+Save. The sender domain must be the verified one; `noreply@` needs no
 mailbox, Resend accepts any address on the domain.
 
 Then:
@@ -121,7 +121,7 @@ Center mail) is separate and already configured through `EMAIL_PROVIDER=smtp`
 and the `SMTP_*` secrets (docs/DEPLOYMENT.md, step 2). The same Resend key can
 be their `SMTP_PASSWORD`, with `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`,
 `SMTP_SECURE=true`, `SMTP_USER=resend`,
-`EMAIL_FROM="Isoko Groups <no-reply@isokogroups.com>"`.
+`EMAIL_FROM="Isoko Groups <noreply@isokogroups.com>"`.
 
 ## 4. Environment variables
 
@@ -143,7 +143,7 @@ Use a mailbox you can read for each test.
 
 1. **Register**: on `/login` > Register, create an account. The page says
    "Account created. We sent a confirmation link…". The email arrives from
-   Isoko Groups <no-reply@isokogroups.com>; check that it is not in spam, and
+   Isoko Groups <noreply@isokogroups.com>; check that it is not in spam, and
    that the message headers show `dkim=pass` and `spf=pass` (Gmail: "Show
    original").
 2. **Confirm**: open the link. It lands on the site, signed in. A seller
@@ -166,8 +166,8 @@ Use a mailbox you can read for each test.
 ## 6. Production checklist
 
 - [ ] isokogroups.com shows **Verified** in Resend
-- [ ] Only one SPF record per host at AfriRegister; root `MX` and Vercel records untouched
-- [ ] Supabase SMTP Settings saved with `smtp.resend.com`, port 465, user `resend`, sender `no-reply@isokogroups.com`, name `Isoko Groups`
+- [ ] DNS records in the Vercel zone, domain Verified in Resend; only one SPF record per host
+- [ ] Supabase SMTP Settings saved with `smtp.resend.com`, port 465, user `resend`, sender `noreply@isokogroups.com`, name `Isoko Groups`
 - [ ] Rate limit for sending emails raised; Confirm email still on
 - [ ] Site URL and Redirect URLs set
 - [ ] Website deployed (the message and double-request changes)

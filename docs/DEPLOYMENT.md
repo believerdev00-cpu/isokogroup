@@ -72,20 +72,26 @@ the cause (usually data that breaks a new rule, found by the rehearsal), and run
 supabase secrets set \
   SITE_ORIGINS="https://isokogroups.com,https://www.isokogroups.com" \
   PUBLIC_SITE_URL="https://isokogroups.com" \
-  EMAIL_PROVIDER=smtp \
-  EMAIL_FROM="Isoko <no-reply@isokogroups.com>" \
-  SMTP_HOST=... SMTP_PORT=465 SMTP_SECURE=true SMTP_USER=... SMTP_PASSWORD=...
+  EMAIL_PROVIDER=resend \
+  RESEND_API_KEY=<the Resend API key, typed here only> \
+  EMAIL_FROM="Isoko Groups <noreply@isokogroups.com>"
 ```
 
 - `SITE_ORIGINS` and `PUBLIC_SITE_URL` are required: the Training Center API
   refuses to start without them.
-- The SMTP settings are the ones the Training Center used before (its API no
-  longer sends email itself). Port 465 with `SMTP_SECURE=true`: Supabase blocks
-  outgoing ports 25 and 587.
-- **Email with Resend:** verify your domain in Resend (it shows the DNS records
-  to add), create an API key, then `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=465`,
-  `SMTP_SECURE=true`, `SMTP_USER=resend`, `SMTP_PASSWORD=<the API key>`,
-  `EMAIL_FROM="Isoko <no-reply@isokogroups.com>"` (the domain verified in Resend).
+- **Email with Resend** (the company sender): `isokogroups.com` is verified in
+  Resend (its DNS records are in the Vercel DNS zone, see
+  [AUTH_EMAIL.md](AUTH_EMAIL.md)). `RESEND_API_KEY` is an API key with
+  "Sending access" (Resend > API Keys). It lives only in Supabase's function
+  secrets: not in Vercel (the website sends no email), not in `.env`, not in
+  git. The sender can be any address on the verified domain; `noreply@` needs
+  no mailbox. After setting the secrets, deploy `notifications-dispatch`
+  again (step 3) so it picks them up, and send one test with
+  `RESEND_API_KEY=... node supabase/tests/resend-smoke.mjs you@example.com`.
+- **Email by SMTP** instead: `EMAIL_PROVIDER=smtp` with `SMTP_HOST`,
+  `SMTP_PORT=465`, `SMTP_SECURE=true`, `SMTP_USER`, `SMTP_PASSWORD` and
+  `EMAIL_FROM` (the Training Center's mailbox, for example; its API no longer
+  sends email itself). Port 465: Supabase blocks outgoing ports 25 and 587.
 - **WhatsApp (and SMS) with Twilio:** `WHATSAPP_PROVIDER=twilio`,
   `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (Twilio Console > Account info; a
   password, only here), `TWILIO_WHATSAPP_FROM`. To test first, use Twilio's
