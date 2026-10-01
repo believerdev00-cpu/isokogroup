@@ -156,6 +156,8 @@ const translations: Record<string, Partial<Record<Lang, string>>> = {
   "auth.sendLink": { en: "Send reset link", rw: "Ohereza link" },
   "auth.linkSent": { en: "If an account uses this email, a reset link is on its way. It works once and expires in 1 hour. Check your spam folder too.", rw: "Niba hari konti ikoresha iyi meri, link iraje. Ikora rimwe gusa kandi ita agaciro nyuma y'isaha 1. Reba no muri spam." },
   "auth.tooMany": { en: "Too many requests. Wait a minute and try again.", rw: "Wasabye kenshi. Tegereza umunota umwe wongere ugerageze." },
+  "auth.emailRateLimit": { en: "Too many email requests were made. Please wait a moment and try again.", rw: "Hasabwe imeri nyinshi icyarimwe. Nyamuneka tegereza gato wongere ugerageze." },
+  "auth.resendIn": { en: "Send the link again in {s}s", rw: "Ohereza link nanone mu masegonda {s}" },
   "auth.backToLogin": { en: "Back to login", rw: "Subira ku kwinjira" },
   "auth.newPassword": { en: "New password", rw: "Ijambo ry'ibanga rishya" },
   "auth.confirmPassword": { en: "Repeat new password", rw: "Subiramo ijambo ry'ibanga rishya" },

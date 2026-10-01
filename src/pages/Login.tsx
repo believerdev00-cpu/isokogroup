@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MailCheck, ShoppingBag, Store } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/lib/auth";
+import { authErrorMessage, isEmailRateLimit, useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/lib/subscription";
@@ -20,6 +20,9 @@ import logo from "@/assets/isoko-logo.jpeg";
 
 // A confirmation link is on its way (just registered), or is still needed (tried to log in unconfirmed)
 type Notice = { kind: "sent" | "unconfirmed"; email: string };
+
+// Supabase Auth sends one email per address per minute at most; the button waits as long
+const RESEND_COOLDOWN_S = 60;
 
 const Login = () => {
   const { user, loading: authLoading, signIn, signUp, resendConfirmation } = useAuth();
@@ -36,6 +39,16 @@ const Login = () => {
   // Register as a normal user / buyer (as before), or as a seller (pays the seller registration fee)
   const [registerAs, setRegisterAs] = useState<"buyer" | "seller">("buyer");
   const { sellerMonthlyPrice, momo } = useSiteSettings();
+  // One request at a time: a second click or Enter while one is running does nothing
+  const inFlight = useRef(false);
+  // Seconds until the confirmation link can be sent again
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = window.setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [resendIn]);
 
   // Signed in (just now, or already when they opened this page): once this account's
   // subscription is known, go where they were heading, or to Subscription if they
@@ -53,16 +66,19 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     setLoading(true);
     const form = new FormData(e.currentTarget);
     const email = (form.get("email") as string).trim();
     const { error } = await signIn(email, form.get("password") as string);
+    inFlight.current = false;
     setLoading(false);
     if (error) {
       if (/email not confirmed/i.test(error.message)) {
         setNotice({ kind: "unconfirmed", email });
       } else {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+        toast({ title: "Error", description: authErrorMessage(error), variant: "destructive" });
       }
     } else {
       setNotice(null);
@@ -73,6 +89,8 @@ const Login = () => {
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     const formEl = e.currentTarget;
     setLoading(true);
     const form = new FormData(formEl);
@@ -83,9 +101,15 @@ const Login = () => {
       (form.get("fullname") as string).trim(),
       registerAs,
     );
+    inFlight.current = false;
     setLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      // Auth's email limit: the account may exist already, so offer the "send again" link, with a wait
+      toast({ title: isEmailRateLimit(error) ? "Please wait a moment" : "Error", description: authErrorMessage(error), variant: "destructive" });
+      if (isEmailRateLimit(error)) {
+        setNotice({ kind: "unconfirmed", email });
+        setResendIn(RESEND_COOLDOWN_S);
+      }
     } else if (alreadyRegistered) {
       toast({
         title: "You already have an account",
@@ -95,16 +119,21 @@ const Login = () => {
     } else {
       formEl.reset();
       setNotice({ kind: "sent", email });
+      setResendIn(RESEND_COOLDOWN_S);
       setTab("login");
     }
   };
 
   const handleResend = async () => {
-    if (!notice) return;
+    if (!notice || inFlight.current || resendIn > 0) return;
+    inFlight.current = true;
     setLoading(true);
     const { error } = await resendConfirmation(notice.email);
+    inFlight.current = false;
     setLoading(false);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    // Either way, wait before the next one: Auth sends at most one email a minute per address
+    setResendIn(RESEND_COOLDOWN_S);
+    if (error) toast({ title: isEmailRateLimit(error) ? "Please wait a moment" : "Error", description: authErrorMessage(error), variant: "destructive" });
     else toast({ title: "Sent", description: `We sent a new confirmation link to ${notice.email}.` });
   };
 
@@ -154,9 +183,10 @@ const Login = () => {
                   {notice.kind === "sent" ? "Account created. We sent a confirmation link to " : "Please confirm your email first. We sent a link to "}
                   <strong className="break-all">{notice.email}</strong>. Open it, then log in here.
                 </p>
-                <button type="button" onClick={handleResend} disabled={loading} className="font-semibold text-primary hover:underline disabled:opacity-50">
-                  Didn't get it? Send the link again
+                <button type="button" onClick={handleResend} disabled={loading || resendIn > 0} className="font-semibold text-primary hover:underline disabled:opacity-50 disabled:no-underline">
+                  {resendIn > 0 ? t("auth.resendIn").replace("{s}", String(resendIn)) : "Didn't get it? Send the link again"}
                 </button>
+                <p className="text-xs text-muted-foreground">Check your spam folder too. The email comes from Isoko Groups.</p>
               </div>
             </div>
           )}

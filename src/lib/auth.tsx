@@ -16,6 +16,23 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
+/** Supabase Auth refused to send another email for now (its email rate limit, HTTP 429). */
+export const isEmailRateLimit = (error: { status?: number; code?: string; message?: string } | null | undefined) =>
+  !!error &&
+  (error.code === "over_email_send_rate_limit" ||
+    error.code === "over_request_rate_limit" ||
+    error.status === 429 ||
+    /rate limit/i.test(error.message ?? ""));
+
+/**
+ * What to show a person for an Auth error: a plain sentence for the email rate
+ * limit, otherwise Supabase's message (never a stack trace or anything internal).
+ */
+export const authErrorMessage = (error: { status?: number; code?: string; message?: string } | null | undefined) =>
+  isEmailRateLimit(error)
+    ? "Too many email requests were made. Please wait a moment and try again."
+    : error?.message || "Something went wrong. Please try again.";
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
