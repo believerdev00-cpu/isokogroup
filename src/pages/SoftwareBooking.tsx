@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import AccountRequired from "@/components/AccountRequired";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Info } from "lucide-react";
 
@@ -31,7 +32,7 @@ const schema = z.object({
 
 const SoftwareBooking = () => {
   const [params] = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -65,7 +66,7 @@ const SoftwareBooking = () => {
     setSubmitting(true);
     const payload: any = {
       ...parsed.data,
-      user_id: user?.id ?? null,
+      user_id: user!.id,
       preferred_deadline: parsed.data.preferred_deadline || null,
       consultation_date: parsed.data.consultation_date || null,
       budget_range: parsed.data.budget_range || null,
@@ -92,7 +93,9 @@ const SoftwareBooking = () => {
 
           <IctWhatsAppNotice topic="a software project" className="mb-8" />
 
-          {submitted ? (
+          {authLoading ? null : !user ? (
+            <AccountRequired service="Software" />
+          ) : submitted ? (
             <div className="max-w-xl mx-auto rounded-xl border border-primary/30 bg-primary/5 p-8 text-center">
               <CheckCircle2 className="h-12 w-12 text-primary mx-auto mb-3" />
               <h2 className="text-2xl font-display font-bold">Booking submitted successfully!</h2>

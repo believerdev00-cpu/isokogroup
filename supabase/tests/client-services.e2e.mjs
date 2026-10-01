@@ -60,14 +60,16 @@ async function staffOpen(client, path) {
 }
 
 console.log("Travel Agency");
-const traveler = anon();
+// Sending a request needs an account (20261002120000_requests_require_account.sql)
+await fails(anon().rpc("travel_request_trip", { p: { arrival_date: inDays(10), departure_date: inDays(12), travelers: 1, needs: ["hotel"], name: "A", phone: "1", email: "a@b.co" } }), /permission denied/, "a visitor without an account can't request a trip");
+const traveler = (await person("traveler")).client;
 await fails(traveler.rpc("travel_request_trip", { p: { arrival_date: inDays(-2), departure_date: inDays(3), travelers: 2, needs: ["hotel"], name: "A", phone: "1", email: "a@b.co" } }), /past/, "past arrival refused");
 const trip = must(await traveler.rpc("travel_request_trip", { p: {
   travelling_from: "Dubai", arrival_date: inDays(0), departure_date: inDays(7), travelers: 2,
   needs: ["airport_pickup", "hotel", "transport", "activities", "airport_dropoff"], name: `John Doe ${run}`, phone: "+971500000000", email: `john-${run}@example.com`,
 } }), "request trip");
-assert.match(trip.reference, /^ISO-TRIP-\d{5}$/); ok(`trip requested without an account (${trip.reference})`);
-assert.equal((must(await traveler.from("travel_trips").select("id"), "anon select")).length, 0); ok("anonymous visitors can't list trips");
+assert.match(trip.reference, /^ISO-TRIP-\d{5}$/); ok(`trip requested by a signed-in customer (${trip.reference})`);
+assert.equal((must(await anon().from("travel_trips").select("id"), "anon select")).length, 0); ok("anonymous visitors can't list trips");
 
 const travelStaff = await person("travel", "travel_staff");
 const consultant = await person("consultant", "consultancy_staff");
@@ -141,7 +143,8 @@ assert.equal(await clientDownload(traveler, "travel", trip.token, docPath), null
 assert.equal(await clientDownload(traveler, "travel", newToken, docPath), "hello"); ok("the new link reaches the same files");
 
 console.log("Consultancy");
-const client = anon();
+await fails(anon().rpc("consult_submit_request", { p: { service: "operations", description: "x", name: "A", phone: "1", email: "a@b.co" } }), /permission denied/, "a visitor without an account can't request consultancy");
+const client = (await person("client")).client;
 await fails(client.rpc("consult_submit_request", { p: { service: "investment", description: "x", name: "A", phone: "1", email: "a@b.co" } }), /help with/, "a switched-off service can't be requested");
 const con = must(await client.rpc("consult_submit_request", { p: { service: "operations", description: "We need help improving our business operations.", name: "Alice", organization: `ABC ${run}`, phone: "+250788111111", email: `alice-${run}@abc.rw` } }), "consult request");
 ok(`consultancy request (${con.reference})`);

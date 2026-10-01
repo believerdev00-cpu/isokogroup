@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Film } from "lucide-react";
 import { db } from "@/features/services/api";
+import { useI18n } from "@/lib/i18n";
 import { PageLoading } from "@/features/services/ui";
 import {
   ENT, linkFor, onlyPublic, trending, useBySlug, useCategories, useChildren, useTitles, type Credit, type Title,
@@ -100,6 +101,7 @@ export function FilmsPage() {
 }
 
 export function FilmDetail() {
+  const { t: tr } = useI18n();
   const { slug } = useParams();
   const film = useBySlug<Title>("ent_titles", slug);
   const credits = useChildren<Credit>("ent_credits", "title_id", film.data?.id);
@@ -166,7 +168,8 @@ export function FilmDetail() {
         </Row>
       )}
       <div className="mt-10 px-4 md:px-10">
-        <Link to={`${ENT}/films`} className="text-sm font-semibold text-neutral-400 hover:text-white">← All films</Link>
+        <Link to={`${ENT}/film/movies`} className="text-sm font-semibold text-neutral-400 hover:text-white">← {tr("ent.allMovies")}</Link>
+        <Link to={`${ENT}/film`} className="ml-4 text-sm font-semibold text-neutral-400 hover:text-white">{tr("ent.backToFilm")}</Link>
       </div>
     </>
   );

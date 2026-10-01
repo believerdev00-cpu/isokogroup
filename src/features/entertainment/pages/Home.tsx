@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Brush, CalendarDays, Camera, Film, Info, Mic, Radio, Shirt } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import {
   ENT, linkFor, onlyPublic, trending, useCollections, useEvents, useLiveStreams, useTitles, useWorks, youtubeThumb,
   type Work,
@@ -8,19 +9,21 @@ import { Masonry, PinCard, PosterCard, Row, WideCard, LiveBadge } from "../ui";
 import { FinalCta, Hero, heroImage, YouTubeButton } from "../parts";
 import PartnersStrip from "@/components/PartnersStrip";
 
-const SECTIONS = [
-  { to: `${ENT}/films`, label: "Films", icon: Film, tint: "from-red-700 to-red-950" },
-  { to: `${ENT}/podcasts`, label: "Podcasts", icon: Mic, tint: "from-violet-700 to-violet-950" },
-  { to: `${ENT}/photo-studio`, label: "Photo Studio", icon: Camera, tint: "from-amber-600 to-amber-950" },
-  { to: `${ENT}/art-design`, label: "Art & Design", icon: Brush, tint: "from-emerald-700 to-emerald-950" },
-  { to: `${ENT}/fashion`, label: "Fashion", icon: Shirt, tint: "from-pink-700 to-pink-950" },
-  { to: `${ENT}/live`, label: "Live", icon: Radio, tint: "from-rose-600 to-rose-950" },
-  { to: `${ENT}/events`, label: "Events", icon: CalendarDays, tint: "from-sky-700 to-sky-950" },
-];
-
 /** The Isoko Entertainment front page: what's featured, then a row or wall per section. */
 export default function EntHome() {
+  const { t } = useI18n();
+  const SECTIONS = [
+    { to: `${ENT}/film`, label: t("ent.film"), icon: Film, tint: "from-red-700 to-red-950" },
+    { to: `${ENT}/podcasts`, label: t("ent.podcasts"), icon: Mic, tint: "from-violet-700 to-violet-950" },
+    { to: `${ENT}/photo-studio`, label: t("ent.photoStudio"), icon: Camera, tint: "from-amber-600 to-amber-950" },
+    { to: `${ENT}/art-design`, label: t("ent.artDesign"), icon: Brush, tint: "from-emerald-700 to-emerald-950" },
+    { to: `${ENT}/fashion`, label: t("ent.fashion"), icon: Shirt, tint: "from-pink-700 to-pink-950" },
+    { to: `${ENT}/fashion/hub`, label: t("ent.fashionHub"), icon: Shirt, tint: "from-fuchsia-700 to-fuchsia-950" },
+    { to: `${ENT}/live`, label: t("ent.live"), icon: Radio, tint: "from-rose-600 to-rose-950" },
+    { to: `${ENT}/events`, label: t("ent.events"), icon: CalendarDays, tint: "from-sky-700 to-sky-950" },
+  ];
   const films = useTitles("film");
+  const series = useTitles("series");
   const podcasts = useTitles("podcast");
   const photo = useWorks("photo", 20);
   const art = useWorks("art", 20);
@@ -30,6 +33,7 @@ export default function EntHome() {
   const events = useEvents(12);
 
   const filmList = onlyPublic(films.data);
+  const seriesList = onlyPublic(series.data);
   const podcastList = onlyPublic(podcasts.data);
   const photoList = onlyPublic(photo.data);
   const artList = onlyPublic(art.data);
@@ -38,8 +42,9 @@ export default function EntHome() {
   const liveList = onlyPublic(live.data);
   const eventList = onlyPublic(events.data);
 
-  const lead = [...filmList, ...podcastList].find((t) => t.featured) ?? filmList[0] ?? podcastList[0];
-  const trendingNow = trending([...filmList, ...podcastList]).slice(0, 10);
+  const lead = [...filmList, ...seriesList, ...podcastList].find((x) => x.featured) ?? filmList[0] ?? seriesList[0] ?? podcastList[0];
+  const trendingNow = trending([...filmList, ...seriesList, ...podcastList]).slice(0, 10);
+  const kindLabel = (kind: string) => (kind === "film" ? t("ent.movies") : kind === "series" ? t("ent.tvSeries") : t("ent.podcasts"));
   const liveNow = liveList.filter((l) => l.live_state === "live");
   const upcoming = liveList.filter((l) => l.live_state === "upcoming");
 
@@ -49,16 +54,16 @@ export default function EntHome() {
         <Hero
           tall
           image={heroImage(lead.backdrop_path ?? lead.poster_path)}
-          eyebrow={lead.kind === "film" ? "Featured film" : "Featured podcast"}
+          eyebrow={kindLabel(lead.kind)}
           title={lead.title}
           text={lead.tagline ?? lead.description}
           demo={lead.is_demo}
           meta={[lead.release_date?.slice(0, 4), lead.genres.slice(0, 3).join(" · ")].filter(Boolean).map((m) => <span key={m}>{m}</span>)}
         >
           <Link to={linkFor(lead.kind, lead.slug)} className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 font-semibold text-black hover:bg-white/85">
-            {lead.kind === "film" ? "Watch" : "Listen"} <ArrowRight className="h-5 w-5" />
+            {lead.kind === "podcast" ? "Listen" : t("ent.watch")} <ArrowRight className="h-5 w-5" />
           </Link>
-          {lead.trailer_youtube && <YouTubeButton video={lead.trailer_youtube} label="Trailer" />}
+          {lead.trailer_youtube && <YouTubeButton video={lead.trailer_youtube} label={t("ent.trailer")} />}
           <Link to={linkFor(lead.kind, lead.slug)} className="inline-flex h-12 items-center gap-2 rounded-full bg-white/15 px-6 font-semibold backdrop-blur hover:bg-white/25">
             <Info className="h-5 w-5" /> More info
           </Link>
@@ -72,7 +77,7 @@ export default function EntHome() {
           title="Stories made in Rwanda, for the world"
           text="Films, podcasts, photography, art, fashion, live streams and event coverage from Isoko Entertainment."
         >
-          <Link to={`${ENT}/films`} className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 font-semibold text-black hover:bg-white/85">
+          <Link to={`${ENT}/film`} className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 font-semibold text-black hover:bg-white/85">
             Explore <ArrowRight className="h-5 w-5" />
           </Link>
         </Hero>
@@ -80,7 +85,7 @@ export default function EntHome() {
 
       <div className="relative z-10 -mt-6 space-y-12 md:space-y-14">
         {/* Every section, one tap away */}
-        <nav className="no-scrollbar flex gap-3 overflow-x-auto px-4 md:grid md:grid-cols-7 md:px-10" aria-label="Sections">
+        <nav className="no-scrollbar flex gap-3 overflow-x-auto px-4 md:grid md:grid-cols-8 md:px-10" aria-label="Sections">
           {SECTIONS.map((s) => (
             <Link key={s.to} to={s.to} className={`group flex h-24 w-32 shrink-0 flex-col justify-between rounded-2xl bg-gradient-to-br p-3 ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:ring-white/30 md:w-auto ${s.tint}`}>
               <s.icon className="h-6 w-6" />
@@ -91,24 +96,32 @@ export default function EntHome() {
 
         {trendingNow.length > 0 && (
           <Row title="Trending now">
-            {trendingNow.map((t, i) => (
-              <PosterCard key={t.id} to={linkFor(t.kind, t.slug)} title={t.title} path={t.poster_path} rank={i + 1} demo={t.is_demo} meta={t.kind === "film" ? "Film" : "Podcast"} />
+            {trendingNow.map((x, i) => (
+              <PosterCard key={x.id} to={linkFor(x.kind, x.slug)} title={x.title} path={x.poster_path} rank={i + 1} demo={x.is_demo} meta={kindLabel(x.kind)} />
             ))}
           </Row>
         )}
 
         {filmList.length > 0 && (
-          <Row title="Films" to={`${ENT}/films`}>
-            {filmList.slice(0, 16).map((t) => (
-              <PosterCard key={t.id} to={linkFor("film", t.slug)} title={t.title} path={t.poster_path} demo={t.is_demo} meta={t.release_date?.slice(0, 4)} />
+          <Row title={t("ent.movies")} to={`${ENT}/film/movies`}>
+            {filmList.slice(0, 16).map((x) => (
+              <PosterCard key={x.id} to={linkFor("film", x.slug)} title={x.title} path={x.poster_path} demo={x.is_demo} meta={x.release_date?.slice(0, 4)} />
+            ))}
+          </Row>
+        )}
+
+        {seriesList.length > 0 && (
+          <Row title={t("ent.tvSeries")} to={`${ENT}/film/tv-series`}>
+            {seriesList.slice(0, 16).map((x) => (
+              <PosterCard key={x.id} to={linkFor("series", x.slug)} title={x.title} path={x.poster_path} demo={x.is_demo} meta={x.release_date?.slice(0, 4)} />
             ))}
           </Row>
         )}
 
         {podcastList.length > 0 && (
-          <Row title="Podcasts" to={`${ENT}/podcasts`}>
-            {podcastList.slice(0, 12).map((t) => (
-              <WideCard key={t.id} to={linkFor("podcast", t.slug)} title={t.title} path={t.backdrop_path ?? t.poster_path} subtitle={t.tagline} demo={t.is_demo} icon={Mic} />
+          <Row title={t("ent.podcasts")} to={`${ENT}/podcasts`}>
+            {podcastList.slice(0, 12).map((x) => (
+              <WideCard key={x.id} to={linkFor("podcast", x.slug)} title={x.title} path={x.backdrop_path ?? x.poster_path} subtitle={x.tagline} demo={x.is_demo} icon={Mic} />
             ))}
           </Row>
         )}

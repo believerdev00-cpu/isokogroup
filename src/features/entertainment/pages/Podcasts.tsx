@@ -12,7 +12,7 @@ import { CategoryChips, ComingSoon, EntNotFound, Img, Row, SaveButton, SectionIn
 import { FinalCta, Hero, heroImage, Player } from "../parts";
 import { Fact, PersonName } from "./Films";
 
-type EpisodeWithShow = Episode & { show: Pick<Title, "slug" | "title" | "poster_path" | "status" | "publish_at"> | null };
+type EpisodeWithShow = Episode & { show: Pick<Title, "slug" | "title" | "poster_path" | "status" | "publish_at" | "kind"> | null };
 
 const epDate = (e: Episode) => new Date(e.publish_at ?? e.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const epPath = (showSlug: string, e: Episode) => `${ENT}/podcasts/${showSlug}/episodes/${e.id}`;
@@ -21,7 +21,7 @@ function useLatestEpisodes(limit = 20) {
   return useQuery({
     queryKey: ["ent", "episodes", "latest", limit],
     queryFn: async () =>
-      unwrap(await db.from("ent_episodes").select("*, show:ent_titles(slug,title,poster_path,status,publish_at)").order("created_at", { ascending: false }).limit(limit)) as EpisodeWithShow[],
+      unwrap(await db.from("ent_episodes").select("*, show:ent_titles(slug,title,poster_path,status,publish_at,kind)").order("created_at", { ascending: false }).limit(limit)) as EpisodeWithShow[],
   });
 }
 
@@ -35,7 +35,8 @@ export function PodcastsPage() {
   if (shows.isLoading) return <PageLoading />;
 
   const lead = list.find((t) => t.featured) ?? list[0];
-  const episodes = onlyPublic(latest.data).filter((e) => e.show);
+  // TV series share the episodes table: only podcast episodes belong here
+  const episodes = onlyPublic(latest.data).filter((e) => e.show?.kind === "podcast");
   const filtered = cat ? list.filter((t) => t.category_id === (cats.data ?? []).find((c) => c.slug === cat)?.id) : null;
 
   return (

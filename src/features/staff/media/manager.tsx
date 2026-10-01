@@ -67,6 +67,8 @@ export type EntityConfig = {
   extras?: (row: Row) => ReactNode;
   /** buttons on each row of the list */
   rowActions?: (row: Row) => ReactNode;
+  /** what to tell staff when the database refuses a delete because other rows still refer to it */
+  deleteBlocked?: string;
 };
 
 const STATUS_TONE: Record<Status, "done" | "off" | "wait" | "work"> = { published: "done", draft: "off", scheduled: "wait", archived: "work" };
@@ -145,7 +147,11 @@ export function EntityManager({ config, parent, compact, openKey }: { config: En
       toast.success(`${config.noun} deleted`);
       qc.invalidateQueries({ queryKey: ["media-admin", config.table] });
     },
-    onError: (e) => toast.error(errorText(e)),
+    // A delete the database refuses because other rows still point here (a
+    // foreign key) gets a plain explanation, not the database's own words.
+    onError: (e) => toast.error(/foreign key|violates|still referenced/i.test(errorText(e))
+      ? (config.deleteBlocked ?? `This ${config.noun.toLowerCase()} can't be deleted because other records still refer to it. Archive it instead.`)
+      : errorText(e)),
   });
 
   const setStatusOf = (row: Row, next: Status) => {
@@ -661,7 +667,7 @@ function mediaMinutes(file: File): Promise<number | null> {
 
 // ============== GALLERY IMAGES ==============
 /** Images of a work or an event: upload several at once, caption, order, remove. */
-export function ImagesEditor({ table, column, parentId, kinds }: { table: "ent_work_images" | "ent_event_images"; column: string; parentId: string; kinds?: boolean }) {
+export function ImagesEditor({ table, column, parentId, kinds }: { table: "ent_work_images" | "ent_event_images" | "ent_fashion_design_images"; column: string; parentId: string; kinds?: boolean }) {
   const qc = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(0);
@@ -677,7 +683,7 @@ export function ImagesEditor({ table, column, parentId, kinds }: { table: "ent_w
     setBusy(files.length);
     for (const [i, file] of [...files].entries()) {
       try {
-        const up = await uploadDisplayImage(table === "ent_work_images" ? "works" : "events", file);
+        const up = await uploadDisplayImage(table === "ent_work_images" ? "works" : table === "ent_fashion_design_images" ? "fashion-hub" : "events", file);
         unwrap(await db.from(table).insert({ [column]: parentId, path: up.path, w: up.w, h: up.h, sort: start + i }));
       } catch (e) {
         toast.error(`${file.name}: ${errorText(e)}`);

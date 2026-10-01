@@ -5,24 +5,29 @@ import logo from "@/assets/isoko-logo.jpeg";
 import Footer from "@/components/Footer";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useStaffAccess } from "@/features/staff/access";
 import { ENT, linkFor, mediaUrl, useEntSearch } from "./api";
 
-export const ENT_NAV = [
-  { to: ENT, label: "Home", end: true },
-  { to: `${ENT}/films`, label: "Films" },
-  { to: `${ENT}/podcasts`, label: "Podcasts" },
-  { to: `${ENT}/photo-studio`, label: "Photo Studio" },
-  { to: `${ENT}/art-design`, label: "Art & Design" },
-  { to: `${ENT}/fashion`, label: "Fashion" },
-  { to: `${ENT}/live`, label: "Live" },
-  { to: `${ENT}/events`, label: "Events" },
-];
+/** The sections, in the visitor's language. Film has its own second level (Genre, Movies, TV Series). */
+export function useEntNav() {
+  const { t } = useI18n();
+  return [
+    { to: ENT, label: t("ent.home"), end: true },
+    { to: `${ENT}/film`, label: t("ent.film") },
+    { to: `${ENT}/podcasts`, label: t("ent.podcasts") },
+    { to: `${ENT}/photo-studio`, label: t("ent.photoStudio") },
+    { to: `${ENT}/art-design`, label: t("ent.artDesign") },
+    { to: `${ENT}/fashion`, label: t("ent.fashion") },
+    { to: `${ENT}/live`, label: t("ent.live") },
+    { to: `${ENT}/events`, label: t("ent.events") },
+  ];
+}
 
 const KIND_LABEL: Record<string, string> = {
-  film: "Film", podcast: "Podcast", creator: "Person", "work:photo": "Photo Studio", "work:art": "Art & Design",
-  "work:fashion": "Fashion", collection: "Collection", event: "Event", live: "Live",
+  film: "Movie", series: "TV series", podcast: "Podcast", creator: "Person", "work:photo": "Photo Studio", "work:art": "Art & Design",
+  "work:fashion": "Fashion", design: "Fashion Hub", collection: "Collection", event: "Event", live: "Live",
 };
 
 /**
@@ -31,6 +36,8 @@ const KIND_LABEL: Record<string, string> = {
  */
 export default function EntLayout() {
   const { user } = useAuth();
+  const { t } = useI18n();
+  const ENT_NAV = useEntNav();
   const staff = useStaffAccess();
   const [searching, setSearching] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -90,20 +97,20 @@ export default function EntLayout() {
               className="flex h-10 items-center gap-2 rounded-full px-3 text-neutral-300 hover:bg-white/10 hover:text-white md:bg-white/10 md:pr-4"
               aria-label="Search Isoko Entertainment"
             >
-              <Search className="h-5 w-5" /> <span className="hidden text-sm md:inline">Search</span>
+              <Search className="h-5 w-5" /> <span className="hidden text-sm md:inline">{t("ent.search")}</span>
             </button>
             {staff.isAdmin || staff.services.includes("entertainment") ? (
               <Link to="/staff/media" className="hidden h-10 items-center gap-1.5 rounded-full px-3 text-sm text-neutral-300 hover:bg-white/10 hover:text-white sm:flex">
-                <LayoutDashboard className="h-4 w-4" /> Manage
+                <LayoutDashboard className="h-4 w-4" /> {t("ent.manage")}
               </Link>
             ) : null}
             {user ? (
-              <Link to={`${ENT}/saved`} className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-300 hover:bg-white/10 hover:text-white" aria-label="Your saved items">
+              <Link to={`${ENT}/saved`} className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-300 hover:bg-white/10 hover:text-white" aria-label={t("ent.saved")}>
                 <Bookmark className="h-5 w-5" />
               </Link>
             ) : (
               <Link to="/login" state={{ from: pathname }} className="flex h-10 items-center gap-1.5 rounded-full bg-primary px-3 text-sm font-semibold text-white hover:bg-primary/90 sm:px-4" aria-label="Sign in">
-                <UserRound className="h-4 w-4" /> <span className="hidden sm:inline">Sign in</span>
+                <UserRound className="h-4 w-4" /> <span className="hidden sm:inline">{t("ent.signIn")}</span>
               </Link>
             )}
           </div>

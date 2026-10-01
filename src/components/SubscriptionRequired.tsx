@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SubscriptionPayment from "@/components/SubscriptionPayment";
 import { accessEndedMessage, useSubscription } from "@/lib/subscription";
+import { useI18n } from "@/lib/i18n";
 
 type Props = {
   reason: "no_subscription" | "expired";
@@ -20,6 +21,7 @@ const benefits = [
 // has ended (or while a payment waits for confirmation).
 const SubscriptionRequired = ({ reason }: Props) => {
   const { pricing, paymentPending, ended } = useSubscription();
+  const { t } = useI18n();
   const message = paymentPending
     ? { title: "We're checking your payment", text: "Your access opens as soon as an Isoko admin confirms your Mobile Money payment." }
     : accessEndedMessage(ended, pricing);
@@ -35,6 +37,8 @@ const SubscriptionRequired = ({ reason }: Props) => {
             </div>
             <h1 className="text-2xl font-display font-bold">{message.title}</h1>
             <p className="text-muted-foreground">{message.text}</p>
+            {/* the account is not gone: only the member services wait for a payment */}
+            <p className="text-sm text-muted-foreground">{t("sub.accountKept")}</p>
           </div>
 
           <ul className="space-y-2 text-left bg-muted/30 rounded-lg p-4">
@@ -48,9 +52,12 @@ const SubscriptionRequired = ({ reason }: Props) => {
 
           <SubscriptionPayment />
 
-          <Link to="/subscription" className="block text-center text-sm text-muted-foreground hover:text-primary transition-colors">
-            View subscription details →
-          </Link>
+          <div className="flex flex-col items-center gap-2 text-sm">
+            <Link to="/subscription" className="text-muted-foreground hover:text-primary transition-colors">
+              View subscription details →
+            </Link>
+            <Link to="/dashboard" className="text-muted-foreground hover:text-primary transition-colors">{t("sub.goDashboard")}</Link>
+          </div>
         </div>
       </main>
       <Footer />

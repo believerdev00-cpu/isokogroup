@@ -14,6 +14,8 @@ import { SubscriptionProvider } from "@/lib/subscription";
 import { ThemeProvider } from "@/lib/theme";
 import { SiteSettingsProvider } from "@/lib/siteSettings";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ConsentBanner from "@/components/ConsentBanner";
+import { Analytics } from "@/lib/analytics";
 import Index from "./pages/Index";
 import Logistics from "./pages/Logistics";
 import LogisticsDelivery from "./pages/LogisticsDelivery";
@@ -75,6 +77,9 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                {/* Google tag: only with VITE_GOOGLE_TAG_ID and the visitor's consent */}
+                <Analytics />
+                <ConsentBanner />
                 <ServiceSearchProvider>
                 <MotionConfig reducedMotion={isLiteMotion() ? "always" : "user"}>
                 <PageTransition>
@@ -116,7 +121,7 @@ const App = () => (
                   <Route path="/seller" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
                   <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                   <Route path="/my-orders" element={<ProtectedRoute><BuyerOrders /></ProtectedRoute>} />
-                  <Route path="/dashboard" element={<ProtectedRoute><CustomerDashboard /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute requireAccess={false}><CustomerDashboard /></ProtectedRoute>} />
                   <Route path="/driver" element={<ProtectedRoute><DriverDashboard /></ProtectedRoute>} />
                   <Route path="/insights" element={<ProtectedRoute><Insights /></ProtectedRoute>} />
                   

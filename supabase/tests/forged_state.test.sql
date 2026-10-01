@@ -140,9 +140,13 @@ SELECT pg_temp.expect(pg_temp.refused(:buyer, $$
 SELECT pg_temp.expect(pg_temp.refused(:buyer, $$
   INSERT INTO public.software_bookings (user_id, full_name, email, phone, service_type, project_description, status, agreed_price)
   VALUES (auth.uid(), 'B', 'b@x.co', '1', 'web', 'x', 'completed', 1) $$), 'software booking cannot set its own status or price');
-SELECT pg_temp.expect(NOT pg_temp.refused(NULL, $$
+-- a booking needs an account (20261002120000_requests_require_account.sql)
+SELECT pg_temp.expect(pg_temp.refused(NULL, $$
   INSERT INTO public.software_bookings (user_id, full_name, email, phone, service_type, project_description)
-  VALUES (NULL, 'Guest', 'g@x.co', '1', 'web', 'x') $$), 'guest books a software project');
+  VALUES (NULL, 'Guest', 'g@x.co', '1', 'web', 'x') $$), 'a visitor without an account cannot book a software project');
+SELECT pg_temp.expect(NOT pg_temp.refused(:buyer, $$
+  INSERT INTO public.software_bookings (user_id, full_name, email, phone, service_type, project_description)
+  VALUES (auth.uid(), 'Buyer', 'b@x.co', '1', 'web', 'x') $$), 'a signed-in person books a software project');
 SELECT pg_temp.expect(pg_temp.refused(:buyer, $$
   INSERT INTO public.logistics_requests (user_id, pickup, dropoff, status) VALUES (auth.uid(), 'a', 'b', 'delivered') $$),
   'delivery request cannot be created as delivered');

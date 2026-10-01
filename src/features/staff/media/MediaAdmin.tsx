@@ -4,7 +4,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
-  Brush, CalendarDays, Camera, Clapperboard, ExternalLink, Film, LayoutGrid, Mic, Radio, Shirt, Square, Tags, UsersRound,
+  Brush, CalendarDays, Camera, Clapperboard, ExternalLink, Film, LayoutGrid, Mic, Radio, Shirt, Square, Tags, Tv, UsersRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,26 +58,36 @@ function validatePlayable(d: Row) {
   return null;
 }
 
-const titleConfig = (kind: "film" | "podcast"): EntityConfig => ({
-  table: "ent_titles", noun: kind === "film" ? "Film" : "Podcast", titleKey: "title", imageKey: "poster_path",
+// A TV series' episodes are videos (podcast episodes default to audio)
+const SERIES_EPISODES: EntityConfig = {
+  ...EPISODES, noun: "Episode",
+  fields: EPISODES.fields.map((f) => (f.key === "watch" ? { ...f, label: "Video" } : f)),
+  defaults: { season: 1, format: "video", status: "draft" },
+};
+
+// Films, podcast shows and TV series share one table; a series has no video
+// of its own (it plays through its episodes) and no length.
+const NOUN = { film: "Film", podcast: "Podcast", series: "TV series" } as const;
+const titleConfig = (kind: "film" | "podcast" | "series"): EntityConfig => ({
+  table: "ent_titles", noun: NOUN[kind], titleKey: "title", imageKey: "poster_path",
   publishable: true, featurable: true, slug: true, scope: { kind },
   subtitle: (r) => [r.release_date ? String(r.release_date).slice(0, 4) : null, r.trend_rank ? `Trending #${r.trend_rank}` : null, kind === "film" ? (r.watch_source ? "Has video" : "No video yet") : null].filter(Boolean).join(" · "),
   fields: [
-    { key: "title", label: kind === "film" ? "Film name" : "Podcast name", type: "text", required: true, basic: true },
+    { key: "title", label: `${NOUN[kind]} name`, type: "text", required: true, basic: true },
     { key: "description", label: "Description", type: "textarea", basic: true },
-    { key: "poster_path", label: kind === "film" ? "Poster or picture" : "Cover picture", type: "image", folder: kind, basic: true },
+    { key: "poster_path", label: kind === "podcast" ? "Cover picture" : "Poster or picture", type: "image", folder: kind, basic: true },
     ...(kind === "film" ? [{ key: "watch", label: "Video", type: "watch" as const, folder: "films", basic: true }] : []),
     { key: "tagline", label: "Short tagline", type: "text", wide: true },
     { key: "trailer_youtube", label: "Trailer (YouTube link)", type: "text", wide: true },
-    { key: "category_id", label: "Category", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section: kind }) } },
-    { key: "genres", label: "Genres", type: "tags" },
+    { key: "category_id", label: kind === "podcast" ? "Category" : "Genre", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section: kind === "podcast" ? "podcast" : "film" }) } },
+    { key: "genres", label: kind === "podcast" ? "Genres" : "More genres", type: "tags", help: kind === "podcast" ? undefined : "Extra genre names; a title appears under every genre named here too." },
     { key: "country", label: "Country", type: "text", help: "“Rwanda” puts it in Rwandan Films; any African country in African Films." },
     { key: "language", label: "Language", type: "text" },
-    { key: "release_date", label: kind === "film" ? "Release date" : "Started on", type: "date" },
+    { key: "release_date", label: kind === "podcast" ? "Started on" : kind === "series" ? "First aired" : "Release date", type: "date" },
     ...(kind === "film" ? [
       { key: "duration_minutes", label: "Length (minutes)", type: "number" as const, help: "Filled in from the video when you upload one." },
-      { key: "age_rating", label: "Age rating", type: "text" as const, help: "e.g. 13+, 16+, 18+" },
     ] : []),
+    ...(kind === "podcast" ? [] : [{ key: "age_rating", label: "Age rating", type: "text" as const, help: "e.g. 13+, 16+, 18+" }]),
     { key: "trend_rank", label: "Trending position (1 = top)", type: "number", help: "Leave empty unless it should be in Trending Now." },
     { key: "backdrop_path", label: "Wide banner picture", type: "image", folder: kind, help: "For the big banner. The poster is used if empty." },
   ],
@@ -89,15 +99,15 @@ const titleConfig = (kind: "film" | "podcast"): EntityConfig => ({
   extrasHint: kind === "film" ? "Add the director and cast below if you like, or press Done." : "Now add the first episode below.",
   extras: (r) => (
     <div className="space-y-4">
-      {kind === "podcast" && (
+      {kind !== "film" && (
         <div>
           <p className="mb-2 text-sm font-semibold">Episodes</p>
-          <EntityManager config={EPISODES} parent={{ column: "title_id", id: r.id }} compact />
+          <EntityManager config={kind === "series" ? SERIES_EPISODES : EPISODES} parent={{ column: "title_id", id: r.id }} compact />
         </div>
       )}
       <div>
-        <p className="mb-2 text-sm font-semibold">{kind === "film" ? "Director and cast (optional)" : "Hosts (optional)"}</p>
-        <EntityManager config={{ ...CREDITS, defaults: { role: kind === "film" ? "cast" : "host", sort: 0 } }} parent={{ column: "title_id", id: r.id }} compact />
+        <p className="mb-2 text-sm font-semibold">{kind === "podcast" ? "Hosts (optional)" : "Director and cast (optional)"}</p>
+        <EntityManager config={{ ...CREDITS, defaults: { role: kind === "podcast" ? "host" : "cast", sort: 0 } }} parent={{ column: "title_id", id: r.id }} compact />
       </div>
     </div>
   ),
@@ -224,7 +234,7 @@ const CATEGORIES: EntityConfig = {
   subtitle: (r) => String(r.section),
   fields: [
     { key: "name", label: "Name", type: "text", required: true, basic: true },
-    { key: "section", label: "Section", type: "select", required: true, basic: true, options: opts([["film", "Films"], ["podcast", "Podcasts"], ["photo", "Photo Studio"], ["art", "Art & Design"], ["fashion", "Fashion"], ["live", "Live"], ["event", "Events"]]) },
+    { key: "section", label: "Section", type: "select", required: true, basic: true, options: opts([["film", "Film genres"], ["podcast", "Podcasts"], ["photo", "Photo Studio"], ["art", "Art & Design"], ["fashion", "Fashion"], ["live", "Live"], ["event", "Events"]]) },
     { key: "sort", label: "Order", type: "number" },
   ],
   defaults: { section: "film", sort: 0 },
@@ -314,10 +324,12 @@ function CollectionWorks({ collectionId }: { collectionId: string }) {
 const NAV = [
   { to: "/staff/media", label: "Overview", icon: LayoutGrid, end: true },
   { to: "/staff/media/films", label: "Films", icon: Film },
+  { to: "/staff/media/series", label: "TV Series", icon: Tv },
   { to: "/staff/media/podcasts", label: "Podcasts", icon: Mic },
   { to: "/staff/media/people", label: "People", icon: UsersRound },
   { to: "/staff/media/work", label: "Work", icon: Brush },
   { to: "/staff/media/fashion", label: "Fashion", icon: Shirt },
+  { to: "/staff/media/fashion-hub", label: "Fashion Hub", icon: Shirt },
   { to: "/staff/media/live", label: "Live", icon: Radio },
   { to: "/staff/media/events", label: "Events", icon: CalendarDays },
   { to: "/staff/media/categories", label: "Categories", icon: Tags },
@@ -351,11 +363,13 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
 
 const QUICK = [
   { label: "A film", to: "/staff/media/films?new=film", icon: Film },
+  { label: "A TV series", to: "/staff/media/series?new=series", icon: Tv },
   { label: "A podcast", to: "/staff/media/podcasts?new=podcast", icon: Mic },
   { label: "Photos (Photo Studio)", to: "/staff/media/work?new=photo", icon: Camera },
   { label: "Art or design work", to: "/staff/media/work?new=art", icon: Brush },
   { label: "A fashion look", to: "/staff/media/fashion?new=look", icon: Shirt },
   { label: "A fashion collection", to: "/staff/media/fashion?new=collection", icon: Shirt },
+  { label: "A Fashion Hub style", to: "/staff/media/fashion-hub?new=design", icon: Shirt },
   { label: "A person (model, photographer…)", to: "/staff/media/people?new=person", icon: UsersRound },
   { label: "A live stream", to: "/staff/media/live?new=live", icon: Radio },
   { label: "An event", to: "/staff/media/events?new=event", icon: CalendarDays },
@@ -363,6 +377,7 @@ const QUICK = [
 
 const COUNTS: [string, string, string, Record<string, unknown>?][] = [
   ["Films", "/staff/media/films", "ent_titles", { kind: "film" }],
+  ["TV series", "/staff/media/series", "ent_titles", { kind: "series" }],
   ["Podcast shows", "/staff/media/podcasts", "ent_titles", { kind: "podcast" }],
   ["People", "/staff/media/people", "ent_creators"],
   ["Portfolio work", "/staff/media/work", "ent_works"],
@@ -404,6 +419,7 @@ export function MediaOverview() {
       <div className="mt-6 rounded-2xl border bg-card p-4 text-sm text-muted-foreground">
         <p className="font-semibold text-foreground">How publishing works</p>
         <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>Films live under Entertainment → Film → Movies; TV series under Film → TV Series; the film genres (Categories, section “Film genres”) make Film → Genre.</li>
           <li><b>Draft</b>: only media staff see it. <b>Published</b>: everyone sees it. <b>Scheduled</b>: goes public by itself at the time you set. <b>Archived</b>: off the site, kept here.</li>
           <li>Posters and gallery images are made web-sized when you upload them. Full films and episodes are kept private: only subscribers can play them.</li>
           <li>Anything marked <b>Demo</b> is labelled “Demo” on the site. Never publish sample content without it.</li>
@@ -415,6 +431,7 @@ export function MediaOverview() {
 }
 
 export const MediaFilms = () => <Shell title="Films" subtitle="Give it a name, a description, a picture and the video, then press Publish."><EntityManager config={titleConfig("film")} openKey="film" /></Shell>;
+export const MediaSeries = () => <Shell title="TV Series" subtitle="Add the series (poster, description, genre), then its episodes inside it, season by season. Each episode has its own video."><EntityManager config={titleConfig("series")} openKey="series" /></Shell>;
 export const MediaPodcasts = () => <Shell title="Podcasts" subtitle="Add the podcast, then its episodes inside it."><EntityManager config={titleConfig("podcast")} openKey="podcast" /></Shell>;
 export const MediaPeople = () => <Shell title="People" subtitle="Photographers, models, designers, artists, directors, actors and hosts."><EntityManager config={PEOPLE} openKey="person" /></Shell>;
 

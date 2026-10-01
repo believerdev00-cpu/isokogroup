@@ -76,19 +76,20 @@ $$, 'trigger functions can''t be called from the website');
 
 -- What visitors without an account can run with elevated rights: the private-link
 -- portals (the link's token is the key, rate-limited), shipment tracking by
--- number, and role checks used by policies.
+-- number, and role checks used by policies. Sending a request needs an account
+-- (20261002120000_requests_require_account.sql), so the submit functions are not here.
 CALL pg_temp.none($$
   SELECT p.oid::regprocedure::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public' AND p.prosecdef AND has_function_privilege('anon', p.oid, 'EXECUTE')
   EXCEPT SELECT unnest(ARRAY[
     'is_admin()', 'is_service_staff(text)', 'track_shipment(text)',
-    'travel_request_trip(jsonb)', 'travel_trip_view(text)', 'travel_accept_quote(text)',
+    'travel_trip_view(text)', 'travel_accept_quote(text)',
     'travel_request_changes(text,text)', 'travel_submit_payment(text,numeric,text,text)',
     'travel_document_uploaded(text,uuid,text)',
-    'consult_submit_request(jsonb)', 'consult_request_view(text)', 'consult_accept_proposal(text)',
+    'consult_request_view(text)', 'consult_accept_proposal(text)',
     'consult_request_changes(text,text)', 'consult_submit_payment(text,numeric,text,text)',
     'consult_client_file(text,text,text,bigint)',
-    'data_submit_request(jsonb)', 'data_request_view(text)', 'data_client_file(text,text,text,bigint)',
+    'data_request_view(text)', 'data_client_file(text,text,text,bigint)',
     'data_review(text,boolean,text)', 'data_submit_payment(text,numeric,text,text)',
     -- paying from the phone: switched on by platform_settings.mobile_money; the link
     -- token or the signed-in owner is checked, rate-limited; status by payment id

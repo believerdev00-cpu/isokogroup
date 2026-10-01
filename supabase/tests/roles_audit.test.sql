@@ -123,11 +123,15 @@ SELECT pg_temp.expect(EXISTS (SELECT 1 FROM public.audit_log WHERE entity_table 
   AND new_data = '{"status": "rejected", "rejection_reason": "Fake ID"}'::jsonb),
   'an update logs only the changed fields, old and new');
 
-SELECT pg_temp.refused(NULL, $$SELECT public.travel_request_trip('{"arrival_date":"2030-01-01","departure_date":"2030-01-03",
+-- a request needs an account (20261002120000_requests_require_account.sql)
+SELECT pg_temp.expect(pg_temp.refused(NULL, $$SELECT public.travel_request_trip('{"arrival_date":"2030-01-01","departure_date":"2030-01-03",
+  "travelers":1,"needs":["hotel"],"name":"Nobody","phone":"1","email":"n@x.co"}'::jsonb)$$),
+  'a visitor without an account cannot request a trip');
+SELECT pg_temp.refused(:user, $$SELECT public.travel_request_trip('{"arrival_date":"2030-01-01","departure_date":"2030-01-03",
   "travelers":1,"needs":["hotel"],"name":"Guest","phone":"1","email":"g@x.co"}'::jsonb)$$);
 SELECT pg_temp.expect(EXISTS (SELECT 1 FROM public.audit_log WHERE entity_table = 'travel_trips' AND action = 'insert'
-  AND actor_role = 'anon' AND actor_id IS NULL AND new_data ->> 'customer_name' = 'Guest'),
-  'a customer-link action is logged as anonymous');
+  AND actor_role = 'authenticated' AND actor_id = :user AND new_data ->> 'customer_name' = 'Guest'),
+  'a customer''s request is logged with them as the actor');
 SELECT pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.audit_log WHERE entity_table = 'travel_trips'
   AND (new_data ? 'access_token' OR old_data ? 'access_token')), 'customer link tokens never reach the log');
 

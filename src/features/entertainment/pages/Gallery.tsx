@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, Masonry, PinCard, Row, SaveButton, SectionIntro, StaffOnlyBanner } from "../ui";
 import { BookButton, FinalCta } from "../parts";
+import { FashionHubBanner, FashionSubNav } from "../fashionHub/FashionHub";
 
 const SECTION = {
   photo: { eyebrow: "Isoko Photo Studio", title: "Photo Studio", icon: Camera, people: "photographer", peopleTitle: "Featured photographers",
@@ -41,11 +42,15 @@ export function GallerySection({ section }: { section: SectionKey }) {
 
   return (
     <>
+      {/* Fashion has two parts: the portfolio (this page) and the Isoko Fashion Hub */}
+      {section === "fashion" && <FashionSubNav />}
       <SectionIntro eyebrow={s.eyebrow} title={s.title} text={s.text}>
         <BookButton what={s.book}>{s.bookLabel}</BookButton>
       </SectionIntro>
 
       <div className="space-y-10">
+        {section === "fashion" && <FashionHubBanner />}
+
         {featuredPeople.length > 0 && (
           <Row title={s.peopleTitle}>
             {featuredPeople.map((p) => <PersonCard key={p.id} person={p} tall={section === "fashion"} />)}

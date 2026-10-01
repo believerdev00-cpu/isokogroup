@@ -5,7 +5,14 @@ import { useSubscription } from "@/lib/subscription";
 import SubscriptionRequired from "@/components/SubscriptionRequired";
 import { TrialBanner } from "@/components/TrialCountdown";
 
-const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+/**
+ * A signed-in page. By default it also needs access (trial or paid period):
+ * without it the subscription wall shows. `requireAccess={false}` is for the
+ * person's own account pages (the dashboard), which stay open after the trial
+ * or subscription ends so they can see their status and renew; the database
+ * refuses the member services regardless.
+ */
+const ProtectedRoute = ({ children, requireAccess = true }: { children: ReactNode; requireAccess?: boolean }) => {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const { isActive, loading: subLoading, reason } = useSubscription();
@@ -20,7 +27,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   // Remember where they were going, so signing in brings them back there
   if (!user) return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   // The free trial or the month ran out (checked live): the page locks
-  if (!isActive && reason) return <SubscriptionRequired reason={reason} />;
+  if (requireAccess && !isActive && reason) return <SubscriptionRequired reason={reason} />;
 
   return (
     <>

@@ -344,8 +344,11 @@ SELECT pg_temp.expect((SELECT status FROM public.subscriptions WHERE user_id = '
   'active, with the first week (50) on record');
 
 -- ---------- Software ----------
-SELECT pg_temp.refused(NULL, $$INSERT INTO public.software_bookings (full_name, email, phone, service_type, project_description)
-  VALUES ('Soft Client', 's@x.co', '3', 'web', 'A site')$$);
+-- a booking needs an account (20261002120000_requests_require_account.sql): customer A books
+SELECT pg_temp.expect(pg_temp.refused(NULL, $$INSERT INTO public.software_bookings (full_name, email, phone, service_type, project_description)
+  VALUES ('Soft Client', 's@x.co', '3', 'web', 'A site')$$), 'a visitor without an account cannot book a software project');
+SELECT pg_temp.refused('00000000-0000-4000-8000-0000000000f1', $$INSERT INTO public.software_bookings (user_id, full_name, email, phone, service_type, project_description)
+  VALUES (auth.uid(), 'Soft Client', 's@x.co', '3', 'web', 'A site')$$);
 UPDATE public.software_bookings SET agreed_price = 1001 WHERE full_name = 'Soft Client';
 SELECT pg_temp.expect(pg_temp.refused('00000000-0000-4000-8000-0000000000f6',
   $$UPDATE public.software_bookings SET deposit_paid = true WHERE full_name = 'Soft Client'$$),

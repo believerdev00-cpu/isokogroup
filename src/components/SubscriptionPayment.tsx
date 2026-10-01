@@ -7,6 +7,7 @@ import { formatPrice, planDuration, planIncludes, planName, useSubscription, typ
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/lib/siteSettings";
+import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   onSubmitted?: () => void;
@@ -90,6 +91,8 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
       return;
     }
     toast({ title: "Payment sent", description: "It is awaiting confirmation. Access starts once an admin confirms it." });
+    // a conversion for Google Ads (the event name only; nothing about the person)
+    trackEvent("subscription_payment_reported");
     onSubmitted?.();
   };
 

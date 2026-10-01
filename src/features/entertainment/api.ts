@@ -37,8 +37,10 @@ export type Creator = Common & {
 
 export type WatchSource = "storage" | "youtube";
 
+export type TitleKind = "film" | "podcast" | "series";
+
 export type Title = Common & {
-  kind: "film" | "podcast";
+  kind: TitleKind;
   title: string;
   tagline: string | null;
   description: string | null;
@@ -233,7 +235,7 @@ export function useCategories(section?: Section) {
   });
 }
 
-export function useTitles(kind: "film" | "podcast", limit = 60) {
+export function useTitles(kind: TitleKind, limit = 60) {
   return useQuery({
     queryKey: ["ent", "titles", kind, limit],
     queryFn: async () =>
@@ -313,15 +315,27 @@ export function useEntSearch(query: string) {
 export const ENT = "/entertainment";
 
 export function linkFor(kind: string, slug: string) {
-  if (kind === "film") return `${ENT}/films/${slug}`;
+  if (kind === "film") return `${ENT}/film/movies/${slug}`;
+  if (kind === "series") return `${ENT}/film/tv-series/${slug}`;
   if (kind === "podcast") return `${ENT}/podcasts/${slug}`;
   if (kind === "creator") return `${ENT}/people/${slug}`;
   if (kind.startsWith("work")) return `${ENT}/work/${slug}`;
   if (kind === "collection") return `${ENT}/fashion/collections/${slug}`;
+  if (kind === "design") return `${ENT}/fashion/hub/${slug}`;
   if (kind === "event") return `${ENT}/events/${slug}`;
   if (kind === "live") return `${ENT}/live/${slug}`;
   return ENT;
 }
+
+/** A film or series belongs to a genre (a category of section film) by its category or by name in its genres list. */
+export const inGenre = (t: Title, g: Category) => {
+  if (t.category_id === g.id) return true;
+  const name = g.name.trim().toLowerCase();
+  return t.genres.some((x) => {
+    const n = x.trim().toLowerCase();
+    return n === g.slug || n === name;
+  });
+};
 
 /** Newest first, then the ones staff ranked or featured. */
 export const trending = <T extends { trend_rank?: number | null; featured?: boolean }>(items: T[]) =>

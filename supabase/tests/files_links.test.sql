@@ -92,7 +92,8 @@ END $$;
 
 CREATE TEMP TABLE link (id uuid, token text, files_key text);
 GRANT ALL ON link TO anon, authenticated, service_role;
-SELECT pg_temp.refused(NULL, $$INSERT INTO link (token) SELECT public.travel_request_trip('{"arrival_date":"2030-05-01",
+-- a request needs an account (20261002120000_requests_require_account.sql): the customer sends it
+SELECT pg_temp.refused(:customer, $$INSERT INTO link (token) SELECT public.travel_request_trip('{"arrival_date":"2030-05-01",
   "departure_date":"2030-05-04","travelers":1,"needs":["hotel"],"name":"Lina Link","phone":"+250788300400","email":"lina@example.com"}'::jsonb) ->> 'token'$$);
 UPDATE link SET id = t.id, files_key = t.files_key FROM public.travel_trips t WHERE t.access_token = link.token;
 
@@ -139,18 +140,18 @@ SELECT pg_temp.expect(EXISTS (SELECT 1 FROM public.audit_log WHERE entity_table 
 -- ---------- Rate limits ----------
 DO $$ BEGIN
   FOR i IN 1..10 LOOP
-    IF pg_temp.refused(NULL, format($f$SELECT public.consult_submit_request('{"service":"business","description":"Help %s",
+    IF pg_temp.refused('00000000-0000-4000-8000-0000000000d5', format($f$SELECT public.consult_submit_request('{"service":"business","description":"Help %s",
       "name":"Rate %s","phone":"1","email":"r%s@example.com"}'::jsonb)$f$, i, i, i), '203.0.113.7') THEN
       RAISE EXCEPTION 'FAILED: request % of 10 was refused: %', i, current_setting('isoko.last_error');
     END IF;
   END LOOP;
-  RAISE NOTICE 'ok  ten requests an hour from one address are fine';
+  RAISE NOTICE 'ok  ten requests an hour from one account are fine';
 END $$;
-SELECT pg_temp.expect(pg_temp.refused(NULL, $$SELECT public.consult_submit_request('{"service":"business","description":"Spam",
+SELECT pg_temp.expect(pg_temp.refused(:customer, $$SELECT public.consult_submit_request('{"service":"business","description":"Spam",
   "name":"Rate 11","phone":"1","email":"r11@example.com"}'::jsonb)$$, '203.0.113.7')
   AND current_setting('isoko.last_error') LIKE 'Too many attempts%', 'the eleventh is refused with a clear message');
-SELECT pg_temp.expect(NOT pg_temp.refused(NULL, $$SELECT public.consult_submit_request('{"service":"business","description":"Hello",
-  "name":"Someone else","phone":"1","email":"else@example.com"}'::jsonb)$$, '203.0.113.8'), 'another address is not affected');
+SELECT pg_temp.expect(NOT pg_temp.refused(:other, $$SELECT public.consult_submit_request('{"service":"business","description":"Hello",
+  "name":"Someone else","phone":"1","email":"else@example.com"}'::jsonb)$$, '203.0.113.8'), 'another account is not affected');
 DO $$ BEGIN
   FOR i IN 1..30 LOOP
     PERFORM pg_temp.refused(NULL, format('SELECT public.data_request_view(%L)', repeat('ab', 32)), '203.0.113.9');

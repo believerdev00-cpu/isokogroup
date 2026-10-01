@@ -9,6 +9,7 @@ import { Package, Truck, Box, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import NotificationPreferences from "@/components/NotificationPreferences";
+import SubscriptionStatusCard from "@/components/SubscriptionStatusCard";
 
 const statusColor = (s: string) => {
   if (["delivered", "completed"].includes(s)) return "bg-green-500/15 text-green-500";
@@ -54,6 +55,9 @@ const CustomerDashboard = () => {
       <main className="flex-1 container py-12">
         <h1 className="text-3xl md:text-4xl font-display font-bold mb-2">My Dashboard</h1>
         <p className="text-muted-foreground mb-8">All your orders, deliveries and packaging in one place.</p>
+
+        {/* Where the account stands: trial, active, expiring, pending, expired or none */}
+        <SubscriptionStatusCard className="mb-8" />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {stats.map((s) => (

@@ -2,9 +2,15 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
+import { useSubscription } from "@/lib/subscription";
 
 const CTASection = () => {
   const { t } = useI18n();
+  const { user } = useAuth();
+  const { isActive, loading } = useSubscription();
+  // Someone signed in with access (trial, paid, or exempt) is not asked to subscribe again
+  const subscribed = !!user && !loading && isActive;
   const benefits = [
     t("cta.benefit1"),
     t("cta.benefit2"),
@@ -20,11 +26,21 @@ const CTASection = () => {
 
       <div className="container relative">
         <div className="max-w-3xl mx-auto text-center space-y-6 sm:space-y-8">
-          <span className="text-sm font-semibold uppercase tracking-wider text-primary">{t("cta.joinToday")}</span>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold [text-wrap:balance]">
-            {t("cta.title")} <span className="text-primary">50 RWF</span>
-          </h2>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">{t("cta.subtitle")}</p>
+          {subscribed ? (
+            <>
+              <span className="text-sm font-semibold uppercase tracking-wider text-primary">{t("services.ourServices")}</span>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold [text-wrap:balance]">{t("home.explore")}</h2>
+              <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">{t("home.exploreSub")}</p>
+            </>
+          ) : (
+            <>
+              <span className="text-sm font-semibold uppercase tracking-wider text-primary">{t("cta.joinToday")}</span>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold [text-wrap:balance]">
+                {t("cta.title")} <span className="text-primary">50 RWF</span>
+              </h2>
+              <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">{t("cta.subtitle")}</p>
+            </>
+          )}
 
           {/* Left-aligned inside the centred block, so wrapped lines line up with their tick */}
           <ul className="flex flex-col max-w-md mx-auto gap-3 text-left">
@@ -37,9 +53,15 @@ const CTASection = () => {
           </ul>
 
           <Button asChild size="lg" className="w-full gap-2 text-base px-10 mt-2 sm:mt-4 sm:w-auto">
-            <Link to="/login">
-              {t("cta.getStarted")} <ArrowRight className="h-4 w-4" />
-            </Link>
+            {subscribed ? (
+              <Link to="/services">
+                {t("home.allServices")} <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <Link to="/login?tab=register">
+                {t("cta.getStarted")} <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
           </Button>
         </div>
       </div>

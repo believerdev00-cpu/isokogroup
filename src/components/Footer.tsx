@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin, Youtube, Instagram, Facebook, Twitter, Linkedin, MessageCircle, Globe } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { mapEmbedUrl, mapLinkUrl, SOCIAL_NETWORKS, telHref, useSiteSettings, type SocialNetwork } from "@/lib/siteSettings";
+import { localPhone, mapEmbedUrl, mapLinkUrl, SOCIAL_NETWORKS, telHref, useSiteSettings, type SocialNetwork } from "@/lib/siteSettings";
 import logo from "@/assets/isoko-logo.jpeg";
 import {
   Popover,
@@ -59,7 +59,7 @@ const Footer = () => {
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li><Link to="/about" className="hover:text-primary transition-colors">{t("footer.aboutUs")}</Link></li>
               <li><Link to="/become-seller" className="hover:text-primary transition-colors">{t("nav.becomeSeller")}</Link></li>
-              <li><Link to="/seller-agreement" className="hover:text-primary transition-colors">Seller Agreement</Link></li>
+              <li><Link to="/seller-agreement" className="hover:text-primary transition-colors">{t("nav.sellerAgreement")}</Link></li>
               <li><Link to="/login" className="hover:text-primary transition-colors">{t("nav.login")}</Link></li>
             </ul>
           </div>
@@ -79,6 +79,15 @@ const Footer = () => {
                   ))}
                 </div>
               </li>
+              {/* The office WhatsApp number set in Admin > Settings; opens the app on a phone */}
+              {site.whatsappOffice && (
+                <li className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-primary shrink-0" />
+                  <a href={`https://wa.me/${site.whatsappOffice.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                    {t("footer.whatsapp")} {localPhone(site.whatsappOffice)}
+                  </a>
+                </li>
+              )}
               <li className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-primary shrink-0" /> {site.address}
               </li>
@@ -88,7 +97,7 @@ const Footer = () => {
 
         <div className="mt-12">
           <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" /> Find us
+            <MapPin className="h-4 w-4 text-primary" /> {t("footer.findUs")}
           </h4>
           <div className="rounded-xl overflow-hidden border border-border">
             <iframe
@@ -107,7 +116,7 @@ const Footer = () => {
             rel="noopener noreferrer"
             className="inline-block mt-2 text-sm text-primary hover:underline"
           >
-            Open in Google Maps →
+            {t("footer.openMaps")} →
           </a>
         </div>
 

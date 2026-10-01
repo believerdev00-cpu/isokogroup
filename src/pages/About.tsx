@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 import logo from "@/assets/isoko-logo.jpeg";
 import JourneyTimeline from "@/components/about/JourneyTimeline";
-import { telHref, useSiteSettings } from "@/lib/siteSettings";
+import { localPhone, telHref, useSiteSettings } from "@/lib/siteSettings";
+import { useI18n } from "@/lib/i18n";
 
 const pillars = [
   {
@@ -81,6 +82,7 @@ const values = [
 const About = () => {
   // office, phones and email: Admin > Settings
   const site = useSiteSettings();
+  const { t } = useI18n();
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -226,21 +228,26 @@ const About = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
               <div className="rounded-xl border border-border bg-background p-6 space-y-2">
                 <MapPin className="h-5 w-5 text-primary" />
-                <p className="font-semibold">Office</p>
+                <p className="font-semibold">{t("about.office")}</p>
                 <p className="text-sm text-muted-foreground">{site.address}</p>
               </div>
               <div className="rounded-xl border border-border bg-background p-6 space-y-2">
                 <Phone className="h-5 w-5 text-primary" />
-                <p className="font-semibold">Phone</p>
+                <p className="font-semibold">{t("about.phone")}</p>
                 <div className="flex flex-col text-sm text-muted-foreground">
                   {site.phones.map((p) => (
                     <a key={p} href={telHref(p)} className="hover:text-primary">{p}</a>
                   ))}
+                  {site.whatsappOffice && (
+                    <a href={`https://wa.me/${site.whatsappOffice.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="mt-1 font-medium text-primary hover:underline">
+                      {t("footer.whatsapp")}: {localPhone(site.whatsappOffice)}
+                    </a>
+                  )}
                 </div>
               </div>
               <div className="rounded-xl border border-border bg-background p-6 space-y-2">
                 <Mail className="h-5 w-5 text-primary" />
-                <p className="font-semibold">Email</p>
+                <p className="font-semibold">{t("about.email")}</p>
                 <a href={`mailto:${site.email}`} className="text-sm text-muted-foreground hover:text-primary break-all">
                   {site.email}
                 </a>

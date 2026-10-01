@@ -134,12 +134,14 @@ SELECT pg_temp.expect((SELECT status || ' / ' || error FROM public.notification_
   'without the site address, messages with a link are skipped, not sent broken');
 UPDATE public.platform_settings SET value = 'https://isoko.test' WHERE key = 'site_url';
 
-SELECT pg_temp.refused(NULL, $$SELECT public.travel_request_trip('{"arrival_date":"2030-04-01","departure_date":"2030-04-04",
+-- a request needs an account (20261002120000_requests_require_account.sql); the
+-- customer is still reached at the details they gave in the request
+SELECT pg_temp.refused(:buyer, $$SELECT public.travel_request_trip('{"arrival_date":"2030-04-01","departure_date":"2030-04-04",
   "travelers":2,"needs":["hotel"],"name":"Tina Traveller","phone":"+250 788 222 333","email":"Tina@Example.com"}'::jsonb)$$);
 SELECT pg_temp.expect((SELECT count(*) FROM public.notification_deliveries d JOIN public.notification_events e ON e.id = d.event_id
   WHERE e.event_type = 'TRIP_REQUESTED' AND e.entity_id = (SELECT id FROM public.travel_trips WHERE customer_name = 'Tina Traveller') AND d.status = 'pending'
     AND ((d.channel = 'email' AND d.recipient_address = 'tina@example.com') OR (d.channel = 'whatsapp' AND d.recipient_address = '+250788222333'))) = 2,
-  'a link customer (no account) gets email and WhatsApp');
+  'a customer gets email and WhatsApp at the details they gave');
 SELECT pg_temp.expect((SELECT body FROM public.notification_deliveries d JOIN public.notification_events e ON e.id = d.event_id
   WHERE e.event_type = 'TRIP_REQUESTED' AND e.entity_id = (SELECT id FROM public.travel_trips WHERE customer_name = 'Tina Traveller') AND d.channel = 'email')
   LIKE 'Hello Tina Traveller, thank you! % https://isoko.test/travel/trip/' || (SELECT access_token FROM public.travel_trips WHERE customer_name = 'Tina Traveller'),
@@ -153,7 +155,8 @@ SELECT pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.notification_events WHERE
 INSERT INTO public.notification_opt_outs (channel, address) VALUES ('whatsapp', '+250788222333');
 UPDATE public.travel_trips SET status = 'quoted', quote_total = 900, quote_sent_at = now() WHERE customer_name = 'Tina Traveller';
 SELECT pg_temp.expect((SELECT string_agg(d.channel || ':' || d.status, ',' ORDER BY d.channel) FROM public.notification_deliveries d
-  JOIN public.notification_events e ON e.id = d.event_id WHERE e.event_type = 'TRIP_QUOTE_READY' AND e.entity_id = (SELECT id FROM public.travel_trips WHERE customer_name = 'Tina Traveller')) = 'email:pending,sms:pending,whatsapp:skipped',
+  JOIN public.notification_events e ON e.id = d.event_id WHERE e.event_type = 'TRIP_QUOTE_READY' AND d.channel <> 'in_app'
+    AND e.entity_id = (SELECT id FROM public.travel_trips WHERE customer_name = 'Tina Traveller')) = 'email:pending,sms:pending,whatsapp:skipped',
   'an opted-out WhatsApp number is skipped; email and SMS go out');
 SELECT pg_temp.expect((SELECT body FROM public.notification_deliveries d JOIN public.notification_events e ON e.id = d.event_id
   WHERE e.event_type = 'TRIP_QUOTE_READY' AND e.entity_id = (SELECT id FROM public.travel_trips WHERE customer_name = 'Tina Traveller') AND d.channel = 'sms') LIKE 'Isoko: your trip quote (900 USD) is ready: https://isoko.test/travel/trip/%',

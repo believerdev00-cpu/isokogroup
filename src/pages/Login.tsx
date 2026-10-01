@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { MailCheck, ShoppingBag, Store } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "@/components/Header";
@@ -15,6 +15,7 @@ import { useSubscription } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/subscription";
 import { useSiteSettings } from "@/lib/siteSettings";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/isoko-logo.jpeg";
 
@@ -31,10 +32,12 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from;
+  // /login?tab=register opens on the Register tab (the Register buttons in the header link here)
+  const [params] = useSearchParams();
   const { isActive, loading: subLoading } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [tab, setTab] = useState("login");
+  const [tab, setTab] = useState(params.get("tab") === "register" ? "register" : "login");
   const [notice, setNotice] = useState<Notice | null>(null);
   // Register as a normal user / buyer (as before), or as a seller (pays the seller registration fee)
   const [registerAs, setRegisterAs] = useState<"buyer" | "seller">("buyer");
@@ -58,7 +61,9 @@ const Login = () => {
     if (authLoading || subLoading || !user) return;
     const sellerRegistrant = user.user_metadata?.register_as === "seller";
     const id = window.setTimeout(
-      () => navigate(sellerRegistrant ? from ?? "/become-seller" : isActive ? from ?? "/" : "/subscription", { replace: true }),
+      // Back to the page they came from (a member page shows its own subscription
+      // wall if access has ended); otherwise home, or Subscription when access ended.
+      () => navigate(sellerRegistrant ? from ?? "/become-seller" : from ?? (isActive ? "/" : "/subscription"), { replace: true }),
       success ? 1200 : 0,
     );
     return () => window.clearTimeout(id);
@@ -118,6 +123,8 @@ const Login = () => {
       setTab("login");
     } else {
       formEl.reset();
+      // a conversion for Google Ads (the event name only; nothing about the person)
+      trackEvent("sign_up");
       setNotice({ kind: "sent", email });
       setResendIn(RESEND_COOLDOWN_S);
       setTab("login");

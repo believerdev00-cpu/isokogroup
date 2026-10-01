@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
+import AccountRequired from "@/components/AccountRequired";
 import { cn } from "@/lib/utils";
 import { errorText, MAX_FILE_MB, rpc, uploadClientFile, useOfferings } from "./api";
 import { ICT_CONSULTANCY_KEYS } from "@/lib/company";
@@ -28,10 +29,11 @@ type Config = {
 
 /**
  * A short request: what you need → tell us about it → (your files) → contact.
- * Used by Consultancy and Data Analysis. No account needed.
+ * Used by Consultancy and Data Analysis. Needs an account: a request belongs to
+ * the person who sent it (the database refuses it without a session).
  */
 export default function RequestFlow({ config: c }: { config: Config }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const offerings = useOfferings(c.service);
   const total = c.files ? 4 : 3;
   const contactStep = total;
@@ -97,6 +99,23 @@ export default function RequestFlow({ config: c }: { config: Config }) {
       setBusy(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <ServiceLayout>
+        <PageLoading />
+      </ServiceLayout>
+    );
+  }
+  if (!user) {
+    return (
+      <ServiceLayout>
+        <FlowColumn>
+          <AccountRequired service={c.service === "consultancy" ? "Consultancy" : "Data Analysis"} />
+        </FlowColumn>
+      </ServiceLayout>
+    );
+  }
 
   if (result) {
     return (

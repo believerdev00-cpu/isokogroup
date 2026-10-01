@@ -6,10 +6,12 @@ import { db, unwrap } from "@/features/services/api";
 import { PageLoading } from "@/features/services/ui";
 import EntLayout from "./EntLayout";
 import EntHome from "./pages/Home";
-import { FilmDetail, FilmsPage } from "./pages/Films";
+import { FilmDetail } from "./pages/Films";
+import { FilmHub, FilmLayout, GenreIndex, GenrePage, LegacyFilm, LegacyFilms, MoviesPage, SeriesDetail, SeriesPage } from "./pages/Film";
 import { EpisodeDetail, PodcastsPage, ShowDetail } from "./pages/Podcasts";
 import { CollectionDetail, CreatorPage, GallerySection, WorkDetail } from "./pages/Gallery";
 import { EventDetail, EventsPage, LiveDetail, LivePage } from "./pages/LiveEvents";
+import { DesignDetail, FashionHubPage, MyFashionRequests } from "./fashionHub/FashionHub";
 import { onlyPublic, linkFor } from "./api";
 import { EntNotFound, PinCard, SectionIntro } from "./ui";
 
@@ -19,8 +21,20 @@ export default function EntRoutes() {
     <Routes>
       <Route element={<EntLayout />}>
         <Route index element={<EntHome />} />
-        <Route path="films" element={<FilmsPage />} />
-        <Route path="films/:slug" element={<FilmDetail />} />
+        {/* Film → Genre | Movies | TV Series */}
+        <Route path="film" element={<FilmLayout />}>
+          <Route index element={<FilmHub />} />
+          <Route path="genre" element={<GenreIndex />} />
+          <Route path="genre/:slug" element={<GenrePage />} />
+          <Route path="movies" element={<MoviesPage />} />
+          <Route path="movies/:slug" element={<FilmDetail />} />
+          <Route path="tv-series" element={<SeriesPage />} />
+          <Route path="tv-series/:slug" element={<SeriesDetail />} />
+          <Route path="tv-series/:slug/episodes/:episodeId" element={<SeriesDetail />} />
+        </Route>
+        {/* the addresses used before */}
+        <Route path="films" element={<LegacyFilms />} />
+        <Route path="films/:slug" element={<LegacyFilm />} />
         <Route path="podcasts" element={<PodcastsPage />} />
         <Route path="podcasts/:slug" element={<ShowDetail />} />
         <Route path="podcasts/:slug/episodes/:episodeId" element={<EpisodeDetail />} />
@@ -28,6 +42,10 @@ export default function EntRoutes() {
         <Route path="art-design" element={<GallerySection section="art" />} />
         <Route path="fashion" element={<GallerySection section="fashion" />} />
         <Route path="fashion/collections/:slug" element={<CollectionDetail />} />
+        {/* Isoko Fashion Hub: styles to ask about or have made (requests need an account) */}
+        <Route path="fashion/hub" element={<FashionHubPage />} />
+        <Route path="fashion/hub/requests" element={<MyFashionRequests />} />
+        <Route path="fashion/hub/:slug" element={<DesignDetail />} />
         <Route path="work/:slug" element={<WorkDetail />} />
         <Route path="people/:slug" element={<CreatorPage />} />
         <Route path="live" element={<LivePage />} />

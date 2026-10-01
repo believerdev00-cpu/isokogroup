@@ -33,6 +33,17 @@ const anon = createClient(URL_, ANON, opts);
 let passed = 0;
 const ok = (what) => { passed++; console.log(`  ok  ${what}`); };
 const must = ({ data, error }, what) => { if (error) throw new Error(`${what}: ${error.message}`); return data; };
+
+// Sending a request needs an account (20261002120000_requests_require_account.sql):
+// a fresh customer, signed in
+async function customer() {
+  const email = `cust-${Math.random().toString(36).slice(2, 8)}@test.local`;
+  const password = "Test-pass-123";
+  must(await admin.auth.admin.createUser({ email, password, email_confirm: true }), "create customer");
+  const c = createClient(URL_, ANON, opts);
+  must(await c.auth.signInWithPassword({ email, password }), "sign in customer");
+  return c;
+}
 const inDays = (n) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 const run = Math.random().toString(36).slice(2, 7);
 const num = (last3) => `0788${String(Date.now()).slice(-3)}${last3}`; // unique per run
@@ -57,7 +68,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(PORT, "0.0.0.0", r));
 
 async function trip(phone) {
-  const t = must(await anon.rpc("travel_request_trip", { p: {
+  const t = must(await (await customer()).rpc("travel_request_trip", { p: {
     arrival_date: inDays(20), departure_date: inDays(22), travelers: 1, needs: ["hotel"], name: `Twilio ${run}`, phone, email: `tw-${run}@example.com`,
   } }), "trip");
   return must(await admin.from("travel_trips").select("id").eq("access_token", t.token).single(), "trip id").id;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Globe, LayoutGrid, LogOut, Menu, Search, User, X } from "lucide-react";
+import { Check, ChevronDown, Globe, LayoutGrid, LogOut, Menu, Search, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useI18n } from "@/lib/i18n";
+import { LANGS, LANG_NAMES, useI18n, type Lang } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useStaffAccess } from "@/features/staff/access";
@@ -78,10 +78,33 @@ function ServicesMenu() {
           ))}
         </div>
         <Link to="/services" className="flex items-center justify-center gap-2 border-t bg-muted/40 py-3 text-sm font-semibold text-primary hover:bg-muted">
-          <LayoutGrid className="h-4 w-4" /> Open the Service Hub
+          <LayoutGrid className="h-4 w-4" /> {t("nav.openServiceHub")}
         </Link>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** The five languages, each in its own name; the current one is ticked. */
+function LanguageMenu({ className }: { className?: string }) {
+  const { t, lang, setLang } = useI18n();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn("flex items-center gap-1 rounded-full bg-muted px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted/80 focus:outline-none", className)}
+        aria-label={t("nav.language")}
+      >
+        <Globe className="h-3.5 w-3.5" /> {lang.toUpperCase()} <ChevronDown className="h-3 w-3" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="z-[60] w-44">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t("nav.language")}</DropdownMenuLabel>
+        {LANGS.map((l) => (
+          <DropdownMenuItem key={l} onSelect={() => setLang(l)} className="justify-between" lang={l}>
+            {LANG_NAMES[l]} {l === lang && <Check className="h-4 w-4 text-primary" aria-hidden />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -90,7 +113,6 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, lang, setLang } = useI18n();
-  const nextLang = lang === "en" ? "rw" : lang === "rw" ? "sw" : lang === "sw" ? "fr" : lang === "fr" ? "zh" : "en";
   const { user, signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
   // Travel, Consultancy and Data Analysis staff (admins reach the workspace from Admin too)
@@ -114,7 +136,6 @@ const Header = () => {
     ...(isServiceStaff ? [{ to: "/staff", label: t("nav.workspace") }] : []),
     ...(isAdmin ? [{ to: "/admin", label: t("nav.admin") }] : []),
   ];
-  const langLabel = lang === "en" ? "EN" : lang === "rw" ? "RW" : lang === "sw" ? "SW" : lang === "fr" ? "FR" : "ZH";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -144,13 +165,7 @@ const Header = () => {
 
         <div className="ml-auto hidden items-center gap-1.5 lg:flex">
           <SearchTrigger className="w-56" label={t("nav.search")} />
-          <button
-            onClick={() => setLang(nextLang)}
-            className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted/80"
-            aria-label="Change language"
-          >
-            <Globe className="h-3.5 w-3.5" /> {langLabel}
-          </button>
+          <LanguageMenu />
           <ThemeToggle />
           <CartBadge />
           {user && <NotificationsBell />}
@@ -174,9 +189,14 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link to="/login">
-              <Button size="sm" className="rounded-full px-4">{t("nav.login")}</Button>
-            </Link>
+            <>
+              <Link to="/login?tab=register">
+                <Button size="sm" variant="outline" className="rounded-full px-4">{t("nav.register")}</Button>
+              </Link>
+              <Link to="/login">
+                <Button size="sm" className="rounded-full px-4">{t("nav.signIn")}</Button>
+              </Link>
+            </>
           )}
         </div>
 
@@ -203,8 +223,41 @@ const Header = () => {
             transition={{ duration: 0.28, ease: EASE }}
             className="overflow-hidden border-t border-border bg-background lg:hidden"
           >
-            <nav className="container max-h-[calc(100vh-3.5rem)] overflow-y-auto py-4" aria-label="Main">
-              <div className="grid grid-cols-3 gap-2">
+            <nav className="container max-h-[calc(100vh-3.5rem)] overflow-y-auto overflow-x-hidden py-4" aria-label="Main">
+              {/* The essentials first: language, theme, and the way in */}
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border px-3 text-sm">
+                  <Globe className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <span className="sr-only">{t("nav.language")}</span>
+                  <select
+                    value={lang}
+                    onChange={(e) => setLang(e.target.value as Lang)}
+                    className="min-w-0 flex-1 bg-transparent py-2 text-sm font-medium outline-none"
+                    aria-label={t("nav.language")}
+                  >
+                    {LANGS.map((l) => (
+                      <option key={l} value={l} lang={l}>{LANG_NAMES[l]}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 text-sm">
+                  <span className="truncate font-medium">{t("nav.theme")}</span>
+                  <ThemeToggle className="h-9 w-9 shrink-0" />
+                </div>
+              </div>
+
+              {!user && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Link to="/login?tab=register" className="min-w-0">
+                    <Button variant="outline" className="h-12 w-full text-base">{t("nav.register")}</Button>
+                  </Link>
+                  <Link to="/login" className="min-w-0">
+                    <Button className="h-12 w-full text-base">{t("nav.signIn")}</Button>
+                  </Link>
+                </div>
+              )}
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
                 {[
                   { to: "/", label: t("nav.home") },
                   { to: "/track", label: t("nav.track") },
@@ -215,7 +268,7 @@ const Header = () => {
                     to={l.to}
                     end
                     className={({ isActive }) =>
-                      cn("rounded-xl border py-2.5 text-center text-sm font-medium", isActive ? "border-primary/40 bg-primary/10 text-primary" : "hover:bg-muted")
+                      cn("min-h-11 rounded-xl border px-1 py-2.5 text-center text-sm font-medium", isActive ? "border-primary/40 bg-primary/10 text-primary" : "hover:bg-muted")
                     }
                   >
                     {l.label}
@@ -223,9 +276,9 @@ const Header = () => {
                 ))}
               </div>
 
-              <p className="mb-2 mt-5 flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <p className="mb-2 mt-5 flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 {t("nav.services")}
-                <Link to="/services" className="normal-case tracking-normal text-primary">Service Hub →</Link>
+                <Link to="/services" className="normal-case tracking-normal text-primary">{t("nav.serviceHub")} →</Link>
               </p>
               <div className="space-y-4">
                 {CATEGORIES.map((c) => (
@@ -233,9 +286,9 @@ const Header = () => {
                     <p className="mb-1 text-xs font-semibold text-muted-foreground">{c.title}</p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {SERVICES.filter((s) => s.category === c.key).map((s) => (
-                        <Link key={s.id} to={s.path} className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2.5 text-left text-sm hover:bg-muted">
+                        <Link key={s.id} to={s.path} className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg bg-muted/50 px-3 py-2.5 text-left text-sm hover:bg-muted">
                           <s.icon className="h-4 w-4 shrink-0 text-primary" />
-                          <span className="leading-tight">{s.name}</span>
+                          <span className="min-w-0 leading-tight">{s.name}</span>
                         </Link>
                       ))}
                     </div>
@@ -243,35 +296,21 @@ const Header = () => {
                 ))}
               </div>
 
-              <div className="mt-5 flex items-center gap-2">
-                <button onClick={() => setLang(nextLang)} className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium">
-                  <Globe className="h-3.5 w-3.5" />
-                  {lang === "en" ? "English" : lang === "rw" ? "Kinyarwanda" : lang === "sw" ? "Kiswahili" : lang === "fr" ? "Français" : "中文"}
-                </button>
-                <ThemeToggle />
-              </div>
-
-              <div className="mt-4 border-t pt-4">
-                {user ? (
-                  <>
-                    <p className="mb-2 truncate text-xs text-muted-foreground">{user.email}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {accountLinks.map((l) => (
-                        <Link key={l.to} to={l.to}>
-                          <Button variant="outline" className="w-full">{l.label}</Button>
-                        </Link>
-                      ))}
-                    </div>
-                    <Button variant="ghost" className="mt-2 w-full" onClick={handleLogout}>
-                      <LogOut className="mr-2 h-4 w-4" /> {t("nav.logout")}
-                    </Button>
-                  </>
-                ) : (
-                  <Link to="/login">
-                    <Button className="w-full">{t("nav.login")}</Button>
-                  </Link>
-                )}
-              </div>
+              {user && (
+                <div className="mt-4 border-t pt-4">
+                  <p className="mb-2 truncate text-xs text-muted-foreground">{user.email}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {accountLinks.map((l) => (
+                      <Link key={l.to} to={l.to} className="min-w-0">
+                        <Button variant="outline" className="h-11 w-full">{l.label}</Button>
+                      </Link>
+                    ))}
+                  </div>
+                  <Button variant="ghost" className="mt-2 h-11 w-full" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" /> {t("nav.logout")}
+                  </Button>
+                </div>
+              )}
             </nav>
           </motion.div>
         )}

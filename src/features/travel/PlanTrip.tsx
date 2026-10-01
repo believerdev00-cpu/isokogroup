@@ -5,9 +5,10 @@ import { MapPin, Minus, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth";
+import AccountRequired from "@/components/AccountRequired";
 import { cn } from "@/lib/utils";
 import { db, errorText, rpc, todayIso } from "@/features/services/api";
-import { ChoiceCard, Field, FlowColumn, FormError, PrimaryButton, RequestReceived, ServiceLayout, StepHeader, THEME } from "@/features/services/ui";
+import { ChoiceCard, Field, FlowColumn, FormError, PageLoading, PrimaryButton, RequestReceived, ServiceLayout, StepHeader, THEME } from "@/features/services/ui";
 import { NEEDS, PLAN_EVERYTHING, type Need, type Package } from "./data";
 
 const TOTAL = 4;
@@ -17,7 +18,7 @@ const TOTAL = 4;
 export default function PlanTrip() {
   const [params] = useSearchParams();
   const packageId = params.get("package");
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const pkg = useQuery({
     queryKey: ["travel_package", packageId],
     enabled: !!packageId,
@@ -77,6 +78,23 @@ export default function PlanTrip() {
       setBusy(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <ServiceLayout>
+        <PageLoading />
+      </ServiceLayout>
+    );
+  }
+  if (!user) {
+    return (
+      <ServiceLayout>
+        <FlowColumn>
+          <AccountRequired service="Travel Agency" />
+        </FlowColumn>
+      </ServiceLayout>
+    );
+  }
 
   if (result) {
     return (
