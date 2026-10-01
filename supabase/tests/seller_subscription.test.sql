@@ -61,8 +61,11 @@ CREATE FUNCTION pg_temp.sub(p_user uuid) RETURNS public.subscriptions LANGUAGE s
   SELECT * FROM public.subscriptions WHERE user_id = p_user;
 $$;
 CREATE FUNCTION pg_temp.apply(p_user text) RETURNS jsonb LANGUAGE sql AS $$
-  SELECT pg_temp.as_(p_user, $q$INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number)
-    VALUES (auth.uid(), 'Applicant', 'Shop', '0788000000', '1199') RETURNING to_jsonb(seller_applications.*)$q$);
+  SELECT pg_temp.as_(p_user, $q$INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number,
+      country, tin, business_address, payment_provider, payment_account, payment_account_name, agreement_version)
+    VALUES (auth.uid(), 'Applicant', 'Shop', '0788000000', '1199',
+      'Rwanda', '123456789', 'Kigali', 'MTN MoMo', '0788000000', 'Applicant', public.seller_agreement_version())
+    RETURNING to_jsonb(seller_applications.*)$q$);
 $$;
 
 -- ================= NORMAL USER: 50 RWF / 7 DAYS OR 200 RWF / MONTH =================

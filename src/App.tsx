@@ -42,6 +42,7 @@ const StaffRoutes = lazy(() => import("./features/staff/StaffRoutes"));
 const EntRoutes = lazy(() => import("./features/entertainment/EntRoutes"));
 const page = (el: React.ReactNode) => <Suspense fallback={<PageSkeleton />}>{el}</Suspense>;
 import Marketplace from "./pages/Marketplace";
+import SellerAgreement from "./pages/SellerAgreement";
 import ELibrary from "./pages/ELibrary";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -84,6 +85,7 @@ const App = () => (
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/become-seller" element={<BecomeSeller />} />
+                  <Route path="/seller-agreement" element={<SellerAgreement />} />
                   <Route path="/subscription" element={<Subscription />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/logistics" element={<ProtectedRoute><Logistics /></ProtectedRoute>} />

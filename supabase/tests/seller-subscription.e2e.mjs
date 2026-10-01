@@ -61,6 +61,8 @@ try {
   // ---------- Seller: 1,500 RWF / month ----------
   must(await seller.client.from("seller_applications").insert({
     user_id: seller.id, full_name: `Seller ${run}`, business_name: `Shop ${run}`, phone: "0788000000", id_number: "1199", email: seller.email,
+    country: "Rwanda", tin: "123456789", business_address: "Kigali", payment_provider: "MTN MoMo",
+    payment_account: "0788000000", payment_account_name: `Seller ${run}`, agreement_version: "2026-10-01",
   }), "application (no trial, no subscription)");
   s = await state(seller);
   assert.deepEqual(s.plans.map((p) => [p.plan, Number(p.price)]), [["seller", 1500]]);

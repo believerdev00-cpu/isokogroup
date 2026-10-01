@@ -5,7 +5,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Upload, FileCheck2, X, Clock, XCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CheckCircle, Upload, FileCheck2, X, Clock, XCircle, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { formatPrice, useSubscription } from "@/lib/subscription";
 import { useSiteSettings } from "@/lib/siteSettings";
@@ -13,16 +14,29 @@ import SubscriptionPayment from "@/components/SubscriptionPayment";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AGREEMENT_CHECKBOX_LABEL,
+  COUNTRIES,
+  MAX_PRODUCT_IMAGES,
+  PAYMENT_PROVIDERS,
+  SELLER_AGREEMENT_VERSION,
+} from "@/lib/sellerAgreement";
 
+// What a seller agrees to (the Seller Registration and Compliance Agreement, /seller-agreement)
 const rules = (commissionPercent: number, sellerMonthlyPrice: number) => [
   `${commissionPercent}% commission on each sale`,
-  "Products must meet quality standards",
-  "ID verification required",
   `Seller subscription: ${formatPrice(sellerMonthlyPrice)} a month (includes everything a normal user gets; no 50 or 200 RWF subscription)`,
+  "ID verification required; ISOKO may verify your information and products",
+  "Correct TIN, business address and bank / Mobile Money payout details (kept private, never shown to customers)",
+  `Accurate product information, price and stock; at most ${MAX_PRODUCT_IMAGES} images per product; keep stock updated`,
+  "Customers buy through ISOKO; ISOKO or its agent handles delivery; you request a payout for each product sold",
+  "You comply with tax, EBM and invoicing requirements for your business",
 ];
 
 const MAX_ID_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_ID_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+const OTHER_PROVIDER = "Other bank";
+const OTHER_COUNTRY = "Other";
 
 const BecomeSeller = () => {
   const { user } = useAuth();
@@ -39,10 +53,22 @@ const BecomeSeller = () => {
   const [business, setBusiness] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [countryChoice, setCountryChoice] = useState(COUNTRIES[0]);
+  const [otherCountry, setOtherCountry] = useState("");
+  const [tin, setTin] = useState("");
+  const [address, setAddress] = useState("");
+  const [providerChoice, setProviderChoice] = useState(PAYMENT_PROVIDERS[0]);
+  const [otherProvider, setOtherProvider] = useState("");
+  const [paymentAccount, setPaymentAccount] = useState("");
+  const [paymentAccountName, setPaymentAccountName] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [idNumber, setIdNumber] = useState("");
   const [idFile, setIdFile] = useState<File | null>(null);
   const [existingApp, setExistingApp] = useState<any>(null);
   const [checkingApp, setCheckingApp] = useState(true);
+
+  const country = countryChoice === OTHER_COUNTRY ? otherCountry : countryChoice;
+  const provider = providerChoice === OTHER_PROVIDER ? otherProvider : providerChoice;
 
   const fetchApplication = async () => {
     if (!user) { setCheckingApp(false); return; }
@@ -95,6 +121,12 @@ const BecomeSeller = () => {
     const trimmedEmail = email.trim();
     const trimmedPhone = phone.trim();
     const trimmedId = idNumber.trim();
+    const trimmedCountry = country.trim();
+    const trimmedTin = tin.trim();
+    const trimmedAddress = address.trim();
+    const trimmedProvider = provider.trim();
+    const trimmedAccount = paymentAccount.trim();
+    const trimmedAccountName = paymentAccountName.trim();
 
     if (!trimmedName || trimmedName.length < 3) {
       toast({ title: "Invalid full name", description: "Please enter your full legal name (at least 3 characters).", variant: "destructive" });
@@ -112,12 +144,40 @@ const BecomeSeller = () => {
       toast({ title: "Invalid phone", description: "Please enter a valid phone number (8-15 digits).", variant: "destructive" });
       return;
     }
+    if (!trimmedCountry) {
+      toast({ title: "Country required", description: "Please enter the country your business is in.", variant: "destructive" });
+      return;
+    }
+    if (!/^[A-Za-z0-9 /-]{5,30}$/.test(trimmedTin)) {
+      toast({ title: "Invalid TIN", description: "Enter your Tax Identification Number (Rwanda TINs have 9 digits).", variant: "destructive" });
+      return;
+    }
+    if (trimmedAddress.length < 3) {
+      toast({ title: "Business address required", description: "Enter where your business is located.", variant: "destructive" });
+      return;
+    }
+    if (!trimmedProvider) {
+      toast({ title: "Payment provider required", description: "Choose your bank or Mobile Money provider.", variant: "destructive" });
+      return;
+    }
+    if (!/^[A-Za-z0-9 +/-]{6,60}$/.test(trimmedAccount)) {
+      toast({ title: "Invalid account number", description: "Enter your Mobile Money number or bank account number.", variant: "destructive" });
+      return;
+    }
+    if (trimmedAccountName.length < 3) {
+      toast({ title: "Account holder name required", description: "Enter the full name on the account.", variant: "destructive" });
+      return;
+    }
     if (!trimmedId || trimmedId.length < 6) {
       toast({ title: "Invalid ID", description: "Please enter your full national ID number.", variant: "destructive" });
       return;
     }
     if (!idFile) {
       toast({ title: "ID document required", description: "Please upload a clear scan or photo of your national ID.", variant: "destructive" });
+      return;
+    }
+    if (!agreed) {
+      toast({ title: "Agreement required", description: "Please read and accept the Seller Registration and Compliance Agreement.", variant: "destructive" });
       return;
     }
 
@@ -136,6 +196,7 @@ const BecomeSeller = () => {
       return;
     }
 
+    // The server stamps the time the agreement was accepted
     const { error } = await (supabase as any).from("seller_applications").insert({
       user_id: user.id,
       full_name: trimmedName,
@@ -144,6 +205,13 @@ const BecomeSeller = () => {
       phone: trimmedPhone,
       id_number: trimmedId,
       id_document_url: path,
+      country: trimmedCountry,
+      tin: trimmedTin,
+      business_address: trimmedAddress,
+      payment_provider: trimmedProvider,
+      payment_account: trimmedAccount,
+      payment_account_name: trimmedAccountName,
+      agreement_version: SELLER_AGREEMENT_VERSION,
     });
     setLoading(false);
     if (error) {
@@ -151,6 +219,8 @@ const BecomeSeller = () => {
     } else {
       toast({ title: "Application Submitted!", description: "We will review your application and ID document and get back to you soon." });
       setFullname(""); setBusiness(""); setEmail(""); setPhone(""); setIdNumber("");
+      setTin(""); setAddress(""); setPaymentAccount(""); setPaymentAccountName(""); setOtherCountry(""); setOtherProvider("");
+      setAgreed(false);
       clearFile();
       fetchApplication();
       refreshSubscription();
@@ -181,6 +251,8 @@ const BecomeSeller = () => {
     },
   } as const;
 
+  const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -196,11 +268,15 @@ const BecomeSeller = () => {
             <h2 className="text-xl font-semibold mb-4">{t("seller.rules")}</h2>
             <ul className="space-y-3">
               {rules(commissionPercent, sellerMonthlyPrice).map((r) => (
-                <li key={r} className="flex items-center gap-3 text-sm text-muted-foreground">
+                <li key={r} className="flex items-start gap-3 text-sm text-muted-foreground">
                   <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" /> {r}
                 </li>
               ))}
             </ul>
+            <p className="mt-4 text-sm text-muted-foreground">
+              The full terms are in the{" "}
+              <Link to="/seller-agreement" className="text-primary underline">Seller Registration and Compliance Agreement</Link>.
+            </p>
           </div>
 
           {/* The seller subscription (1,500 RWF a month): once an admin confirms it, the application is approved */}
@@ -242,6 +318,12 @@ const BecomeSeller = () => {
                     <div className="mt-3 text-xs text-muted-foreground space-y-1">
                       <p><span className="font-medium text-foreground">Submitted:</span> {new Date(existingApp.created_at).toLocaleString()}</p>
                       <p><span className="font-medium text-foreground">Business:</span> {existingApp.business_name}</p>
+                      {existingApp.agreement_accepted_at && (
+                        <p>
+                          <span className="font-medium text-foreground">Seller Agreement:</span> accepted{" "}
+                          {new Date(existingApp.agreement_accepted_at).toLocaleString()} (version {existingApp.agreement_version})
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -255,6 +337,7 @@ const BecomeSeller = () => {
             </h2>
             <p className="text-sm text-muted-foreground mb-6">{t("seller.formInstructions")}</p>
             <form className="space-y-4" onSubmit={handleSubmit}>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Seller information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="fullname">{t("seller.fullName")} *</Label>
@@ -274,6 +357,25 @@ const BecomeSeller = () => {
                   <Label htmlFor="phone">{t("seller.phone")} *</Label>
                   <Input id="phone" type="tel" placeholder="+250 7XX XXX XXX" value={phone} onChange={(e) => setPhone(e.target.value)} required minLength={8} maxLength={20} />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country *</Label>
+                  <select id="country" value={countryChoice} onChange={(e) => setCountryChoice(e.target.value)} className={selectClass}>
+                    {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  {countryChoice === OTHER_COUNTRY && (
+                    <Input placeholder="Country" value={otherCountry} onChange={(e) => setOtherCountry(e.target.value)} required maxLength={60} />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tin">TIN (Tax Identification Number) *</Label>
+                  <Input id="tin" placeholder="e.g. 123456789" value={tin} onChange={(e) => setTin(e.target.value)} required minLength={5} maxLength={30} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Business Address / Location *</Label>
+                <Input id="address" placeholder="Street, sector, district / city" value={address} onChange={(e) => setAddress(e.target.value)} required minLength={3} maxLength={300} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="id">{t("seller.idNumber")} *</Label>
@@ -322,6 +424,48 @@ const BecomeSeller = () => {
                   </div>
                 )}
               </div>
+
+              {/* Private payout details (section 7 of the agreement) */}
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+                <div>
+                  <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Lock className="h-4 w-4 text-primary" /> Private payment information
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This information is not visible to customers. It is used by ISOKO for seller verification and approved payouts.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="provider">Bank / Mobile Money Provider *</Label>
+                    <select id="provider" value={providerChoice} onChange={(e) => setProviderChoice(e.target.value)} className={selectClass}>
+                      {PAYMENT_PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    {providerChoice === OTHER_PROVIDER && (
+                      <Input placeholder="Name of the bank" value={otherProvider} onChange={(e) => setOtherProvider(e.target.value)} required maxLength={60} />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="account">Account / Mobile Money Number *</Label>
+                    <Input id="account" placeholder="07XX XXX XXX or account number" value={paymentAccount} onChange={(e) => setPaymentAccount(e.target.value)} required minLength={6} maxLength={60} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-name">Account Holder Name *</Label>
+                  <Input id="account-name" placeholder="Full name on the account" value={paymentAccountName} onChange={(e) => setPaymentAccountName(e.target.value)} required minLength={3} maxLength={100} />
+                </div>
+              </div>
+
+              {/* The agreement */}
+              <label htmlFor="agree" className="flex items-start gap-3 rounded-lg border border-border p-4 cursor-pointer">
+                <Checkbox id="agree" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} className="mt-0.5" />
+                <span className="text-sm">
+                  <span className="font-medium">{AGREEMENT_CHECKBOX_LABEL}</span>{" "}
+                  <Link to="/seller-agreement" target="_blank" rel="noreferrer" className="text-primary underline" onClick={(e) => e.stopPropagation()}>
+                    Read the agreement
+                  </Link>
+                </span>
+              </label>
 
               <Button className="w-full hover-glow" size="lg" disabled={loading}>
                 {loading ? "Submitting..." : t("seller.submit")}

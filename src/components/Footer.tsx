@@ -59,6 +59,7 @@ const Footer = () => {
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li><Link to="/about" className="hover:text-primary transition-colors">{t("footer.aboutUs")}</Link></li>
               <li><Link to="/become-seller" className="hover:text-primary transition-colors">{t("nav.becomeSeller")}</Link></li>
+              <li><Link to="/seller-agreement" className="hover:text-primary transition-colors">Seller Agreement</Link></li>
               <li><Link to="/login" className="hover:text-primary transition-colors">{t("nav.login")}</Link></li>
             </ul>
           </div>

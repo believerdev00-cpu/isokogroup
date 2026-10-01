@@ -675,6 +675,9 @@ const Admin = () => {
                           <TableHead>Email</TableHead>
                           <TableHead>Phone</TableHead>
                           <TableHead>ID Number</TableHead>
+                          <TableHead>Business</TableHead>
+                          <TableHead>Payout details (private)</TableHead>
+                          <TableHead>Agreement</TableHead>
                           <TableHead>ID Document</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
@@ -688,6 +691,32 @@ const Admin = () => {
                             <TableCell>{a.email || "—"}</TableCell>
                             <TableCell>{a.phone}</TableCell>
                             <TableCell className="font-mono text-xs">{a.id_number}</TableCell>
+                            {/* Sections 1 and 7 of the Seller Agreement: what the seller registered */}
+                            <TableCell className="text-xs">
+                              {a.tin ? (
+                                <div className="space-y-0.5 min-w-[9rem]">
+                                  <p><span className="text-muted-foreground">TIN</span> <span className="font-mono">{a.tin}</span></p>
+                                  <p>{a.country}</p>
+                                  <p className="text-muted-foreground max-w-[14rem] break-words">{a.business_address}</p>
+                                </div>
+                              ) : <span className="text-muted-foreground">Not given (before the agreement)</span>}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {a.payment_account ? (
+                                <div className="space-y-0.5 min-w-[9rem]">
+                                  <p>{a.payment_provider}</p>
+                                  <p className="font-mono">{a.payment_account}</p>
+                                  <p className="text-muted-foreground">{a.payment_account_name}</p>
+                                </div>
+                              ) : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {a.agreement_accepted_at ? (
+                                <span className="text-green-700 dark:text-green-400" title={`Version ${a.agreement_version}`}>
+                                  Accepted {new Date(a.agreement_accepted_at).toLocaleDateString()}
+                                </span>
+                              ) : <span className="text-yellow-700 dark:text-yellow-400">Not yet accepted</span>}
+                            </TableCell>
                             <TableCell>
                               {a.id_document_url ? (
                                 <div className="flex gap-1">

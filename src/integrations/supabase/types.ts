@@ -725,6 +725,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          image_urls: string[]
           name: string
           price: number
           seller_id: string
@@ -738,6 +739,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           name: string
           price: number
           seller_id: string
@@ -751,6 +753,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           name?: string
           price?: number
           seller_id?: string
@@ -842,6 +845,14 @@ export type Database = {
       }
       seller_applications: {
         Row: {
+          agreement_accepted_at: string | null
+          agreement_version: string | null
+          business_address: string | null
+          country: string | null
+          payment_account: string | null
+          payment_account_name: string | null
+          payment_provider: string | null
+          tin: string | null
           business_name: string
           created_at: string
           email: string | null
@@ -856,6 +867,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agreement_accepted_at?: string | null
+          agreement_version?: string | null
+          business_address?: string | null
+          country?: string | null
+          payment_account?: string | null
+          payment_account_name?: string | null
+          payment_provider?: string | null
+          tin?: string | null
           business_name: string
           created_at?: string
           email?: string | null
@@ -870,6 +889,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agreement_accepted_at?: string | null
+          agreement_version?: string | null
+          business_address?: string | null
+          country?: string | null
+          payment_account?: string | null
+          payment_account_name?: string | null
+          payment_provider?: string | null
+          tin?: string | null
           business_name?: string
           created_at?: string
           email?: string | null

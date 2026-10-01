@@ -373,8 +373,11 @@ SELECT pg_temp.expect(pg_temp.refused(:seller, $$INSERT INTO public.products (se
   'a seller whose access ended can''t list products');
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$UPDATE public.products SET price = 1 WHERE id = '00000000-0000-4000-8000-00000000c5a1'$$),
   'nor edit them');
-SELECT pg_temp.expect(NOT pg_temp.refused(:cust2, $$INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number)
-  VALUES (auth.uid(), 'C2', 'Shop 2', '0788000001', '1198') $$), 'a customer in their trial applies as a seller');
+SELECT pg_temp.expect(NOT pg_temp.refused(:cust2, $$INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number,
+    country, tin, business_address, payment_provider, payment_account, payment_account_name, agreement_version)
+  VALUES (auth.uid(), 'C2', 'Shop 2', '0788000001', '1198',
+    'Rwanda', '123456789', 'Kigali', 'MTN MoMo', '0788000001', 'C2 Seller', public.seller_agreement_version()) $$),
+  'a customer in their trial applies as a seller');
 SELECT pg_temp.expect(NOT pg_temp.refused(:cust2, $$UPDATE public.seller_applications SET status = 'approved' WHERE user_id = auth.uid()$$)
   AND (SELECT status FROM public.seller_applications WHERE user_id = :cust2) = 'pending'
   AND NOT public.has_role(:cust2::uuid, 'seller'), 'but can''t approve themselves: no seller role');

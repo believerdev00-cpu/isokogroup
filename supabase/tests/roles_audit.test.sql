@@ -80,8 +80,10 @@ SELECT pg_temp.expect(pg_temp.refused(NULL, $$
 
 -- ---------- Seller role follows the application ----------
 SELECT pg_temp.refused(:user, $$
-  INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number)
-  VALUES (auth.uid(), 'U', 'Shop', '1', '1') $$);
+  INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number,
+    country, tin, business_address, payment_provider, payment_account, payment_account_name, agreement_version)
+  VALUES (auth.uid(), 'U', 'Shop', '1', '1',
+    'Rwanda', '123456789', 'Kigali', 'MTN MoMo', '0788000000', 'U Seller', public.seller_agreement_version()) $$);
 SELECT pg_temp.expect(pg_temp.refused(:user, $$
   INSERT INTO public.products (seller_id, name, price, category) VALUES (auth.uid(), 'RA-1', 100, 'x') $$),
   'no seller role, no product listing');

@@ -29,7 +29,14 @@ const Marketplace = () => {
     fetchProducts();
   }, []);
 
-  const allProducts = dbProducts.map(p => ({ name: p.name, price: p.price, rating: 4.5, category: p.category, image: p.image_url, id: p.id, isDefault: false }));
+  // up to four images per product (Seller Agreement, section 2); the first is the main one
+  const allProducts = dbProducts.map(p => ({
+    name: p.name, price: p.price, rating: 4.5, category: p.category, image: p.image_url, id: p.id, isDefault: false,
+    images: (p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : []) as string[],
+    inStock: p.stock > 0,
+  }));
+  // which of a product's images is shown, by product id
+  const [shownImage, setShownImage] = useState<Record<string, number>>({});
 
   const filtered = allProducts
     .filter(p => active === "All" || p.category === active)
@@ -94,9 +101,32 @@ const Marketplace = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filtered.map((product, i) => (
                 <div key={product.id || i} className="group card-interactive rounded-xl border border-border bg-card overflow-hidden">
-                  <div className="aspect-square overflow-hidden">
-                    <img src={product.image || "/placeholder.svg"} alt={product.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="aspect-square overflow-hidden relative">
+                    <img
+                      src={product.images[shownImage[product.id] ?? 0] || "/placeholder.svg"}
+                      alt={product.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {!product.inStock && (
+                      <span className="absolute top-2 left-2 rounded-full bg-background/90 px-2 py-0.5 text-xs font-medium text-destructive">Out of stock</span>
+                    )}
                   </div>
+                  {product.images.length > 1 && (
+                    <div className="flex gap-1 px-3 pt-3">
+                      {product.images.map((src, idx) => (
+                        <button
+                          key={src}
+                          type="button"
+                          onClick={() => setShownImage({ ...shownImage, [product.id]: idx })}
+                          className={`h-10 w-10 overflow-hidden rounded border ${(shownImage[product.id] ?? 0) === idx ? "border-primary" : "border-border"}`}
+                          aria-label={`${product.name} image ${idx + 1}`}
+                        >
+                          <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div className="p-4 space-y-2">
                     <span className="text-xs text-primary font-medium">{product.category}</span>
                     <h3 className="font-semibold text-sm">{product.name}</h3>
@@ -107,7 +137,7 @@ const Marketplace = () => {
                         {product.rating}
                       </div>
                     </div>
-                    <Button size="sm" className="w-full mt-2 gap-2" onClick={() => handleAddToCart(product)}>
+                    <Button size="sm" className="w-full mt-2 gap-2" onClick={() => handleAddToCart(product)} disabled={!product.inStock}>
                       <ShoppingCart className="h-3 w-3" /> {t("marketplace.addToCart")}
                     </Button>
                   </div>

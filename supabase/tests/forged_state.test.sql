@@ -51,11 +51,17 @@ END $$;
 
 -- ---------- Seller applications ----------
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$
-  INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number, status)
-  VALUES (auth.uid(), 'S', 'Shop', '1', '1', 'approved') $$), 'user cannot insert an already approved seller application');
+  INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number, status,
+    country, tin, business_address, payment_provider, payment_account, payment_account_name, agreement_version)
+  VALUES (auth.uid(), 'S', 'Shop', '1', '1', 'approved',
+    'Rwanda', '123456789', 'Kigali', 'MTN MoMo', '0788000000', 'S Seller', public.seller_agreement_version()) $$),
+  'user cannot insert an already approved seller application');
 SELECT pg_temp.expect(NOT pg_temp.refused(:seller, $$
-  INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number, email)
-  VALUES (auth.uid(), 'S', 'Shop', '1', '1', 's@x.co') $$), 'user can apply to become a seller');
+  INSERT INTO public.seller_applications (user_id, full_name, business_name, phone, id_number, email,
+    country, tin, business_address, payment_provider, payment_account, payment_account_name, agreement_version)
+  VALUES (auth.uid(), 'S', 'Shop', '1', '1', 's@x.co',
+    'Rwanda', '123456789', 'Kigali', 'MTN MoMo', '0788000000', 'S Seller', public.seller_agreement_version()) $$),
+  'user can apply to become a seller');
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$
   INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'W', 1000, 'x', 5) $$),
   'pending applicant cannot list products');

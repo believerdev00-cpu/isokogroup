@@ -1,7 +1,7 @@
 # Deploying Isoko
 
 How to take the security-hardening work (migrations `20260922090000` to
-`20260925170000`) to production, check it, and back out if needed.
+`20261001100000`) to production, check it, and back out if needed.
 
 What gets deployed:
 
