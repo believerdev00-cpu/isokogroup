@@ -13,10 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-import { Package, ShoppingCart, DollarSign, TrendingUp, Plus, Upload, User, Bell, Wallet, Pencil, Lock, FileText, X } from "lucide-react";
+import { Package, ShoppingCart, DollarSign, TrendingUp, Plus, Upload, User, Bell, Wallet, Pencil, Lock, FileText, X, Image as ImageIcon } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { useSiteSettings } from "@/lib/siteSettings";
 import ShipmentDialog from "@/components/ShipmentDialog";
+import ProductImagesDialog from "@/components/ProductImagesDialog";
+import { productImages as imagesOf } from "@/lib/productImages";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Truck } from "lucide-react";
 import { AGREEMENT_CHECKBOX_LABEL, COUNTRIES, MAX_PRODUCT_IMAGES, PAYMENT_PROVIDERS, SELLER_AGREEMENT_VERSION } from "@/lib/sellerAgreement";
@@ -38,6 +40,8 @@ const SellerDashboard = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [shipmentOrder, setShipmentOrder] = useState<{ id: string } | null>(null);
+  // the product whose images are being edited (add, remove, replace, reorder; at most four)
+  const [imagesProduct, setImagesProduct] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -459,7 +463,7 @@ const SellerDashboard = () => {
                       </TableRow></TableHeader>
                       <TableBody>
                         {products.map((p) => {
-                          const images: string[] = p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [];
+                          const images = imagesOf(p);
                           const editing = editingProduct?.id === p.id;
                           return (
                             <TableRow key={p.id}>
@@ -499,6 +503,9 @@ const SellerDashboard = () => {
                                     <>
                                       <Button size="sm" variant="outline" className="gap-1" onClick={() => setEditingProduct({ id: p.id, price: String(p.price), stock: String(p.stock) })}>
                                         <Pencil className="h-3 w-3" /> Price / stock
+                                      </Button>
+                                      <Button size="sm" variant="outline" className="gap-1" onClick={() => setImagesProduct(p)}>
+                                        <ImageIcon className="h-3 w-3" /> Images
                                       </Button>
                                       <Button size="sm" variant="destructive" onClick={() => handleDeleteProduct(p.id)}>Delete</Button>
                                     </>
@@ -826,6 +833,15 @@ const SellerDashboard = () => {
           </Tabs>
         </div>
       </section>
+      {imagesProduct && user && (
+        <ProductImagesDialog
+          product={imagesProduct}
+          sellerId={user.id}
+          open={!!imagesProduct}
+          onOpenChange={(o) => { if (!o) setImagesProduct(null); }}
+          onSaved={fetchData}
+        />
+      )}
       {shipmentOrder && (
         <ShipmentDialog
           orderId={shipmentOrder.id}

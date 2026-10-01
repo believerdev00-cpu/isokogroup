@@ -25,7 +25,7 @@ SELECT set_config('isoko.subscription_internal', '', true);
 INSERT INTO public.seller_applications (id, user_id, full_name, business_name, phone, id_number, status)
 VALUES ('00000000-0000-4000-8000-00000000a9a4', '00000000-0000-4000-8000-00000000a904', 'Old Seller', 'Old Shop', '0788000004', '1199', 'approved');
 INSERT INTO public.products (id, seller_id, name, price, category, stock, image_url)
-VALUES ('00000000-0000-4000-8000-00000000a9b1', '00000000-0000-4000-8000-00000000a904', 'Basket', 5000, 'Crafts', 3, 'https://img/old.jpg');
+VALUES ('00000000-0000-4000-8000-00000000a9b1', '00000000-0000-4000-8000-00000000a904', 'Basket', 5000, 'Crafts', 3, 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/old.jpg');
 
 \set applicant '''00000000-0000-4000-8000-00000000a901'''
 \set other '''00000000-0000-4000-8000-00000000a902'''
@@ -116,13 +116,13 @@ SELECT pg_temp.expect(NOT pg_temp.refused(:applicant, pg_temp.apply_sql('{"agree
   'a forged acceptance time is replaced by the server''s');
 
 -- ---------- Section 7: payout details are private ----------
-SELECT pg_temp.expect(pg_temp.visible(:applicant, $$SELECT payment_account FROM public.seller_applications WHERE payment_account = '0788000001'$$) = 1,
+SELECT pg_temp.expect(pg_temp.visible(:applicant, $$SELECT payment_account FROM public.seller_applications WHERE payment_account = '0788000001' AND user_id = auth.uid()$$) = 1,
   'the seller sees their own payout details');
 SELECT pg_temp.expect(pg_temp.visible(:other, $$SELECT payment_account FROM public.seller_applications WHERE payment_account = '0788000001'$$) = 0,
   'another customer sees nothing of them');
 SELECT pg_temp.expect(pg_temp.refused(NULL, $$SELECT payment_account FROM public.seller_applications$$)
   OR pg_temp.visible(:other, $$SELECT 1 FROM public.seller_applications$$) = 0, 'nor do visitors');
-SELECT pg_temp.expect(pg_temp.visible(:admin, $$SELECT tin FROM public.seller_applications WHERE tin = '123456789'$$) = 1,
+SELECT pg_temp.expect(pg_temp.visible(:admin, $$SELECT tin FROM public.seller_applications WHERE tin = '123456789' AND user_id = '00000000-0000-4000-8000-00000000a901'$$) = 1,
   'admins see them to verify the seller and pay approved payouts');
 SELECT pg_temp.expect(NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'profiles'
   AND column_name IN ('tin', 'payment_account', 'payment_provider', 'payment_account_name')),
@@ -154,22 +154,22 @@ SELECT pg_temp.expect(pg_temp.refused(:other, 'SELECT public.accept_seller_agree
 SELECT pg_temp.expect(pg_temp.refused(NULL, 'SELECT public.accept_seller_agreement()'), 'visitors can''t call it');
 
 -- ---------- Section 2: up to four product images; section 5: stock stays editable ----------
-SELECT pg_temp.expect((pg_temp.prod('00000000-0000-4000-8000-00000000a9b1')).image_urls = ARRAY['https://img/old.jpg'],
+SELECT pg_temp.expect((pg_temp.prod('00000000-0000-4000-8000-00000000a9b1')).image_urls = ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/old.jpg'],
   'an existing product''s single image became its image list');
 SELECT pg_temp.expect(pg_temp.refused(:oldseller, $$INSERT INTO public.products (seller_id, name, price, category, stock, image_urls)
   VALUES (auth.uid(), 'Too many', 100, 'Crafts', 1, ARRAY['a','b','c','d','e'])$$), 'five images are refused');
 SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$INSERT INTO public.products (id, seller_id, name, price, category, stock, image_urls)
-  VALUES ('00000000-0000-4000-8000-00000000a9b2', auth.uid(), 'Mat', 2000, 'Crafts', 10, ARRAY['https://img/1.jpg', '', 'https://img/2.jpg'])$$),
+  VALUES ('00000000-0000-4000-8000-00000000a9b2', auth.uid(), 'Mat', 2000, 'Crafts', 10, ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg', '', 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/2.jpg'])$$),
   'up to four images are accepted');
 SELECT pg_temp.expect(((pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_url, (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_urls)
-  = ('https://img/1.jpg'::text, ARRAY['https://img/1.jpg', 'https://img/2.jpg']::text[]), 'image_url is the first image; blanks are dropped');
-SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$UPDATE public.products SET image_urls = ARRAY['https://img/3.jpg', 'https://img/1.jpg']
+  = ('https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg'::text, ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg', 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/2.jpg']::text[]), 'image_url is the first image; blanks are dropped');
+SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$UPDATE public.products SET image_urls = ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/3.jpg', 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg']
   WHERE id = '00000000-0000-4000-8000-00000000a9b2'$$)
-  AND (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_url = 'https://img/3.jpg',
+  AND (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_url = 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/3.jpg',
   'reordering the images moves image_url with them');
-SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$UPDATE public.products SET image_url = 'https://img/4.jpg'
+SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$UPDATE public.products SET image_url = 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/4.jpg'
   WHERE id = '00000000-0000-4000-8000-00000000a9b2'$$)
-  AND (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_urls = ARRAY['https://img/4.jpg', 'https://img/1.jpg'],
+  AND (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_urls = ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/4.jpg', 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg'],
   'an older client that sets image_url replaces the first image');
 SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$UPDATE public.products SET stock = 0, price = 2500
   WHERE id = '00000000-0000-4000-8000-00000000a9b2'$$)
@@ -178,7 +178,7 @@ SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$UPDATE public.products S
 SELECT pg_temp.expect(pg_temp.refused(:oldseller, $$UPDATE public.products SET status = 'inactive'
   WHERE id = '00000000-0000-4000-8000-00000000a9b2'$$), 'but still not the status');
 SELECT pg_temp.expect(pg_temp.refused(:other, $$UPDATE public.products SET image_urls = '{}' WHERE id = '00000000-0000-4000-8000-00000000a9b2'$$)
-  OR (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_url = 'https://img/4.jpg',
+  OR (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_url = 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/4.jpg',
   'nobody else edits the images');
 
 ROLLBACK;

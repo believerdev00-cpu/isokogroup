@@ -1,7 +1,7 @@
 # Deploying Isoko
 
 How to take the security-hardening work (migrations `20260922090000` to
-`20261001100000`) to production, check it, and back out if needed.
+`20261001110000`) to production, check it, and back out if needed.
 
 What gets deployed:
 
@@ -194,9 +194,11 @@ For password reset links, Dashboard > Authentication > URL Configuration needs
 the site as **Site URL** (`https://isokogroups.com`) and
 `https://isokogroups.com/reset-password` and
 `https://www.isokogroups.com/reset-password` under **Redirect URLs**. Supabase
-sends these emails itself: under Authentication > SMTP Settings, use the same
-SMTP account as step 2, because Supabase's built-in sender only sends a few
-emails an hour.
+sends these emails itself, and its built-in sender allows only a few emails an
+hour ("email rate limit exceeded" on the register page): set up Resend as the
+custom SMTP sender under Authentication > SMTP Settings, as described step by
+step in [AUTH_EMAIL.md](AUTH_EMAIL.md) (Resend domain, DNS records at
+AfriRegister, the Supabase settings, and how to test).
 
 ## 7. People and roles
 

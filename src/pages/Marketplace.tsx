@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isProductInStock, productImages } from "@/lib/productImages";
 
 const categories = ["All", "Electronics", "Fashion", "Food & Drink", "Crafts", "Home", "Accessories"];
 
@@ -32,8 +33,8 @@ const Marketplace = () => {
   // up to four images per product (Seller Agreement, section 2); the first is the main one
   const allProducts = dbProducts.map(p => ({
     name: p.name, price: p.price, rating: 4.5, category: p.category, image: p.image_url, id: p.id, isDefault: false,
-    images: (p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : []) as string[],
-    inStock: p.stock > 0,
+    images: productImages(p),
+    inStock: isProductInStock(p),
   }));
   // which of a product's images is shown, by product id
   const [shownImage, setShownImage] = useState<Record<string, number>>({});
