@@ -333,6 +333,20 @@ export const translations: Record<string, Partial<Record<Lang, string>>> = {
   "pay.accountName": { en: "Account name", rw: "Izina rya konti", sw: "Jina la akaunti", fr: "Nom du compte", zh: "账户名称" },
   "pay.swift": { en: "SWIFT / BIC", rw: "SWIFT / BIC", sw: "SWIFT / BIC", fr: "SWIFT / BIC", zh: "SWIFT / BIC" },
   "pay.reference": { en: "Use {reference} as the payment reference.", rw: "Koresha {reference} nk'ikimenyetso cy'ubwishyu.", sw: "Tumia {reference} kama kumbukumbu ya malipo.", fr: "Indiquez {reference} comme référence du paiement.", zh: "请使用 {reference} 作为付款参考号。" },
+
+  // The live intake band on the homepage (components/IntakeTicker)
+  "ticker.label": { en: "Training Center intake announcements", rw: "Amatangazo y'amahugurwa", sw: "Matangazo ya mafunzo", fr: "Annonces des sessions de formation", zh: "培训招生公告" },
+  "ticker.center": { en: "Training Center", rw: "Ikigo cy'Amahugurwa", sw: "Kituo cha Mafunzo", fr: "Centre de formation", zh: "培训中心" },
+  "ticker.centerShort": { en: "Training", rw: "Amahugurwa", sw: "Mafunzo", fr: "Formation", zh: "培训" },
+  "ticker.new": { en: "New intake", rw: "Amahugurwa mashya", sw: "Mafunzo mapya", fr: "Nouvelle session", zh: "新招生" },
+  "ticker.open": { en: "Applications open", rw: "Kwiyandikisha birafunguye", sw: "Maombi yafunguliwa", fr: "Inscriptions ouvertes", zh: "报名进行中" },
+  "ticker.closingSoon": { en: "Closing in {days} days", rw: "Bifunga mu minsi {days}", sw: "Inafungwa baada ya siku {days}", fr: "Clôture dans {days} jours", zh: "{days} 天后截止" },
+  "ticker.lastDay": { en: "Last day to apply", rw: "Umunsi wa nyuma wo kwiyandikisha", sw: "Siku ya mwisho kuomba", fr: "Dernier jour pour s'inscrire", zh: "报名最后一天" },
+  "ticker.comingSoon": { en: "Opens {date}", rw: "Bifungura {date}", sw: "Yafunguliwa {date}", fr: "Ouvre le {date}", zh: "{date} 开放" },
+  "ticker.apply": { en: "Apply now", rw: "Iyandikishe", sw: "Omba sasa", fr: "Postuler", zh: "立即报名" },
+  "ticker.andMore": { en: "and {n} more", rw: "n’andi {n}", sw: "na mengine {n}", fr: "et {n} autres", zh: "等 {n} 项" },
+  "ticker.pause": { en: "Pause the announcements", rw: "Hagarika amatangazo", sw: "Simamisha matangazo", fr: "Mettre en pause", zh: "暂停公告" },
+  "ticker.resume": { en: "Play the announcements", rw: "Komeza amatangazo", sw: "Endelea na matangazo", fr: "Reprendre", zh: "继续播放" },
 };
 
 export type TranslateVars = Record<string, string | number>;

@@ -15,12 +15,14 @@ import { cn } from "@/lib/utils";
 
 type Detail = Intake & { programs: IntakeProgram[] };
 
-type ActionKey = "publish" | "open" | "reopen" | "close" | "automatic" | "complete" | "archive";
+type ActionKey = "publish" | "unpublish" | "open" | "reopen" | "close" | "automatic" | "complete" | "archive";
 
 // Mirrors the server's allowed transitions; explained in plain words for staff.
 const ACTIONS: { key: ActionKey; label: string; from: IntakeStatus[]; manualOnly?: boolean; primary?: boolean; destructive?: boolean; title: string; description: string }[] = [
   { key: "publish", label: "Publish intake", from: ["draft"], primary: true, title: "Publish this intake?",
     description: "From now on it follows its dates automatically: it opens to applicants on the opening date, shows as Full when every program is full, and closes after the deadline." },
+  { key: "unpublish", label: "Unpublish", from: ["upcoming", "open", "full", "closed"], title: "Take this intake off the website?",
+    description: "It goes back to a draft: applicants stop seeing it and it leaves the homepage intake band. Applications already received are kept, and you can publish it again." },
   { key: "open", label: "Open applications now", from: ["draft", "upcoming"], title: "Open applications now?",
     description: "Applicants can apply straight away, even if the opening date hasn't come yet. The intake stays open until you close it." },
   { key: "reopen", label: "Reopen applications", from: ["closed", "full", "completed"], title: "Reopen applications?",
@@ -416,6 +418,14 @@ export default function IntakeDetail() {
                   ["Training starts", formatDate(i.training_starts_on)],
                   ["Training ends", formatDate(i.training_ends_on)],
                   ["Seats", `${i.enrolled} / ${i.capacity} enrolled`],
+                  [
+                    "Homepage band",
+                    !i.show_in_ticker
+                      ? "Not announced"
+                      : i.is_featured
+                        ? "Announced first (new intake)"
+                        : `Announced (order ${i.ticker_priority})`,
+                  ],
                 ]}
               />
               {i.description && <p className="mt-4 whitespace-pre-line text-sm text-muted-foreground">{i.description}</p>}

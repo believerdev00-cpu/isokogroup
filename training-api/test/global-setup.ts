@@ -26,6 +26,8 @@ export default async function setup() {
     "20260929100000_training_application_fee.sql",
     // a deadline per program, moving applications, editable announcements
     "20260930110000_training_admin_edits.sql",
+    // the website's moving intake band: show_in_ticker, is_featured, ticker_priority
+    "20261003120000_training_intake_ticker.sql",
   ].map((name) =>
     fs.readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), "utf8"),
   );

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Field, Loading, PageHeader, Section } from "@/training/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/training/lib/api";
 import { errorMessage } from "@/training/lib/auth";
@@ -24,6 +25,10 @@ type Form = {
   training_starts_on: string;
   training_ends_on: string;
   location: string;
+  // What the website's moving intake band shows
+  show_in_ticker: boolean;
+  is_featured: boolean;
+  ticker_priority: string;
 };
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -42,6 +47,9 @@ function defaults(): Form {
     training_starts_on: plusDays(37),
     training_ends_on: plusDays(37 + 91),
     location: "Isoko Training Center, Kigali",
+    show_in_ticker: true,
+    is_featured: false,
+    ticker_priority: "0",
   };
 }
 
@@ -95,11 +103,17 @@ export default function IntakeForm() {
         training_starts_on: i.training_starts_on,
         training_ends_on: i.training_ends_on,
         location: i.location,
+        show_in_ticker: i.show_in_ticker,
+        is_featured: i.is_featured,
+        ticker_priority: String(i.ticker_priority ?? 0),
       });
     }
   }, [existing.data]);
 
-  const save = useApiMutation((f: Form) => api.patch<Intake>(`/admin/intakes/${id}`, f), {
+  // the band's order is typed as text in the form; the API wants a number
+  const payload = (f: Form) => ({ ...f, ticker_priority: Math.min(100, Math.max(0, Number(f.ticker_priority) || 0)) });
+
+  const save = useApiMutation((f: Form) => api.patch<Intake>(`/admin/intakes/${id}`, payload(f)), {
     invalidate: ["/admin/intakes", "/admin/dashboard"],
     success: "Intake saved",
     onSuccess: (i) => navigate(`/training-center/admin/intakes/${i.id}`),
@@ -121,7 +135,7 @@ export default function IntakeForm() {
     setBusy(publish ? "publish" : "draft");
     let intake: Intake | null = null;
     try {
-      intake = await api.post<Intake>("/admin/intakes", form);
+      intake = await api.post<Intake>("/admin/intakes", payload(form));
       for (const [programId, seats] of picked) {
         await api.post(`/admin/intakes/${intake.id}/programs`, { program_id: programId, capacity: Number(seats), schedule: "" });
       }
@@ -257,6 +271,35 @@ export default function IntakeForm() {
             </Field>
             <Field label="Location" htmlFor="location" className="sm:col-span-2">
               <Input id="location" value={form.location} onChange={set("location")} />
+            </Field>
+          </div>
+        </Section>
+
+        <Section
+          title="Homepage announcement"
+          description="Published intakes move across the Isoko homepage in the intake band, with Applications Open, Closing Soon or Coming Soon decided by these dates and the free seats."
+        >
+          <div className="space-y-4">
+            <label className="flex items-center gap-3 text-sm font-medium">
+              <Switch checked={form.show_in_ticker} onCheckedChange={(v) => setForm({ ...form, show_in_ticker: v })} />
+              Announce this intake on the homepage
+            </label>
+            <label className="flex items-center gap-3 text-sm font-medium">
+              <Switch checked={form.is_featured} onCheckedChange={(v) => setForm({ ...form, is_featured: v })} disabled={!form.show_in_ticker} />
+              Show it first, marked as a new intake
+            </label>
+            <Field label="Order" htmlFor="ticker_priority" hint="0 to 100. A higher number comes earlier in the band.">
+              <Input
+                id="ticker_priority"
+                type="number"
+                min={0}
+                max={100}
+                inputMode="numeric"
+                className="w-24"
+                value={form.ticker_priority}
+                onChange={set("ticker_priority")}
+                disabled={!form.show_in_ticker}
+              />
             </Field>
           </div>
         </Section>

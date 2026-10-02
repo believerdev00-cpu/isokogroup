@@ -73,6 +73,8 @@ export type PublicIntake = {
   training_starts_on: string;
   training_ends_on: string;
   status: IntakeStatus;
+  /** False for an intake that is published but has not opened to applicants yet. */
+  applications_open?: boolean;
   programs: PublicOffering[];
 };
 
@@ -95,6 +97,10 @@ export type Intake = {
   pending_applications: number;
   /** Today relative to the application period, computed by the server in the center's time zone. */
   application_window?: "upcoming" | "open" | "closed";
+  /** What the website's moving intake band shows, and how prominently. */
+  show_in_ticker: boolean;
+  is_featured: boolean;
+  ticker_priority: number;
 };
 
 export type IntakeProgram = {

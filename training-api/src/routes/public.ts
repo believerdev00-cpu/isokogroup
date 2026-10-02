@@ -5,6 +5,7 @@ import { config } from "../config.js";
 import { DatabaseStore } from "../lib/rateLimitStore.js";
 import { query, queryOne, withTransaction } from "../db.js";
 import { badRequest, conflict, notFound, optionalDate, parse, uuid } from "../lib/http.js";
+import { intakeAnnouncements } from "../services/announcements.js";
 import { acceptingSql } from "../services/intakes.js";
 import { notify, notifyAdminsOfApplication } from "../services/notifications.js";
 import { nextNumber, yearOf } from "../services/numbers.js";
@@ -58,12 +59,16 @@ publicRouter.get("/programs/:slug", async (req, res) => {
  * Available intakes: open, within the application window (unless an admin opened it
  * manually), with at least one program that still has seats. Full programs are
  * still listed, marked full, so applicants understand why they can't pick them.
+ *
+ * withUpcoming also returns an intake that is published but has not opened yet, so
+ * the page an announcement links to can say when applications open instead of
+ * answering "not found". applications_open tells the two apart.
  */
-async function availableIntakes(slug?: string) {
+async function availableIntakes(slug?: string, withUpcoming = false) {
   const d = await today();
   return query(
     `SELECT i.id, i.name, i.slug, i.description, i.location, i.application_opens_on, i.application_closes_on,
-            i.training_starts_on, i.training_ends_on, i.status,
+            i.training_starts_on, i.training_ends_on, i.status, (i.status = 'open') AS applications_open,
             json_agg(json_build_object(
               'intake_program_id', ip.id, 'program_id', p.id, 'name', p.name, 'slug', p.slug, 'code', p.code,
               'category', p.category, 'description', p.description, 'duration_value', p.duration_value,
@@ -81,15 +86,16 @@ async function availableIntakes(slug?: string) {
      JOIN intake_programs ip ON ip.intake_id = i.id
      JOIN programs p ON p.id = ip.program_id AND p.is_active
      JOIN intake_program_stats s ON s.intake_program_id = ip.id
-     WHERE i.status = 'open'
-       AND (i.status_mode = 'manual' OR $1::date BETWEEN i.application_opens_on AND i.application_closes_on)
-       AND ($2::text IS NULL OR i.slug = $2)
-       AND EXISTS (SELECT 1 FROM intake_program_stats s2 WHERE s2.intake_id = i.id
-                   AND s2.accepting_applications AND s2.available_seats > 0
-                   AND (s2.application_closes_on IS NULL OR $1::date <= s2.application_closes_on))
+     WHERE ($2::text IS NULL OR i.slug = $2)
+       AND ((i.status = 'open'
+             AND (i.status_mode = 'manual' OR $1::date BETWEEN i.application_opens_on AND i.application_closes_on)
+             AND EXISTS (SELECT 1 FROM intake_program_stats s2 WHERE s2.intake_id = i.id
+                         AND s2.accepting_applications AND s2.available_seats > 0
+                         AND (s2.application_closes_on IS NULL OR $1::date <= s2.application_closes_on)))
+            OR ($3::boolean AND i.status = 'upcoming'))
      GROUP BY i.id
      ORDER BY i.training_starts_on`,
-    [d, slug ?? null],
+    [d, slug ?? null, withUpcoming],
   );
 }
 
@@ -97,8 +103,20 @@ publicRouter.get("/intakes", async (_req, res) => {
   res.json({ data: await availableIntakes() });
 });
 
+/**
+ * The intakes the website's moving band may announce. Public and cheap: one row
+ * per intake, no application details. It is never served from a browser's cache:
+ * an intake an admin has just unpublished has to leave the band at once, and the
+ * website only asks for this once every few minutes anyway.
+ */
+publicRouter.get("/announcements", async (_req, res) => {
+  const data = await intakeAnnouncements();
+  res.set("Cache-Control", "no-cache");
+  res.json({ data });
+});
+
 publicRouter.get("/intakes/:slug", async (req, res) => {
-  const [intake] = await availableIntakes(parse(z.string().max(120), req.params.slug));
+  const [intake] = await availableIntakes(parse(z.string().max(120), req.params.slug), true);
   if (!intake) throw notFound("This intake is not accepting applications");
   res.json({ data: intake });
 });

@@ -35,7 +35,11 @@ export default function Intakes() {
                 <section key={intake.id} aria-labelledby={`intake-${intake.id}`} className="space-y-5">
                   <div className="rounded-xl border bg-card p-5 shadow-sm">
                     <div className="flex flex-wrap items-center gap-3">
-                      <h2 id={`intake-${intake.id}`} className="text-2xl font-bold">{intake.name}</h2>
+                      <h2 id={`intake-${intake.id}`} className="text-2xl font-bold">
+                        <Link to={`/training-center/intakes/${encodeURIComponent(intake.slug)}`} className="hover:text-primary hover:underline">
+                          {intake.name}
+                        </Link>
+                      </h2>
                       <StatusBadge status="open" label="Applications Open" />
                     </div>
                     {intake.description && <p className="mt-2 text-sm text-muted-foreground">{intake.description}</p>}

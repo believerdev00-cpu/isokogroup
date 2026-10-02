@@ -105,6 +105,10 @@ const intakeFields = z.object({
   training_starts_on: date,
   training_ends_on: date,
   location: z.string().trim().max(200).default(""),
+  // What the website's moving intake band shows, and how prominently
+  show_in_ticker: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
+  ticker_priority: z.coerce.number().int().min(0).max(100).optional(),
 });
 
 function checkDates(d: { application_opens_on: string; application_closes_on: string; training_starts_on: string; training_ends_on: string }) {
@@ -159,10 +163,11 @@ catalogRouter.post("/intakes", async (req, res) => {
   checkDates(b);
   const row = await queryOne(
     `INSERT INTO intakes (name, slug, description, application_opens_on, application_closes_on, training_starts_on,
-                          training_ends_on, location)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+                          training_ends_on, location, show_in_ticker, is_featured, ticker_priority)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, coalesce($9, true), coalesce($10, false), coalesce($11, 0)) RETURNING *`,
     [b.name, await uniqueSlug("intakes", b.name), b.description, b.application_opens_on, b.application_closes_on,
-      b.training_starts_on, b.training_ends_on, b.location],
+      b.training_starts_on, b.training_ends_on, b.location, b.show_in_ticker ?? null, b.is_featured ?? null,
+      b.ticker_priority ?? null],
   );
   res.status(201).json({ data: row });
 });
@@ -172,7 +177,7 @@ catalogRouter.patch("/intakes/:id", async (req, res) => {
   const current = await queryOne("SELECT * FROM intakes WHERE id = $1", [id]);
   if (!current) throw notFound("Intake not found");
   const b = parse(intakeFields.partial(), req.body);
-  checkDates({ ...current, ...b });
+  checkDates({ ...current, ...b } as Parameters<typeof checkDates>[0]);
   const fields = Object.keys(b) as (keyof typeof b)[];
   const values: unknown[] = fields.map((f) => b[f]);
   const sets = fields.map((f, i) => `${f} = $${i + 2}`);
@@ -265,11 +270,13 @@ catalogRouter.delete("/intake-programs/:id", async (req, res) => {
 // Registered last so the specific /intakes/:id/programs route above takes precedence.
 /**
  * Status actions. "publish" and "automatic" hand the intake to the date/seat rules;
+ * "unpublish" takes it back off the website (applications already received are kept);
  * "open", "close" and "reopen" pin a status manually (e.g. extend or cut short the
  * application period); "complete" and "archive" end its life. Every change is logged.
  */
 const ACTIONS: Record<string, { from: string[]; status?: string; mode: "auto" | "manual" }> = {
   publish: { from: ["draft"], mode: "auto" },
+  unpublish: { from: ["upcoming", "open", "full", "closed"], status: "draft", mode: "manual" },
   automatic: { from: ["upcoming", "open", "full", "closed"], mode: "auto" },
   open: { from: ["draft", "upcoming", "full", "closed"], status: "open", mode: "manual" },
   reopen: { from: ["closed", "full", "completed"], status: "open", mode: "manual" },

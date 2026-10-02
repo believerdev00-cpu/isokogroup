@@ -46,15 +46,24 @@ export function ProgramCard({ program, currency }: { program: Program; currency:
   );
 }
 
-export function OfferingCard({ offering, intakeSlug, currency }: { offering: PublicOffering; intakeSlug: string; currency: string }) {
+/**
+ * One program in an intake. opensOn marks an intake that is published but has not
+ * opened yet: the card then says when applications open instead of offering Apply.
+ */
+export function OfferingCard({ offering, intakeSlug, currency, opensOn }: { offering: PublicOffering; intakeSlug: string; currency: string; opensOn?: string }) {
+  const waiting = !!opensOn;
   return (
-    <div className={cn("flex h-full flex-col rounded-xl border bg-card p-5 shadow-sm", offering.is_full && "bg-muted/40")}>
+    <div className={cn("flex h-full flex-col rounded-xl border bg-card p-5 shadow-sm", (offering.is_full || waiting) && "bg-muted/40")}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gold">{offering.category}</p>
           <h3 className="mt-1 text-lg font-bold">{offering.name}</h3>
         </div>
-        {offering.is_full && <StatusBadge status={offering.is_closed ? "closed" : "full"} label={offering.is_closed ? "CLOSED" : "FULL"} />}
+        {waiting ? (
+          <StatusBadge status="upcoming" label="SOON" />
+        ) : (
+          offering.is_full && <StatusBadge status={offering.is_closed ? "closed" : "full"} label={offering.is_closed ? "CLOSED" : "FULL"} />
+        )}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {formatDuration(offering.duration_value, offering.duration_unit)}
@@ -81,7 +90,9 @@ export function OfferingCard({ offering, intakeSlug, currency }: { offering: Pub
         )}
       </dl>
       <div className="mt-5 flex flex-1 items-end">
-        {offering.is_full ? (
+        {waiting ? (
+          <p className="text-sm font-medium text-muted-foreground">Applications open on {formatLongDate(opensOn!)}.</p>
+        ) : offering.is_full ? (
           <p className="text-sm font-medium text-muted-foreground">
             {offering.is_closed ? "Applications for this program have closed." : "This program is full for this intake."}
           </p>

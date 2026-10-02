@@ -489,6 +489,18 @@
 .motion-lite .partners-track > ul + ul { display: none; }
 .motion-lite .partners-row { flex-wrap: wrap; justify-content: center; padding-right: 0; }
 
+/* The live intake band (components/IntakeTicker): the announcements are listed
+   twice so the loop never jumps, and the pass takes as long as the text needs
+   (set per band in the component). It stops on hover, on keyboard focus and on
+   the Pause button, so nothing moves while it is being read. */
+.intake-ticker-track { animation: intake-ticker 40s linear infinite; }
+.intake-ticker:hover .intake-ticker-track,
+/* keyboard focus only: a mouse click on Pause/Play must not leave the band frozen */
+.intake-ticker:has(:focus-visible) .intake-ticker-track,
+.intake-ticker-track[data-paused="true"] { animation-play-state: paused; }
+@keyframes intake-ticker { to { transform: translateX(-50%); } }
+.motion-lite .intake-ticker-track { animation: none; }
+
 /* Lite motion: keep the interface calm and fast on this device */
 .motion-lite .animate-float-soft,
 .motion-lite .bg-animated-gradient,

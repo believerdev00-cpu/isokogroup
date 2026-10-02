@@ -59,6 +59,7 @@ export default function TrainingApp() {
               <Route path="programs" element={page("public/Programs")} />
               <Route path="programs/:slug" element={page("public/ProgramDetail")} />
               <Route path="intakes" element={page("public/Intakes")} />
+              <Route path="intakes/:slug" element={page("public/IntakeDetail")} />
               <Route path="about" element={page("public/About")} />
               <Route path="contact" element={page("public/Contact")} />
               <Route path="apply" element={page("public/Apply")} />
