@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/lib/siteSettings";
 import PayToCompany from "@/components/PayToCompany";
+import PlanDialCard from "@/components/PlanDialCard";
 import { trackEvent } from "@/lib/analytics";
 
 type Props = {
@@ -17,14 +18,16 @@ type Props = {
 const MAX_SCREENSHOT = 5 * 1024 * 1024; // the payment-proofs bucket's limit
 const SCREENSHOT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
 
-// The customer pays the company Mobile Money code directly, then tells us who
-// paid and gives the transaction ID or a screenshot of the payment message.
+// The customer taps a plan card, which dials the company Mobile Money code on
+// their phone, then tells us who paid and gives the transaction ID or a
+// screenshot of the payment message.
 // Nothing is verified automatically: the report stays pending, with no access,
 // until an Isoko admin finds the money on the company account and confirms it.
 const SubscriptionPayment = ({ onSubmitted }: Props) => {
   const { submitPayment, pricing, pendingPayment, lastRejection } = useSubscription();
   const { toast } = useToast();
   const company = useSiteSettings();
+  const momoCode = pricing.momoCode || company.momo.code;
   // the plans this account may choose: 7 days or a month, or the seller plan on the seller path
   const choices = pricing.plans;
   const [chosen, setChosen] = useState<PaidPlan>(pricing.nextPlan);
@@ -99,39 +102,22 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
 
   return (
     <form className="space-y-4 text-left" onSubmit={handleSubmit}>
-      {choices.length > 1 ? (
-        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Choose your plan">
-          {choices.map((p) => (
-            <button
-              key={p.plan}
-              type="button"
-              role="radio"
-              aria-checked={p.plan === plan?.plan}
-              onClick={() => setChosen(p.plan)}
-              className={cn(
-                "rounded-lg border-2 p-3 text-left transition-colors",
-                p.plan === plan?.plan ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
-              )}
-            >
-              <span className="flex items-center justify-between gap-3">
-                <span className="font-semibold">{planName(p.plan)}</span>
-                <span className="font-bold text-primary">{formatPrice(p.price, pricing.currency)}</span>
-              </span>
-              <span className="block text-xs text-muted-foreground">{planDuration(p.plan, p.days ?? pricing.weekDays)} · {planIncludes(p.plan)}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        plan && (
-          <div className="rounded-lg border-2 border-primary bg-primary/5 p-3">
-            <span className="flex items-center justify-between gap-3">
-              <span className="font-semibold">{planName(plan.plan)}</span>
-              <span className="font-bold text-primary">{price}</span>
-            </span>
-            <span className="block text-xs text-muted-foreground">{planDuration(plan.plan, plan.days ?? pricing.weekDays)} · {planIncludes(plan.plan)}</span>
-          </div>
-        )
-      )}
+      {/* Each plan is one tappable card: it dials the Mobile Money code on a phone */}
+      <div className={cn("grid gap-3", choices.length > 1 && "sm:grid-cols-2")}>
+        {choices.map((p) => (
+          <PlanDialCard
+            key={p.plan}
+            name={planName(p.plan)}
+            price={formatPrice(p.price, pricing.currency)}
+            duration={planDuration(p.plan, p.days ?? pricing.weekDays)}
+            includes={planIncludes(p.plan)}
+            code={momoCode}
+            selected={p.plan === plan?.plan}
+            onSelect={() => setChosen(p.plan)}
+          />
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">Tap a plan to pay by MTN Mobile Money. After paying, tell us who paid and the transaction ID.</p>
 
       {lastRejection && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm" role="alert">
@@ -142,8 +128,11 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
         </div>
       )}
 
-      {/* Tap the code to dial it, or copy it; people abroad or without Mobile Money transfer to the bank account */}
-      <PayToCompany code={pricing.momoCode || company.momo.code} amount={price} />
+      {/* People abroad or without Mobile Money: the bank account, out of the way until needed */}
+      <details className="rounded-lg border border-border px-4 py-2 text-sm">
+        <summary className="cursor-pointer font-medium">Paying from abroad or without Mobile Money? Bank transfer</summary>
+        <PayToCompany momo={false} className="mt-3" />
+      </details>
 
       <div className="space-y-3">
         <div className="space-y-1.5">

@@ -50,12 +50,13 @@ export function MomoCodeLink({ code, className }: { code?: string; className?: s
  * `amount` is shown in the heading when given; `reference` is what to write
  * on the transfer, when the page has one.
  */
-export default function PayToCompany({ code, amount, reference, bank = true, className }: { code?: string; amount?: string; reference?: string; bank?: boolean; className?: string }) {
+export default function PayToCompany({ code, amount, reference, bank = true, momo = true, className }: { code?: string; amount?: string; reference?: string; bank?: boolean; momo?: boolean; className?: string }) {
   const { t } = useI18n();
   const site = useSiteSettings();
   const momoCode = code || site.momo.code;
   return (
     <div className={cn("space-y-3 text-sm", className)}>
+      {momo && (
       <div className="rounded-lg bg-muted/40 p-4 space-y-2">
         <p className="font-semibold flex items-center gap-2">
           <Smartphone className="h-4 w-4 text-primary" /> {amount ? t("pay.momoTitleAmount", { amount }) : t("pay.momoTitle")}
@@ -73,6 +74,7 @@ export default function PayToCompany({ code, amount, reference, bank = true, cla
         <p className="text-muted-foreground">{t("pay.tapToDial")} · {site.momo.label} · {site.momo.name}</p>
         {reference && <p className="text-muted-foreground">{t("pay.reference", { reference })}</p>}
       </div>
+      )}
 
       {bank && (
         <div className="rounded-lg border border-border p-4 space-y-2">

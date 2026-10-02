@@ -11,7 +11,9 @@ import Footer from "@/components/Footer";
 import SubscriptionPayment from "@/components/SubscriptionPayment";
 import TrialCountdown from "@/components/TrialCountdown";
 import { cn } from "@/lib/utils";
-import PayToCompany, { MomoCodeLink } from "@/components/PayToCompany";
+import PayToCompany from "@/components/PayToCompany";
+import PlanDialCard from "@/components/PlanDialCard";
+import { useSiteSettings } from "@/lib/siteSettings";
 
 const PLANS: Plan[] = ["trial", "week", "monthly", "seller"];
 
@@ -21,6 +23,7 @@ const Subscription = () => {
   const { user, loading: authLoading } = useAuth();
   const { loading: subLoading, isActive, status, plan, ended, pricing, accessUntil, paymentPending, renewalStatus, periodStartedAt, sellerPath } = useSubscription();
   const [params] = useSearchParams();
+  const company = useSiteSettings();
 
   // Signed out just now because access ended: say what ended
   const endedNow = useMemo<Plan | null>(() => {
@@ -86,7 +89,7 @@ const Subscription = () => {
             <h1 className="text-3xl font-display font-bold">Subscription</h1>
             <p className="text-muted-foreground">
               Free for {formatTrial(pricing.trialMinutes)}, then {week} for 7 days or {monthly} for a month of full access.
-              Sellers pay {seller} a month, which includes everything. Pay by Mobile Money to <MomoCodeLink code={pricing.momoCode} />, or by bank transfer.
+              Sellers pay {seller} a month, which includes everything. Tap a plan to pay by MTN Mobile Money.
             </p>
           </div>
 
@@ -102,21 +105,18 @@ const Subscription = () => {
             </div>
           )}
 
+          {/* Tap a plan: on a phone it dials the Mobile Money code; plans not for this account are greyed out */}
           <div className="grid gap-4 sm:grid-cols-3">
             {plans.map((p) => (
-              <Card key={p.key} className={cn(available.includes(p.key) ? "border-2 border-primary" : "opacity-60")}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xl">{p.name}</CardTitle>
-                  <p className="text-xs text-muted-foreground">{p.note}</p>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-3xl font-bold text-primary">{p.price}</p>
-                  <p className="text-sm">Duration: {p.duration}</p>
-                  <p className="text-sm flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {planIncludes(p.key)}
-                  </p>
-                </CardContent>
-              </Card>
+              <PlanDialCard
+                key={p.key}
+                name={p.name}
+                price={p.price}
+                duration={p.duration}
+                includes={planIncludes(p.key)}
+                code={pricing.momoCode || company.momo.code}
+                disabled={!available.includes(p.key)}
+              />
             ))}
           </div>
 
@@ -124,10 +124,13 @@ const Subscription = () => {
             <Card>
               <CardContent className="pt-6 space-y-3 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Pay {formatPrice(offer.nextPrice, offer.currency)} by Mobile Money or bank transfer, then sign in and send us the transaction ID or a receipt.
+                  Tap a plan above to pay {formatPrice(offer.nextPrice, offer.currency)} by Mobile Money, then sign in and send us the transaction ID.
                   Your access starts once an Isoko admin confirms the payment.
                 </p>
-                <PayToCompany code={pricing.momoCode} amount={formatPrice(offer.nextPrice, offer.currency)} className="text-left" />
+                <details className="rounded-lg border border-border px-4 py-2 text-left text-sm">
+                  <summary className="cursor-pointer font-medium">Paying from abroad or without Mobile Money? Bank transfer</summary>
+                  <PayToCompany momo={false} className="mt-3" />
+                </details>
                 <Button asChild size="lg" className="w-full sm:w-auto">
                   <Link to="/login" state={{ from: "/subscription" }}>Sign in to send your payment details</Link>
                 </Button>
