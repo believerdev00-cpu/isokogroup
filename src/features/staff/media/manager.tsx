@@ -581,6 +581,7 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
   const source = (draft.watch_source as string | null) ?? null;
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [percent, setPercent] = useState(0);
   const [mode, setMode] = useState<"file" | "youtube">(source === "youtube" ? "youtube" : "file");
 
   const upload = async (file: File | undefined) => {
@@ -591,9 +592,10 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
       return;
     }
     setBusy(true);
+    setPercent(0);
     try {
       const minutes = await mediaMinutes(file);
-      const path = await uploadMediaFile(folder, file);
+      const path = await uploadMediaFile(folder, file, setPercent);
       set({
         watch_source: "storage", watch_ref: path,
         ...(minutes && !draft.duration_minutes ? { duration_minutes: minutes } : {}),
@@ -633,8 +635,18 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
             className="flex flex-col items-center gap-1 rounded-lg border-2 border-dashed p-5 text-sm text-muted-foreground hover:border-primary hover:text-foreground"
           >
             {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
-            <span className="font-semibold text-foreground">{busy ? "Uploading…" : "Choose a video or audio file"}</span>
-            <span className="text-xs">MP4, WebM, MP3, M4A, AAC or WAV · up to {MAX_UPLOAD_MB} MB</span>
+            <span className="font-semibold text-foreground">{busy ? `Uploading… ${percent}%` : "Choose a video or audio file"}</span>
+            {busy ? (
+              <>
+                {/* A film takes minutes, so the desk shows how far it has got */}
+                <span aria-hidden className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
+                  <span className="block h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${percent}%` }} />
+                </span>
+                <span className="text-xs">Keep this page open. A piece that fails is sent again by itself.</span>
+              </>
+            ) : (
+              <span className="text-xs">MP4, WebM, MP3, M4A, AAC or WAV · up to {MAX_UPLOAD_MB} MB</span>
+            )}
           </button>
         )
       ) : (

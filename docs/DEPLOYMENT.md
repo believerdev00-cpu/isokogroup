@@ -159,6 +159,12 @@ also overwrite every other setting in `config.toml`. On the free plan the
 ceiling cannot go above 50 MB, so larger films need a paid plan; until then the
 upload fails with "Payload too large" however large the other two limits are.
 
+A film does not travel in one request. Anything over 6 MB is sent in 6 MB
+pieces over Storage's resumable protocol, so a piece that fails is sent again
+on its own instead of losing the whole film, and the desk shows how far it has
+got. This is what makes a 500 MB upload realistic on a connection that comes
+and goes; the total size still has to be within the three limits above.
+
 ## 5. Schedule the notification sender and the payment checker
 
 Emails (including new students' temporary passwords) wait in the queue until

@@ -3,6 +3,7 @@
 // write through the same tables. Display images are public (media-public);
 // full films and episodes are signed per request, for subscribers only.
 import { useQuery } from "@tanstack/react-query";
+import * as tus from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
 import { db, rpc, unwrap } from "@/features/services/api";
 
@@ -221,12 +222,61 @@ export const MAX_UPLOAD_MB = 500;
 
 export const MEDIA_TYPES = ["video/mp4", "video/webm", "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav"];
 
-/** Uploads a full film or episode to the private bucket (staff) and returns its path. */
-export async function uploadMediaFile(folder: string, file: File) {
+/**
+ * Anything larger than this is sent in pieces instead of in one request. A film
+ * takes minutes to upload, and one dropped connection would otherwise throw the
+ * whole thing away.
+ */
+export const RESUMABLE_FROM_MB = 6;
+
+/** Storage accepts resumable pieces of exactly this size. */
+const CHUNK_BYTES = 6 * 1024 * 1024;
+
+/**
+ * Sends a large file in 6 MB pieces (the resumable protocol Storage speaks).
+ * A piece that fails is retried on its own, so a film survives a connection
+ * that comes and goes, and the browser can tell the staff how far it has got.
+ */
+async function uploadInPieces(path: string, file: File, onProgress?: (percent: number) => void) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Please sign in again before uploading.");
+  await new Promise<void>((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 6000, 12000, 24000],
+      headers: { authorization: `Bearer ${token}`, "x-upsert": "false" },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: CHUNK_BYTES,
+      metadata: { bucketName: PRIVATE_BUCKET, objectName: path, contentType: file.type, cacheControl: "3600" },
+      onError: (error) => reject(new Error(`The upload stopped: ${error.message}. Try again; it carries on from where it stopped.`)),
+      onProgress: (sent, total) => onProgress?.(total ? Math.round((sent / total) * 100) : 0),
+      onSuccess: () => resolve(),
+    });
+    // carry on from an earlier attempt at the same file when there is one
+    upload.findPreviousUploads().then((previous) => {
+      if (previous.length) upload.resumeFromPreviousUpload(previous[0]);
+      upload.start();
+    }, () => upload.start());
+  });
+}
+
+/**
+ * Uploads a full film or episode to the private bucket (staff) and returns its
+ * path. Small files go in one request; larger ones in pieces that can resume.
+ */
+export async function uploadMediaFile(folder: string, file: File, onProgress?: (percent: number) => void) {
   if (!MEDIA_TYPES.includes(file.type)) throw new Error("Please choose an MP4 or WebM video, or an MP3, M4A, AAC or WAV audio file.");
   if (file.size > MAX_UPLOAD_MB * 1024 * 1024) throw new Error(`Files must be under ${MAX_UPLOAD_MB} MB. Put longer videos on YouTube and paste the link.`);
   const path = `${folder}/${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}`;
+  if (file.size > RESUMABLE_FROM_MB * 1024 * 1024) {
+    await uploadInPieces(path, file, onProgress);
+    return path;
+  }
+  onProgress?.(0);
   unwrap(await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, { contentType: file.type, upsert: false }));
+  onProgress?.(100);
   return path;
 }
 
