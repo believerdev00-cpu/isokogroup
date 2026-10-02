@@ -206,8 +206,18 @@ export async function uploadDisplayImage(folder: string, file: File) {
   return { path, w: lg.w, h: lg.h };
 }
 
-/** The Supabase free plan refuses any single upload above 50 MB. */
-export const MAX_UPLOAD_MB = 50;
+/**
+ * The largest film or episode that can be uploaded, in megabytes.
+ *
+ * Three limits have to agree, and the smallest one wins:
+ *   1. this number (what the browser refuses before it starts),
+ *   2. the Supabase project's upload limit (Dashboard > Storage > Settings;
+ *      supabase/config.toml sets it for the local stack), and
+ *   3. the 'entertainment' bucket's file_size_limit, which is 500 MB.
+ * Raising this number alone is not enough: the project's limit has to be at
+ * least as large, or the upload is refused with "Payload too large".
+ */
+export const MAX_UPLOAD_MB = 500;
 
 export const MEDIA_TYPES = ["video/mp4", "video/webm", "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav"];
 

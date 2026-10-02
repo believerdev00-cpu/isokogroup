@@ -1,5 +1,14 @@
 project_id = "oswetaksxcepublsjyrt"
 
+[storage]
+# Films and episodes are uploaded whole, so a single upload may be large. This
+# is the project-wide ceiling: every bucket's own file_size_limit still applies
+# ('entertainment' allows 500 MB, 'media-public' 5 MB). Without this line the
+# local stack would stop at its 50 MB default, which is what used to refuse
+# films larger than 50 MB. The hosted project has the same setting under
+# Storage > Settings in the Supabase dashboard; it has to be at least as large.
+file_size_limit = "500MiB"
+
 [functions.training]
 # Built from training-api/ with `npm --prefix training-api run build`.
 # The API checks the Isoko access token itself; public pages (programs, applying,

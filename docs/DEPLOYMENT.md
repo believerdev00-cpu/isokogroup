@@ -143,6 +143,22 @@ UPDATE public.platform_settings SET value = 'https://isokogroups.com' WHERE key 
 SELECT value FROM public.platform_settings WHERE key = 'rate_limit_multiplier';
 ```
 
+### How large an upload the project accepts
+
+Films and episodes are uploaded whole, so the project has to allow a large
+single upload. Three limits apply and the smallest one wins:
+
+| Limit | Where | Value |
+| --- | --- | --- |
+| what the browser refuses before sending | `MAX_UPLOAD_MB` in `src/features/entertainment/api.ts` | 500 MB |
+| the project's ceiling for every bucket | Dashboard > Storage > Settings > Upload file size limit (`[storage] file_size_limit` in `supabase/config.toml` sets the local stack) | must be at least 500 MB |
+| the bucket's own ceiling | `storage.buckets.file_size_limit` for `entertainment` | 500 MB (524288000) |
+
+Set the project's limit by hand in the dashboard: `supabase config push` would
+also overwrite every other setting in `config.toml`. On the free plan the
+ceiling cannot go above 50 MB, so larger films need a paid plan; until then the
+upload fails with "Payload too large" however large the other two limits are.
+
 ## 5. Schedule the notification sender and the payment checker
 
 Emails (including new students' temporary passwords) wait in the queue until
@@ -244,6 +260,7 @@ site; a `WARN` needs a look, a `FAIL` needs fixing:
 | messages failed for good | the deliveries' `error` column says why (bad address, provider refused) |
 | one-time secrets older than a day | the sender isn't running (step 5) |
 | row-level security, public buckets, Training Center access | a later change broke a security rule: `npm run test:db` shows which |
+| a film of 60 MB or more uploads in the media desk | the project's upload limit is still 50 MB: step 4, "How large an upload the project accepts" |
 
 The same security rules are checked in CI on every change
 (`supabase/tests/schema_guards.test.sql`).
