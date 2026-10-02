@@ -42,7 +42,7 @@ Integrations > API keys page.
 
 Contract terms that affect the build: fees 3% (MTN, Airtel, SPENN) and 5%
 (Visa); a 10% rolling reserve for 180 days; settlements only to MoMo Pay 871951
-/ BPR 4491099561; a test phase (UAT) and 1–2 weeks of controlled live testing
+/ Bank of Kigali 100139730547; a test phase (UAT) and 1–2 weeks of controlled live testing
 before launch; 3D-Secure for cards; refund, cancellation and delivery policies
 on the website; chargeback and fraud questions answered within one business day.
 

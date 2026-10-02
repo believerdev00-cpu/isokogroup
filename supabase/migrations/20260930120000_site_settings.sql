@@ -29,8 +29,8 @@ INSERT INTO public.platform_settings (key, value) VALUES
   ('company_momo_code', '*182*8*1*871951#'),
   ('momo_account_name', 'ISOKO GROUPS COMPANY LTD'),
   ('momo_label', 'Mobile Money (MTN MoMo)'),
-  ('bank_name', 'BANQUE POPULAIRE DU RWANDA(KCB)'),
-  ('bank_account_number', '4491099561'),
+  ('bank_name', 'BANK OF KIGALI'),
+  ('bank_account_number', '100139730547'),
   ('bank_account_name', 'ISOKO GROUPS COMPANY LTD'),
   ('bank_swift', ''),
   ('social_links', '[

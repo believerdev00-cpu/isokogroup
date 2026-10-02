@@ -39,7 +39,7 @@ export const SITE_DEFAULTS: SiteSettings = {
   whatsappOffice: "250788481648",
   whatsappIct: "250790176547",
   momo: { code: "*182*8*1*871951#", label: "Mobile Money (MTN MoMo)", name: "ISOKO GROUPS COMPANY LTD" },
-  bank: { name: "BANQUE POPULAIRE DU RWANDA(KCB)", accountNumber: "4491099561", accountName: "ISOKO GROUPS COMPANY LTD", swift: "" },
+  bank: { name: "BANK OF KIGALI", accountNumber: "100139730547", accountName: "ISOKO GROUPS COMPANY LTD", swift: "" },
   social: [
     { network: "youtube", label: "ISOKO ENTERTAINMENT", url: "https://youtu.be/KjN65T1qA7c?si=8RPTzXJNhZI1b3Bs" },
     { network: "youtube", label: "Isoko Group", url: "https://youtube.com/shorts/2zXVi01BI9s?si=ly0LXTSTdbTkWYJk" },
