@@ -99,7 +99,9 @@ CALL pg_temp.none($$
     -- the company's public details and prices shown on every page (a fixed list of keys)
     'site_settings()',
     -- a Training Center applicant's fee, by the application's private payment link (rate-limited)
-    'training_application_payment(text)'])
+    'training_application_payment(text)',
+    -- the Information Hub's most-asked questions (the questions table itself stays private)
+    'research_trending_questions(integer)'])
 $$, 'anonymous visitors can run only the intended elevated functions');
 
 -- Internals of the engines: never callable from the website

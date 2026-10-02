@@ -42,6 +42,8 @@ const DataRequest = lazy(() => import("./features/data/DataRequest"));
 const DataPage = lazy(() => import("./features/data/DataPage"));
 const StaffRoutes = lazy(() => import("./features/staff/StaffRoutes"));
 const EntRoutes = lazy(() => import("./features/entertainment/EntRoutes"));
+// The ISOKO Information Hub: research, statistics and reports, with the information engine
+const ResearchRoutes = lazy(() => import("./features/research/ResearchRoutes"));
 const page = (el: React.ReactNode) => <Suspense fallback={<PageSkeleton />}>{el}</Suspense>;
 import Marketplace from "./pages/Marketplace";
 import SellerAgreement from "./pages/SellerAgreement";
@@ -117,6 +119,7 @@ const App = () => (
                   <Route path="/data-analysis" element={page(<DataHome />)} />
                   <Route path="/data-analysis/request" element={page(<DataRequest />)} />
                   <Route path="/data-analysis/r/:token" element={page(<DataPage />)} />
+                  <Route path="/research/*" element={page(<ResearchRoutes />)} />
                   <Route path="/staff/*" element={page(<StaffRoutes />)} />
                   <Route path="/seller" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
                   <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />

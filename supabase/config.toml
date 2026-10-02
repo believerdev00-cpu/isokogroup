@@ -22,3 +22,14 @@ verify_jwt = false
 # Providers report delivery without a Supabase token; each report is checked
 # by the provider's signature instead (see functions/notifications-status).
 verify_jwt = false
+
+[functions.research-ask]
+# The Information Hub's question box is public: visitors ask without an
+# account. The function rate-limits by a hash of the caller (30 an hour),
+# validates the question itself and talks to the database with the
+# service-role key (see functions/research-ask).
+verify_jwt = false
+
+[functions.research-sitemap]
+# Search engines fetch the research sitemap without any token.
+verify_jwt = false

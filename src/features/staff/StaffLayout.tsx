@@ -1,5 +1,5 @@
 import { Link, Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
-import { ArrowLeft, BarChart3, Briefcase, Clapperboard, Plane } from "lucide-react";
+import { ArrowLeft, BarChart3, BookOpenCheck, Briefcase, Clapperboard, Plane } from "lucide-react";
 import logo from "@/assets/isoko-logo.jpeg";
 import ThemeToggle from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ export const SERVICE_NAV: Record<StaffArea, { label: string; to: string; icon: t
   travel: { label: "Travel", to: "/staff/travel", icon: Plane, active: "bg-emerald-700 text-white" },
   consultancy: { label: "Consultancy", to: "/staff/consultancy", icon: Briefcase, active: "bg-blue-800 text-white" },
   data: { label: "Data Analysis", to: "/staff/data", icon: BarChart3, active: "bg-indigo-700 text-white" },
+  research: { label: "Research Hub", to: "/staff/research", icon: BookOpenCheck, active: "bg-slate-800 text-white" },
   entertainment: { label: "Media", to: "/staff/media", icon: Clapperboard, active: "bg-red-700 text-white" },
 };
 
@@ -27,7 +28,7 @@ export default function StaffLayout() {
     return (
       <div className="mx-auto max-w-md px-4 py-20 text-center">
         <h1 className="font-display text-2xl font-bold">No workspace access</h1>
-        <p className="mt-2 text-muted-foreground">Your account isn't staff of Travel, Consultancy, Data Analysis or Media. Ask an Isoko administrator.</p>
+        <p className="mt-2 text-muted-foreground">Your account isn't staff of Travel, Consultancy, Data Analysis, the Research Hub or Media. Ask an Isoko administrator.</p>
         <Link to="/" className="mt-6 inline-block text-primary underline">Back to Isoko</Link>
       </div>
     );

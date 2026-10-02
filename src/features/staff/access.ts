@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { db, rpc, type ServiceKey } from "@/features/services/api";
 
-/** A staff workspace: a client service, or Isoko Entertainment's media desk. */
-export type StaffArea = ServiceKey | "entertainment";
+/** A staff workspace: a client service, Isoko Entertainment's media desk, or the Information Hub (data analysts). */
+export type StaffArea = ServiceKey | "entertainment" | "research";
 
 const ROLE_FOR: Record<StaffArea, string> = {
-  travel: "travel_staff", consultancy: "consultancy_staff", data: "data_analyst", entertainment: "media_staff",
+  travel: "travel_staff", consultancy: "consultancy_staff", data: "data_analyst", entertainment: "media_staff", research: "data_analyst",
 };
-export const SERVICE_ORDER: StaffArea[] = ["travel", "consultancy", "data", "entertainment"];
+export const SERVICE_ORDER: StaffArea[] = ["travel", "consultancy", "data", "research", "entertainment"];
 
 /** Which workspaces the signed-in person works in. Admins work in all. */
 export function useStaffAccess() {

@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/sitemap-research.xml", "destination": "https://oswetaksxcepublsjyrt.supabase.co/functions/v1/research-sitemap" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

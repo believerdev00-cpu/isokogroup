@@ -36,4 +36,24 @@
   <url><loc>https://www.isokogroups.com/training-center/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://www.isokogroups.com/training-center/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://www.isokogroups.com/training-center/verify</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+  <!-- ISOKO Information Hub (every published item is listed in /sitemap-research.xml) -->
+  <url><loc>https://www.isokogroups.com/research</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.isokogroups.com/research/countries/rwanda</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/economy</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/education</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/population</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/agriculture</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/tourism</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/business</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/housing</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/health</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/technology</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/logistics</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/market</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/employment</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/finance</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/environment</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/infrastructure</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.isokogroups.com/research/topics/governance</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>

@@ -8,8 +8,9 @@ import {
   MediaCategories, MediaEvents, MediaFashion, MediaFilms, MediaLive, MediaOverview, MediaPeople, MediaPodcasts, MediaSeries, MediaWork,
 } from "./media/MediaAdmin";
 import { MediaFashionHub, MediaFashionRequests } from "./media/FashionHubAdmin";
+import { ResearchCountries, ResearchItems, ResearchOverview, ResearchQuestions, ResearchRegions, ResearchTopics } from "./research/ResearchAdmin";
 
-/** /staff/*: the Isoko Workspace for Travel, Consultancy, Data Analysis and Media staff. */
+/** /staff/*: the Isoko Workspace for Travel, Consultancy, Data Analysis, the Information Hub and Media staff. */
 export default function StaffRoutes() {
   return (
     <Routes>
@@ -30,6 +31,12 @@ export default function StaffRoutes() {
         <Route path="data/projects" element={<DataProjects />} />
         <Route path="data/services" element={<DataServices />} />
         <Route path="data/:id" element={<DataDetail />} />
+        <Route path="research" element={<ResearchOverview />} />
+        <Route path="research/items" element={<ResearchItems />} />
+        <Route path="research/topics" element={<ResearchTopics />} />
+        <Route path="research/countries" element={<ResearchCountries />} />
+        <Route path="research/regions" element={<ResearchRegions />} />
+        <Route path="research/questions" element={<ResearchQuestions />} />
         <Route path="media" element={<MediaOverview />} />
         <Route path="media/films" element={<MediaFilms />} />
         <Route path="media/series" element={<MediaSeries />} />

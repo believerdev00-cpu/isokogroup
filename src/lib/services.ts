@@ -1,6 +1,6 @@
 import {
   BarChart3, Box, Briefcase, CalendarCheck, Code2, Film, GraduationCap, MapPin, Network, Package, Plane,
-  ShoppingBag, ShoppingCart, Store, Truck, BookOpen, type LucideIcon,
+  ShoppingBag, ShoppingCart, Store, Truck, BookOpen, BookOpenCheck, type LucideIcon,
 } from "lucide-react";
 
 // Every Isoko service in one place. The Service Hub, the header menu, search,
@@ -109,6 +109,12 @@ export const SERVICES: Service[] = [
     keywords: "books read ebook pdf study",
   },
   {
+    id: "research", name: "Information Hub", category: "learning", icon: BookOpenCheck, path: "/research",
+    description: "Research, statistics, reports and findings about Rwanda and beyond.",
+    action: { label: "Search the hub", path: "/research" },
+    keywords: "research statistics data reports studies findings rwanda information knowledge",
+  },
+  {
     id: "entertainment", name: "Entertainment", category: "learning", icon: Film, path: "/entertainment",
     description: "Isoko Studioz films, shorts and podcasts.",
     action: { label: "Watch now", path: "/entertainment" },
@@ -164,6 +170,7 @@ const EXTRA_TRAIL: Record<string, string> = {
   "/travel/plan": "Plan my trip",
   "/consultancy/request": "Request",
   "/data-analysis/request": "Request",
+  "/research/search": "Search",
   "/training-center/programs": "Programs",
   "/training-center/intakes": "Intakes",
   "/training-center/apply": "Apply",
@@ -188,7 +195,9 @@ export function breadcrumbsFor(pathname: string): Crumb[] {
     trail.push({ label: "Services", path: "/services" }, { label: cat.title, path: `/services#${cat.key}` });
     trail.push({ label: service.name, path: service.path });
     if (path !== service.path) {
-      const label = EXTRA_TRAIL[path] ?? (/\/(trip|r)\/[0-9a-f]{20,}/.test(path) ? "Your request" : null);
+      const label = EXTRA_TRAIL[path] ?? (/\/(trip|r)\/[0-9a-f]{20,}/.test(path) ? "Your request" : null)
+        // the Information Hub's country, topic and item pages
+        ?? (path.startsWith("/research/countries/") ? "Country" : path.startsWith("/research/topics/") ? "Topic" : path.startsWith("/research/") ? "Information" : null);
       if (label) trail.push({ label });
     }
   } else if (EXTRA_TRAIL[path]) {

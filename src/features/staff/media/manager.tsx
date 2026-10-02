@@ -501,7 +501,10 @@ function RelationSelect({ field, draft, value, onChange }: { field: Field; draft
     queryKey: ["media-admin", "relation", rel.table, filter],
     queryFn: async () => {
       let q = db.from(rel.table).select(`id, ${rel.label}`).order(rel.label).limit(500);
-      for (const [k, val] of Object.entries(filter)) q = Array.isArray(val) ? q.contains(k, val) : q.eq(k, val);
+      for (const [k, val] of Object.entries(filter)) {
+        if (val === undefined) continue; // depends on a choice not made yet: no filter
+        q = Array.isArray(val) ? q.contains(k, val) : val === null ? q.is(k, null) : q.eq(k, val);
+      }
       return unwrap(await q) as Row[];
     },
   });
