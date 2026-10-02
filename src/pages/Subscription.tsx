@@ -1,8 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { ENDED_KEY, accessEndedMessage, formatPrice, formatTrial, planIncludes, planName, type Plan } from "@/lib/subscription";
+import { ENDED_KEY, accessEndedMessage, formatPrice, formatTrial, planIncludes, planName, type PaidPlan, type Plan } from "@/lib/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ const Subscription = () => {
   const { loading: subLoading, isActive, status, plan, ended, pricing, accessUntil, paymentPending, renewalStatus, periodStartedAt, sellerPath } = useSubscription();
   const [params] = useSearchParams();
   const company = useSiteSettings();
+  // the plan a signed-in customer tapped (the cards at the top are the only cards on the page)
+  const [tapped, setTapped] = useState<PaidPlan | null>(null);
 
   // Signed out just now because access ended: say what ended
   const endedNow = useMemo<Plan | null>(() => {
@@ -75,6 +77,7 @@ const Subscription = () => {
       note: "For sellers, instead of the 50 or 200 RWF plans" },
   ];
   const available = user ? pricing.plans.map((p) => p.plan) : offer.nextPlan === "seller" ? ["seller"] : ["week", "monthly"];
+  const selectedPlan: PaidPlan = tapped && (available as string[]).includes(tapped) ? tapped : pricing.nextPlan;
   const RENEWAL: Record<string, string> = {
     trial: "Free trial", active: "Active", due_soon: "Renew soon: 3 days or less left",
     renewal_pending: "Payment awaiting confirmation", expired: "Expired",
@@ -116,6 +119,8 @@ const Subscription = () => {
                 includes={planIncludes(p.key)}
                 code={pricing.momoCode || company.momo.code}
                 disabled={!available.includes(p.key)}
+                selected={!!user && p.key === selectedPlan}
+                onSelect={() => setTapped(p.key)}
               />
             ))}
           </div>
@@ -175,7 +180,7 @@ const Subscription = () => {
                     </p>
                   </div>
                 </div>
-                {status !== "none" && <SubscriptionPayment />}
+                {status !== "none" && <SubscriptionPayment hidePlans plan={selectedPlan} />}
               </CardContent>
             </Card>
           )}

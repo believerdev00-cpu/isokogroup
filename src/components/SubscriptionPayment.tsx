@@ -13,6 +13,9 @@ import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   onSubmitted?: () => void;
+  /** the plan chosen outside this form (the Subscription page's cards); the form then shows no cards of its own */
+  plan?: PaidPlan;
+  hidePlans?: boolean;
 };
 
 const MAX_SCREENSHOT = 5 * 1024 * 1024; // the payment-proofs bucket's limit
@@ -23,7 +26,7 @@ const SCREENSHOT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"]
 // screenshot of the payment message.
 // Nothing is verified automatically: the report stays pending, with no access,
 // until an Isoko admin finds the money on the company account and confirms it.
-const SubscriptionPayment = ({ onSubmitted }: Props) => {
+const SubscriptionPayment = ({ onSubmitted, plan: controlledPlan, hidePlans }: Props) => {
   const { submitPayment, pricing, pendingPayment, lastRejection } = useSubscription();
   const { toast } = useToast();
   const company = useSiteSettings();
@@ -31,7 +34,7 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
   // the plans this account may choose: 7 days or a month, or the seller plan on the seller path
   const choices = pricing.plans;
   const [chosen, setChosen] = useState<PaidPlan>(pricing.nextPlan);
-  const plan = choices.find((p) => p.plan === chosen) ?? choices[0];
+  const plan = choices.find((p) => p.plan === (controlledPlan ?? chosen)) ?? choices[0];
   const price = formatPrice(plan?.price ?? pricing.nextPrice, pricing.currency);
   const [payerName, setPayerName] = useState("");
   const [reference, setReference] = useState("");
@@ -102,7 +105,15 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
 
   return (
     <form className="space-y-4 text-left" onSubmit={handleSubmit}>
-      {/* Each plan is one tappable card: it dials the Mobile Money code on a phone */}
+      {/* Each plan is one tappable card: it dials the Mobile Money code on a phone
+          (the Subscription page shows the cards itself and hides these) */}
+      {hidePlans ? (
+        plan && (
+          <p className="text-sm">
+            Plan: <span className="font-semibold">{planName(plan.plan)}</span> · <span className="font-semibold text-primary">{price}</span>
+          </p>
+        )
+      ) : (
       <div className={cn("grid gap-3", choices.length > 1 && "sm:grid-cols-2")}>
         {choices.map((p) => (
           <PlanDialCard
@@ -117,7 +128,8 @@ const SubscriptionPayment = ({ onSubmitted }: Props) => {
           />
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">Tap a plan to pay by MTN Mobile Money. After paying, tell us who paid and the transaction ID.</p>
+      )}
+      <p className="text-xs text-muted-foreground">{hidePlans ? "Tap your plan above to pay by MTN Mobile Money." : "Tap a plan to pay by MTN Mobile Money."} After paying, tell us who paid and the transaction ID.</p>
 
       {lastRejection && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm" role="alert">
