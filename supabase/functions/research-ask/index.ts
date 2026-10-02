@@ -13,8 +13,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { mocksAllowed } from "../_shared/environment.ts";
 import {
-  buildPrompt, CACHE_HOURS, decideMode, isNotFound, isSufficient, KB_TOP, mockAnswer, parseModelReply, questionHash,
-  RATE_LIMIT_PER_HOUR, sanitizeAnswer, sha256Hex, validateInput, type Conflict, type ExternalResult, type KbItem, type KbMaterial, type Mode,
+  buildPrompt, CACHE_HOURS, decideMode, draftFromAnswer, isNotFound, isSufficient, KB_TOP, mockAnswer, parseModelReply, questionHash,
+  RATE_LIMIT_PER_HOUR, sanitizeAnswer, sha256Hex, validateInput, type Conflict, type ExternalResult, type Figure, type KbItem, type KbMaterial, type Mode,
 } from "./engine.ts";
 import { searchExternal } from "./external.ts";
 import { askModel, hasModelKey } from "./llm.ts";
@@ -117,6 +117,34 @@ async function countryId(slug: string | null): Promise<string | null> {
   return data?.id ?? null;
 }
 
+/**
+ * The review queue: an answer written from outside sources becomes one draft
+ * item (keyed by the question hash, never created twice, never overwriting an
+ * analyst's edits) with the sources it used and the figures the model listed.
+ * Failures are logged; the visitor's answer does not depend on this.
+ */
+async function queueForReview(input: { question: string; answer: string; countryId: string | null; reviewHash: string; sources: Source[]; figures: Figure[] }) {
+  const draft = draftFromAnswer({
+    ...input,
+    sources: input.sources.filter((s) => s.origin === "external").map(({ title, url, publisher }) => ({ title, url, publisher })),
+  });
+  const { data, error } = await admin.from("research_items").upsert(draft.item, { onConflict: "review_hash", ignoreDuplicates: true }).select("id");
+  if (error) {
+    console.error(`research-ask: could not queue the answer for review: ${error.message}`);
+    return;
+  }
+  const id = data?.[0]?.id as string | undefined;
+  if (!id) return; // the draft already exists
+  if (draft.sources.length) {
+    const { error: sErr } = await admin.from("research_sources").insert(draft.sources.map((s) => ({ ...s, item_id: id })));
+    if (sErr) console.error(`research-ask: could not store the draft's sources: ${sErr.message}`);
+  }
+  if (draft.stats.length) {
+    const { error: fErr } = await admin.from("research_stats").insert(draft.stats.map((s) => ({ ...s, item_id: id })));
+    if (fErr) console.error(`research-ask: could not store the draft's figures: ${fErr.message}`);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(req) });
   if (req.method !== "POST") return reply(req, 405, { error: "Method not allowed" });
@@ -169,12 +197,13 @@ Deno.serve(async (req) => {
   let usedItems: string[] = [];
   let usedUrls: string[] = [];
   let conflicts: Conflict[] = [];
+  let figures: Figure[] = [];
   let model: string | null = null;
   let ai = false;
   if (kb.length > 0 || external.length > 0) {
     if (MOCK) {
       const m = mockAnswer(question, kb, external);
-      answer = m.answer; usedItems = m.used_item_ids; usedUrls = m.used_source_urls; conflicts = m.conflicts; model = "mock"; ai = true;
+      answer = m.answer; usedItems = m.used_item_ids; usedUrls = m.used_source_urls; conflicts = m.conflicts; figures = m.figures; model = "mock"; ai = true;
     } else if (hasModelKey(env)) {
       const prompt = buildPrompt(question, kb, external, name);
       const result = await askModel(env, prompt.system, prompt.user);
@@ -187,6 +216,9 @@ Deno.serve(async (req) => {
         usedItems = parsed.used_item_ids.filter((id) => kb.some((k) => k.id === id));
         usedUrls = parsed.used_source_urls.filter((u) => external.some((e) => e.url === u));
         conflicts = parsed.conflicts;
+        // a figure's address must be one of the notes the model was given
+        const known = new Set([...external.map((e) => e.url), ...kb.flatMap((k) => k.sources.map((s) => s.url)).filter((u): u is string => !!u)]);
+        figures = parsed.figures.map((f) => ({ ...f, source_url: f.source_url && known.has(f.source_url) ? f.source_url : null }));
       }
     }
   }
@@ -214,6 +246,9 @@ Deno.serve(async (req) => {
   if (answer !== null || kbItems.length > 0) {
     const { error: qError } = await admin.rpc("research_record_question", { p_question: question, p_country: country });
     if (qError) console.error(`research-ask: could not record the question: ${qError.message}`);
+  }
+  if (answer !== null && (mode === "external" || mode === "kb_external")) {
+    await queueForReview({ question, answer, countryId: await countryId(country), reviewHash: hash, sources, figures });
   }
 
   return reply(req, 200, {

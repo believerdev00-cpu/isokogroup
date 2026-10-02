@@ -5,10 +5,8 @@
 // desk. Who may do this is decided by the database (data analysts and admins).
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, NavLink } from "react-router-dom";
-import {
-  BookOpenCheck, ExternalLink, FileText, Globe2, HelpCircle, Layers, Link2, Loader2, MapPinned, Plus, Tags, Trash2, Upload,
-} from "lucide-react";
+import { Link } from "react-router-dom";
+import { BookOpenCheck, ExternalLink, FileText, Link2, Loader2, Plus, Tags, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,18 +15,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { db, errorText, formatDate, rpc, unwrap } from "@/features/services/api";
-import { EmptyState, Pill, StaffPage } from "../common";
+import { AttentionTile, EmptyState, Pill } from "../common";
 import { EntityManager, type EntityConfig } from "../media/manager";
+import { CreateFromDocument, useReviewQueue } from "./ResearchFeeds";
+import { KIND_LABEL, KINDS, MAX_DOC_MB, RESEARCH_BUCKET, Shell } from "./shared";
+
+export { KINDS };
 
 type Row = Record<string, unknown> & { id: string };
 
 const opts = (pairs: [string, string][]) => pairs.map(([value, label]) => ({ value, label }));
 
-export const KINDS: [string, string][] = [
-  ["statistic", "Statistic"], ["research", "Research"], ["study", "Study"], ["report", "Report"],
-  ["finding", "Finding"], ["dataset", "Dataset"], ["survey", "Survey"],
-];
-const KIND_LABEL = Object.fromEntries(KINDS) as Record<string, string>;
 const SOURCE_TYPES: [string, string][] = [
   ["government", "Government institution"], ["statistics_agency", "Statistics agency"], ["university", "University"],
   ["research_institution", "Research institution"], ["international_org", "International organization"],
@@ -39,8 +36,6 @@ const DOC_MIMES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/zip", "application/json", "text/plain",
 ];
 const DOC_ACCEPT = ".pdf,.csv,.xlsx,.xls,.docx,.zip,.json,.txt";
-const MAX_DOC_MB = 25;
-const RESEARCH_BUCKET = "research";
 
 const tooLong = (v: unknown, max: number) => typeof v === "string" && v.trim().length > max;
 const isHttps = (v: unknown) => typeof v !== "string" || v.trim() === "" || /^https:\/\//.test(v.trim());
@@ -429,41 +424,6 @@ export function RelatedPicker({ itemId }: { itemId: string }) {
 }
 
 // ============== PAGES ==============
-const NAV = [
-  { to: "/staff/research", label: "Overview", icon: BookOpenCheck, end: true },
-  { to: "/staff/research/items", label: "Items", icon: Layers },
-  { to: "/staff/research/topics", label: "Topics", icon: Tags },
-  { to: "/staff/research/countries", label: "Countries", icon: Globe2 },
-  { to: "/staff/research/regions", label: "Regions", icon: MapPinned },
-  { to: "/staff/research/questions", label: "Questions", icon: HelpCircle },
-];
-
-function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return (
-    <StaffPage
-      title={title}
-      subtitle={subtitle}
-      nav={
-        <nav className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto px-4" aria-label="Research sections">
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.end}
-              className={({ isActive }) => cn("flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium", isActive ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:text-foreground")}
-            >
-              <n.icon className="h-4 w-4" /> {n.label}
-            </NavLink>
-          ))}
-        </nav>
-      }
-      actions={<Button asChild variant="outline" size="sm" className="gap-1.5"><Link to="/research" target="_blank"><ExternalLink className="h-4 w-4" /> View the hub</Link></Button>}
-    >
-      {children}
-    </StaffPage>
-  );
-}
-
 export function ResearchOverview() {
   const items = useQuery({
     queryKey: ["research-admin", "overview"],
@@ -473,6 +433,7 @@ export function ResearchOverview() {
   const byKind = KINDS.map(([k, label]) => ({ k, label, n: all.filter((r) => r.kind === k).length }));
   const byStatus = ["published", "draft", "scheduled", "archived"].map((s) => ({ s, n: all.filter((r) => r.status === s).length }));
   const unverified = all.filter((r) => r.verification !== "verified" && r.status === "published").length;
+  const review = useReviewQueue();
   return (
     <Shell title="Information Hub" subtitle="Research, statistics, reports, studies, findings and datasets on the ISOKO Information Hub. Published items are on the website at once.">
       <h2 className="mb-3 font-semibold">What do you want to add?</h2>
@@ -490,6 +451,7 @@ export function ResearchOverview() {
         {byStatus.map(({ s, n }) => (
           <div key={s} className="flex items-center justify-between rounded-2xl border bg-card p-4"><span className="font-medium capitalize">{s}</span><span className="text-3xl font-bold tabular-nums">{items.data ? n : "–"}</span></div>
         ))}
+        <AttentionTile count={review.data?.length} label="Waiting for review" to="/staff/research/review" tone="alert" />
         <div className={cn("flex items-center justify-between rounded-2xl border bg-card p-4", unverified > 0 && "border-amber-500/50 bg-amber-50 dark:bg-amber-950/30")}>
           <span className="font-medium">Published but unverified</span><span className="text-3xl font-bold tabular-nums">{items.data ? unverified : "–"}</span>
         </div>
@@ -523,8 +485,12 @@ export function ResearchItems() {
   const kind = new URLSearchParams(window.location.search).get("new");
   const cfg = useMemo(() => (kind && KIND_LABEL[kind] ? { ...config, defaults: { ...config.defaults, kind } } : config), [config, kind]);
   return (
-    <Shell title="Items" subtitle="Everything on the hub. Fill in the title, kind, summary, country and topic; add numbers, sources and documents once it is saved.">
-      <EntityManager config={cfg} openKey={kind && KIND_LABEL[kind] ? kind : undefined} />
+    <Shell
+      title="Items"
+      subtitle="Everything on the hub. Fill in the title, kind, summary, country and topic; add numbers, sources and documents once it is saved. Or start from a document: the hub reads it and drafts the item with its figures."
+      actions={<CreateFromDocument kind={kind && KIND_LABEL[kind] ? kind : undefined} />}
+    >
+      <EntityManager config={cfg} openKey={kind && KIND_LABEL[kind] ? kind : undefined} editKey="edit" />
     </Shell>
   );
 }

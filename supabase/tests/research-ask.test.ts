@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildPrompt, cleanQuestion, decideMode, filterExternal, isNotFound, isSufficient, mockAnswer, normalizeQuestion, NOT_FOUND,
-  parseModelReply, questionHash, queryWords, sanitizeAnswer, validateInput, type KbItem, type KbMaterial,
+  draftFromAnswer, excerpt, parseFigures, parseModelReply, parseNumber, periodDate, questionHash, queryWords, sanitizeAnswer, slugify, titleFromQuestion, validateInput, type KbItem, type KbMaterial,
 } from "../functions/research-ask/engine.ts";
 import { configuredProvider, mockExternal, searchExternal } from "../functions/research-ask/external.ts";
 
@@ -165,7 +165,7 @@ describe("the model's reply", () => {
   it("rejects what is not JSON and tolerates missing fields", () => {
     expect(parseModelReply("no json here")).toBeNull();
     expect(parseModelReply("")).toBeNull();
-    expect(parseModelReply('{"answer": 5}')).toEqual({ answer: null, used_item_ids: [], used_source_urls: [], conflicts: [] });
+    expect(parseModelReply('{"answer": 5}')).toEqual({ answer: null, used_item_ids: [], used_source_urls: [], conflicts: [], figures: [] });
     expect(parseModelReply('{"answer":"x","conflicts":[{"topic":"t"},"junk"]}')?.conflicts).toEqual([]);
   });
   it("recognizes the not-found sentence and keeps answers short", () => {
@@ -186,5 +186,78 @@ describe("the model's reply", () => {
     const m = mockAnswer("Q", [{ ...item(), body: null, sources: [] }], []);
     expect(m.answer).toContain("Population of Rwanda, 2022 census");
     expect(m.used_item_ids).toEqual([item().id]);
+  });
+});
+
+describe("figures and the review queue", () => {
+  it("asks the model for figures and reads them back, dropping what is not a labelled number", () => {
+    expect(buildPrompt("Q", [], [], null).system).toContain('"figures"');
+    const r = parseModelReply(JSON.stringify({
+      answer: "x", used_item_ids: [], used_source_urls: [], conflicts: [],
+      figures: [
+        { label: "Population", value: "13,246,394", unit: "people", period_label: "2022", source_url: "https://statistics.example.org/census" },
+        { label: "Growth", value: 2.3, unit: "%", period_label: null, source_url: "http://insecure.example.org" },
+        { label: "No number", value: "about thirteen million" },
+        { value: 5 },
+        "junk",
+      ],
+    }));
+    expect(r?.figures).toEqual([
+      { label: "Population", value: 13246394, unit: "people", period_label: "2022", source_url: "https://statistics.example.org/census" },
+      { label: "Growth", value: 2.3, unit: "%", period_label: null, source_url: null },
+    ]);
+    expect(parseFigures(Array.from({ length: 30 }, (_, i) => ({ label: `f${i}`, value: i }))).length).toBe(20);
+  });
+  it("reads numbers the way people write them", () => {
+    expect(parseNumber("1,234.5")).toBe(1234.5);
+    expect(parseNumber("12.3%")).toBe(12.3);
+    expect(parseNumber("4 500")).toBe(4500);
+    expect(parseNumber("USD 2,000")).toBe(2000);
+    expect(parseNumber("thirteen")).toBeNull();
+    expect(parseNumber(Infinity)).toBeNull();
+  });
+  it("mock answers carry one figure only when outside notes were used", () => {
+    const ext = [{ title: "Bulletin", url: "https://statistics.example.org/bulletin", snippet: "Reported value: 42 (2024).", publisher: null }];
+    expect(mockAnswer("Q", [], ext).figures).toEqual([{ label: "Reported value", value: 42, unit: null, period_label: "2024", source_url: "https://statistics.example.org/bulletin" }]);
+    expect(mockAnswer("Q", [{ ...item(), body: null, sources: [] }], []).figures).toEqual([]);
+  });
+  it("turns a question into a title, a slug and keywords", () => {
+    expect(titleFromQuestion("  what is the  population of rwanda??")).toBe("What is the population of rwanda");
+    expect(titleFromQuestion("x".repeat(250)).length).toBe(200);
+    expect(slugify("GDP (current US$) \u2014 Rwanda")).toBe("gdp-current-us-rwanda");
+    expect(slugify("???")).toBe("item");
+    expect(slugify("a-very-long-title-that-goes-on", 10)).toBe("a-very-lon");
+    expect(periodDate("2022")).toBe("2022-01-01");
+    expect(periodDate("FY 2021/22")).toBe("2021-01-01");
+    expect(periodDate("last year")).toBeNull();
+    expect(excerpt("First sentence. Second sentence that is longer.", 20)).toBe("First sentence.");
+    expect(excerpt("short", 20)).toBe("short");
+  });
+  it("builds one draft per question with its outside sources and figures", () => {
+    const now = new Date("2026-10-02T08:00:00Z");
+    const d = draftFromAnswer({
+      question: "how much coffee does rwanda export?",
+      answer: "Rwanda exported coffee worth 100 million dollars in 2024. ".repeat(30),
+      countryId: "c1", reviewHash: "abcdef0123456789".repeat(4),
+      sources: [
+        { title: "Coffee bulletin", url: "https://statistics.example.org/coffee", publisher: "NAEB" },
+        { title: "Same again", url: "https://statistics.example.org/coffee", publisher: "NAEB" },
+        { title: "Research note", url: "https://university.example.org/coffee", publisher: null },
+      ],
+      figures: [{ label: "Coffee exports", value: 100, unit: "million USD", period_label: "2024", source_url: "https://statistics.example.org/coffee" }],
+      now,
+    });
+    expect(d.item).toMatchObject({
+      slug: "how-much-coffee-does-rwanda-export-abcdef01", kind: "finding", title: "How much coffee does rwanda export", country_id: "c1",
+      origin: "external", verification: "unverified", status: "draft", import_source: "question", imported_at: "2026-10-02T08:00:00.000Z",
+      review_hash: "abcdef0123456789".repeat(4), keywords: ["coffee", "rwanda", "export"], created_by: null,
+    });
+    expect(d.item.review_note).toBe("Written by the answer engine from outside sources on 2026-10-02. Check the figures against the sources before publishing.");
+    expect(d.item.summary.length).toBeLessThanOrEqual(1000);
+    expect(d.item.summary.endsWith(".")).toBe(true);
+    expect(d.item.body.length).toBeGreaterThan(1000);
+    expect(d.sources.map((s) => s.url)).toEqual(["https://statistics.example.org/coffee", "https://university.example.org/coffee"]);
+    expect(d.sources[0]).toMatchObject({ title: "Coffee bulletin", publisher: "NAEB", source_type: "other", retrieved_at: "2026-10-02T08:00:00.000Z", sort: 0 });
+    expect(d.stats).toEqual([{ label: "Coffee exports", value: 100, unit: "million USD", period_label: "2024", period_date: "2024-01-01", source_url: "https://statistics.example.org/coffee", sort: 0 }]);
   });
 });

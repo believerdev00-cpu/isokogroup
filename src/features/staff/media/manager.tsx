@@ -100,7 +100,7 @@ function clean(draft: Row, fields: Field[]) {
 }
 
 // ============== THE MANAGER ==============
-export function EntityManager({ config, parent, compact, openKey }: { config: EntityConfig; parent?: { column: string; id: string }; compact?: boolean; openKey?: string }) {
+export function EntityManager({ config, parent, compact, openKey, editKey }: { config: EntityConfig; parent?: { column: string; id: string }; compact?: boolean; openKey?: string; editKey?: string }) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Status | "all">("all");
@@ -117,11 +117,15 @@ export function EntityManager({ config, parent, compact, openKey }: { config: En
     if (fromShortcut) setEditing((e) => e ?? ({ id: "", ...(config.defaults ?? {}), ...scope } as Row));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromShortcut]);
+  // Opened from elsewhere ("Open in editor" on a review queue): ?<editKey>=<id>
+  // opens that row's form once the list has it; same rule for the address.
+  const editId = editKey ? params.get(editKey) : null;
   const closeEditor = () => {
     setEditing(null);
-    if (fromShortcut) {
+    if (fromShortcut || editId) {
       const next = new URLSearchParams(params);
       next.delete("new");
+      if (editKey) next.delete(editKey);
       setParams(next, { replace: true });
     }
   };
@@ -135,6 +139,11 @@ export function EntityManager({ config, parent, compact, openKey }: { config: En
       return unwrap(await q) as Row[];
     },
   });
+  useEffect(() => {
+    if (!editId || !list.data) return;
+    const row = list.data.find((r) => r.id === editId);
+    if (row) setEditing((e) => e ?? row);
+  }, [editId, list.data]);
 
   const update = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => unwrap(await db.from(config.table).update(patch).eq("id", id)),

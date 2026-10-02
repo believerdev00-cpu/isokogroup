@@ -5,7 +5,7 @@ import { useSeo } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import {
   HUB, HUB_NAME, KIND_LABEL, KINDS, TAGLINE, kindLabel, searchPath, useCountries, useRegionCounts, useResearchCounts, useResearchSearch,
-  useTopics, useTrendingQuestions, type Kind,
+  useTopics, useTrendingQuestions, type Country, type Kind,
 } from "../api";
 import { CardSkeletons, Chip, EmptyState, HubSearchBox, ItemCard, SectionHeading } from "../ui";
 
@@ -39,9 +39,7 @@ export default function HubHome() {
   const counts = useResearchCounts();
   const trending = useTrendingQuestions(8);
   const countries = useCountries();
-  const active = (countries.data ?? []).filter((c) => c.is_active);
-  const lead = active[0];
-  const regions = useRegionCounts(lead?.slug);
+  const explore = (countries.data ?? []).filter((c) => c.is_active).slice(0, 3);
   const topLevel = (topics.data ?? []).filter((t) => !t.parent_id).slice(0, 10);
   const featuredItems = (featured.data ?? []).filter((i) => i.featured).slice(0, 6);
   const latest = (featured.data ?? []).slice(0, 6);
@@ -70,11 +68,11 @@ export default function HubHome() {
                 {t.name}
               </Link>
             ))}
-            {lead && (
-              <Link to={`${HUB}/countries/${lead.slug}`} className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium backdrop-blur hover:bg-white/20">
-                {lead.name}
+            {explore.map((c) => (
+              <Link key={c.id} to={`${HUB}/countries/${c.slug}`} className="rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium backdrop-blur hover:bg-white/20">
+                {c.name}
               </Link>
-            )}
+            ))}
           </div>
         </div>
       </section>
@@ -141,26 +139,7 @@ export default function HubHome() {
           )}
         </section>
 
-        {lead && (
-          <section>
-            <SectionHeading title={`Explore ${lead.name}`} text="Information by province and district." to={`${HUB}/countries/${lead.slug}`} toLabel={`All about ${lead.name}`} />
-            {regions.isLoading ? (
-              <CardSkeletons n={3} />
-            ) : (regions.data?.length ?? 0) > 0 ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {regions.data!.map((r) => (
-                  <Link key={r.region_id} to={`${HUB}/countries/${lead.slug}#${r.slug}`} className={cn("rounded-2xl border bg-card p-4 transition-shadow hover:shadow-md", Number(r.n) === 0 && "opacity-70")}>
-                    <MapPinned className="h-5 w-5 text-primary" aria-hidden />
-                    <p className="mt-2 font-semibold leading-tight">{r.name}</p>
-                    <p className="text-xs text-muted-foreground">{r.level} · {Number(r.n).toLocaleString("en-US")} {Number(r.n) === 1 ? "item" : "items"}</p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <EmptyState title={`${lead.name} regions are being set up`} text="Province and district information will appear here." />
-            )}
-          </section>
-        )}
+        {explore.map((c) => <ExploreCountry key={c.id} country={c} />)}
 
         <section className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border bg-card p-6">
@@ -180,5 +159,30 @@ export default function HubHome() {
         </section>
       </div>
     </ServiceLayout>
+  );
+}
+
+/** "Explore <country>": the regions of one active country with how much each holds. */
+function ExploreCountry({ country }: { country: Country }) {
+  const regions = useRegionCounts(country.slug);
+  return (
+    <section>
+      <SectionHeading title={`Explore ${country.name}`} text="Information by province and district." to={`${HUB}/countries/${country.slug}`} toLabel={`All about ${country.name}`} />
+      {regions.isLoading ? (
+        <CardSkeletons n={3} />
+      ) : (regions.data?.length ?? 0) > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {regions.data!.map((r) => (
+            <Link key={r.region_id} to={`${HUB}/countries/${country.slug}#${r.slug}`} className={cn("rounded-2xl border bg-card p-4 transition-shadow hover:shadow-md", Number(r.n) === 0 && "opacity-70")}>
+              <MapPinned className="h-5 w-5 text-primary" aria-hidden />
+              <p className="mt-2 font-semibold leading-tight">{r.name}</p>
+              <p className="text-xs text-muted-foreground">{r.level} · {Number(r.n).toLocaleString("en-US")} {Number(r.n) === 1 ? "item" : "items"}</p>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title={`${country.name} regions are being set up`} text="Province and district information will appear here." />
+      )}
+    </section>
   );
 }

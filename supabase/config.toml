@@ -33,3 +33,15 @@ verify_jwt = false
 [functions.research-sitemap]
 # Search engines fetch the research sitemap without any token.
 verify_jwt = false
+
+[functions.research-ingest]
+# Data staff turn an uploaded document into a draft item. The platform checks
+# the Supabase token; the function then checks the caller is data staff
+# (is_service_staff('data')) before it reads anything (see functions/research-ingest).
+verify_jwt = true
+
+[functions.research-import]
+# The World Bank connector runs from a weekly cron with the service-role key
+# (no user token), or from the staff desk with a staff token; the function
+# checks either itself and answers 401/403 otherwise (see functions/research-import).
+verify_jwt = false

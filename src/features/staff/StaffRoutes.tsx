@@ -9,6 +9,7 @@ import {
 } from "./media/MediaAdmin";
 import { MediaFashionHub, MediaFashionRequests } from "./media/FashionHubAdmin";
 import { ResearchCountries, ResearchItems, ResearchOverview, ResearchQuestions, ResearchRegions, ResearchTopics } from "./research/ResearchAdmin";
+import { ResearchImports, ResearchReview } from "./research/ResearchFeeds";
 
 /** /staff/*: the Isoko Workspace for Travel, Consultancy, Data Analysis, the Information Hub and Media staff. */
 export default function StaffRoutes() {
@@ -33,6 +34,8 @@ export default function StaffRoutes() {
         <Route path="data/:id" element={<DataDetail />} />
         <Route path="research" element={<ResearchOverview />} />
         <Route path="research/items" element={<ResearchItems />} />
+        <Route path="research/review" element={<ResearchReview />} />
+        <Route path="research/imports" element={<ResearchImports />} />
         <Route path="research/topics" element={<ResearchTopics />} />
         <Route path="research/countries" element={<ResearchCountries />} />
         <Route path="research/regions" element={<ResearchRegions />} />

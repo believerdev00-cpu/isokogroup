@@ -202,7 +202,7 @@ SELECT pg_temp.expect((SELECT country_name || '/' || topic_name || '/' || region
   'a hit carries its country, topic, region and verification');
 SELECT pg_temp.expect((SELECT count(*) FROM public.research_search(repeat('x', 5000))) = 0, 'a very long query is clamped and finds nothing');
 SELECT pg_temp.expect((SELECT count(*) FROM public.research_search($q$'; drop table research_items; --$q$)) = 0
-  AND (SELECT count(*) FROM public.research_items) = 3, 'a hostile query is just text');
+  AND (SELECT count(*) FROM public.research_items WHERE slug LIKE 'rh-%') = 3, 'a hostile query is just text');
 
 -- ---------- Counts ----------
 SELECT pg_temp.expect((SELECT string_agg(kind || '=' || n, ',' ORDER BY kind) FROM public.research_counts()) = 'statistic=1,study=1',
