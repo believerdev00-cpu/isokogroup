@@ -298,6 +298,34 @@ CREATE INDEX initiative_donations_queue_idx
 CREATE INDEX initiative_donations_project_idx
   ON public.initiative_donations (project_id) WHERE status = 'confirmed';
 
+-- Confirming or rejecting a donation is an admin act, and the record of who did
+-- it is stamped here rather than sent by the browser. The CHECK above only
+-- insists the field is filled, so without this an admin could attribute a
+-- confirmation to a colleague, and the attribution is the whole audit trail for
+-- money that was counted by hand. A donation is also reviewed once: one that
+-- has been confirmed or rejected is settled, and the attribution on a row that
+-- is not being reviewed cannot be rewritten.
+CREATE OR REPLACE FUNCTION public.initiative_guard_donation_review()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    IF OLD.status <> 'pending' THEN
+      RAISE EXCEPTION 'A % donation has already been reviewed', OLD.status
+        USING ERRCODE = 'check_violation';
+    END IF;
+    NEW.reviewed_by := auth.uid();
+    NEW.reviewed_at := now();
+  ELSE
+    NEW.reviewed_by := OLD.reviewed_by;
+    NEW.reviewed_at := OLD.reviewed_at;
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER initiative_donations_review
+  BEFORE UPDATE ON public.initiative_donations
+  FOR EACH ROW EXECUTE FUNCTION public.initiative_guard_donation_review();
+
 -- ============== ALLOCATIONS ==============
 -- Append-only. A general donation can never be moved to a project, or between
 -- projects, without leaving this record of who moved it and why.
@@ -400,6 +428,13 @@ CREATE VIEW public.initiative_public_projects AS
     FROM public.initiative_projects
    WHERE published;
 
+-- Supabase grants every new object in this schema to anon and authenticated by
+-- default, and a view over a single table is auto-updatable, so that default
+-- alone would let a visitor INSERT, UPDATE or DELETE through this view. A write
+-- through it runs as the view owner, which bypasses row-level security on the
+-- table underneath, so the default has to be taken away before SELECT is
+-- granted back: reading published projects is the only thing this view is for.
+REVOKE ALL ON public.initiative_public_projects FROM anon, authenticated;
 GRANT SELECT ON public.initiative_public_projects TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.initiative_raised(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.initiative_valid_classification(text, text, text) TO anon, authenticated;
