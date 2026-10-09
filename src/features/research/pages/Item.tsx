@@ -4,6 +4,7 @@ import { useSeo } from "@/lib/seo";
 import { HUB, HUB_NAME, coverUrl, formatDate, kindOne, periodLabel, searchPath, useResearchItem, type ItemDetail } from "../api";
 import { StatsBlock } from "../charts";
 import { Chip, DemoBadge, EmptyState, ErrorState, HubCrumbs, KindBadge, RowSkeletons, TextBody, VerifiedBadge } from "../ui";
+import Comments from "@/features/comments/Comments";
 
 const SCHEMA_TYPE: Record<string, string> = {
   statistic: "Dataset", dataset: "Dataset", survey: "Dataset", research: "ScholarlyArticle", study: "ScholarlyArticle", report: "Report", finding: "Article",
@@ -184,6 +185,13 @@ export default function HubItem() {
           </aside>
         </div>
       </article>
+
+        {/* Readers talk back. Nothing appears until it has been approved. */}
+        {d && (
+          <div className="container max-w-3xl pb-12">
+            <Comments subjectType="research_item" subjectId={d.id} title="Comments on this" />
+          </div>
+        )}
     </ServiceLayout>
   );
 }

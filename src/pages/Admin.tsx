@@ -30,6 +30,7 @@ import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
 import InitiativeAdmin from "@/components/admin/InitiativeAdmin";
 import AdvertRequests from "@/components/admin/AdvertRequests";
 import ContactMessages from "@/components/admin/ContactMessages";
+import CommentModeration from "@/components/admin/CommentModeration";
 import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
 import { openSecureFile } from "@/features/services/api";
 import type { BillableTable } from "@/features/finance/api";
@@ -512,6 +513,7 @@ const Admin = () => {
               <TabsTrigger value="initiative">Global Initiative</TabsTrigger>
               <TabsTrigger value="adverts">Advertising</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
+              <TabsTrigger value="comments">Comments</TabsTrigger>
               <TabsTrigger value="audit">Audit log</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -524,6 +526,7 @@ const Admin = () => {
             <TabsContent value="initiative"><InitiativeAdmin /></TabsContent>
             <TabsContent value="adverts"><AdvertRequests /></TabsContent>
             <TabsContent value="messages"><ContactMessages /></TabsContent>
+            <TabsContent value="comments"><CommentModeration /></TabsContent>
             <TabsContent value="audit"><AuditLogAdmin /></TabsContent>
             <TabsContent value="deliveries"><DeliveriesAnalytics /></TabsContent>
             <TabsContent value="drivers">
