@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { tooLargeMessage, uploadLimitMb, withinLimit } from "@/lib/uploadLimits";
 
 // E-Library and Entertainment files are for subscribers: the buckets are private
 // and Storage only signs links for people with an active subscription (and
@@ -16,6 +17,9 @@ export function libraryPath(bucket: LibraryBucket, value: string | null) {
 
 /** Uploads a file (admins) and returns the path to store. */
 export async function uploadLibraryFile(bucket: LibraryBucket, prefix: string, file: File) {
+  // Checked here rather than at each caller: Storage refuses an oversized file
+  // with a message that says nothing useful, and by then the wait is wasted.
+  if (!withinLimit(file, bucket)) throw new Error(tooLargeMessage(file, uploadLimitMb(bucket)));
   const path = `${prefix}/${crypto.randomUUID()}.${file.name.split(".").pop()}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: "3600",

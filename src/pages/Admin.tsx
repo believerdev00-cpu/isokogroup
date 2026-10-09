@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { tooLargeMessage, uploadLimitMb, withinLimit } from "@/lib/uploadLimits";
 import { Link, Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Users, ShoppingCart, DollarSign, TrendingUp, Package, BookOpen, Truck, Box, Bell, Settings, FileText, Eye, Download, Film, Mic, Upload, Wallet, CheckCircle } from "lucide-react";
@@ -212,6 +213,7 @@ const Admin = () => {
   };
 
   const uploadBookFile = async (file: File, prefix: string) => {
+    if (!withinLimit(file, "books")) throw new Error(tooLargeMessage(file, uploadLimitMb("books")));
     const ext = file.name.split(".").pop();
     const path = `${prefix}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("books").upload(path, file, {

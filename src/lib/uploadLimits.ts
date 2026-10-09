@@ -22,15 +22,20 @@
  * The project-wide limit, in megabytes. CHANGE THIS when the dashboard setting
  * changes -- nothing else needs touching.
  *
+ * The entertainment bucket now permits 1 GB (migration
+ * 20261009210000_entertainment_one_gigabyte.sql) so that films can be 1 GB as
+ * soon as the project allows it. This is the one number standing in the way.
+ *
  * The free plan's ceiling is 50 MB and the setting cannot be raised past it.
- * Lifting this to 1024 requires the paid plan first; raising the number here
- * without raising it there would only move the failure later.
+ * Lifting this to 1024 requires the paid plan first, then the dashboard
+ * setting; raising the number here without raising it there would only move
+ * the failure later, after somebody had waited through the upload.
  */
 export const PLATFORM_UPLOAD_MB = 50;
 
 /** Each bucket's own file_size_limit, as set by migration. */
 export const BUCKET_LIMIT_MB = {
-  entertainment: 500,
+  entertainment: 1024,
   research: 25,
   "service-files": 25,
   training: 8,
