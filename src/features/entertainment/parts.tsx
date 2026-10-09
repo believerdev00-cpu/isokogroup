@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/features/services/api";
-import { mediaUrl, playbackUrl, youtubeEmbed, type WatchSource } from "./api";
+import { isAudioRef, mediaUrl, playbackUrl, youtubeEmbed, type WatchSource } from "./api";
 import { DemoBadge } from "./ui";
 
 // duration_minutes is here so the signed link can be made to last the film
@@ -116,6 +116,22 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
 }
 
 /** A YouTube trailer or video that opens in place. */
+/**
+ * The video or audio a person, a work, a collection or an event carries, with
+ * a heading, or nothing at all when it has none. Audio is played as audio: a
+ * black rectangle for a voice clip helps nobody.
+ */
+export function SectorMedia({ item, poster, heading }: { item: Playable; poster?: string | null; heading?: string }) {
+  if (!item.watch_source || !item.watch_ref) return null;
+  const audio = item.watch_source === "storage" && isAudioRef(item.watch_ref);
+  return (
+    <section className="mx-auto w-full max-w-6xl px-4 pt-6">
+      <h2 className="mb-3 font-display text-2xl font-bold">{heading ?? (audio ? "Listen" : "Watch")}</h2>
+      <Player item={item} audio={audio} poster={poster} />
+    </section>
+  );
+}
+
 export function YouTubeButton({ video, label }: { video: string; label: string }) {
   const [open, setOpen] = useState(false);
   const embed = youtubeEmbed(video, true);

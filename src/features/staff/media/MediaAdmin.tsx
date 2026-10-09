@@ -130,6 +130,7 @@ const PEOPLE: EntityConfig = {
     { key: "location", label: "Location", type: "text" },
     { key: "headline", label: "One-line summary", type: "text", help: "e.g. “Wedding and portrait photographer in Kigali”." },
     { key: "cover_path", label: "Banner picture", type: "image", folder: "people" },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "people", help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
     { key: "services", label: "Services offered", type: "tags" },
     { key: "details", label: "Details to show", type: "pairs", help: "Only what the person agreed to show (for models: height, sizes, experience). No phone numbers or addresses." },
     { key: "links", label: "Links", type: "pairs", help: "e.g. Instagram → https://instagram.com/…" },
@@ -153,6 +154,7 @@ const workConfig = (section: "photo" | "art" | "fashion", noun: string): EntityC
     { key: "description", label: "Description", type: "textarea", basic: true },
     { key: "cover_path", label: "Main picture", type: "image", folder: `works/${section}`, dims: ["cover_w", "cover_h"], basic: true },
     { key: "creator_id", label: section === "fashion" ? "Model or designer" : section === "photo" ? "Photographer" : "Artist or designer", type: "relation", relation: { table: "ent_creators", label: "display_name" } },
+    { key: "watch", label: "Video or audio", type: "watch", folder: `works/${section}`, help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
     { key: "category_id", label: "Category", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section }) } },
     { key: "tags", label: "Tags", type: "tags" },
     { key: "year", label: "Year", type: "number" },
@@ -173,6 +175,7 @@ const COLLECTIONS: EntityConfig = {
     { key: "cover_path", label: "Main picture", type: "image", folder: "collections", basic: true },
     { key: "kind", label: "Type", type: "select", required: true, options: opts([["collection", "Collection"], ["campaign", "Campaign"], ["show", "Fashion show"], ["lookbook", "Lookbook"], ["editorial", "Editorial"]]) },
     { key: "designer_id", label: "Designer", type: "relation", relation: { table: "ent_creators", label: "display_name", filter: () => ({ kinds: ["designer"] }) } },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "collections", help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
     { key: "season", label: "Season", type: "text", help: "e.g. Spring 2026" },
     { key: "held_on", label: "Date", type: "date" },
   ],
@@ -192,12 +195,11 @@ const EVENTS: EntityConfig = {
     { key: "held_on", label: "Date", type: "date" },
     { key: "location", label: "Place", type: "text" },
     { key: "category_id", label: "Category", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section: "event" }) } },
-    { key: "video_youtube", label: "Video (YouTube link)", type: "text", wide: true },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "events", help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
   ],
   defaults: { status: "draft" },
   validate: (d) => {
     if (isPublicStatus(d) && !d.publish_consent) return "Tick that the client agreed before publishing their event.";
-    if (d.video_youtube && !youtubeId(String(d.video_youtube))) return "The video must be a YouTube link.";
     if (d.status === "scheduled" && !d.publish_at) return "Choose when it should go on the website.";
     return null;
   },

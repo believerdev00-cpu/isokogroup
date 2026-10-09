@@ -9,7 +9,7 @@ import {
   type Creator, type EntEvent, type EventImage, type LiveStream,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, LiveBadge, Masonry, Row, SaveButton, SectionIntro, StaffOnlyBanner, WideCard } from "../ui";
-import { BookButton, FinalCta, heroImage } from "../parts";
+import { BookButton, FinalCta, SectorMedia, heroImage } from "../parts";
 
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
@@ -182,14 +182,18 @@ export function EventDetail() {
           <SaveButton type="event" id={e.id} />
           <BookButton what="book Isoko Entertainment to cover my event">Book coverage like this</BookButton>
         </div>
-        {video && (
+{/* watch_source is what the Video or audio control writes; video_youtube is
+            the older link-only column, kept for any row the migration did not move. */}
+        {e.watch_source ? (
+          <SectorMedia item={e} poster={e.cover_path} heading="Video coverage" />
+        ) : video ? (
           <section>
             <h2 className="mb-3 font-display text-2xl font-bold">Video coverage</h2>
             <div className="aspect-video overflow-hidden rounded-2xl bg-black">
               <iframe src={video} title={`${e.title} video`} className="h-full w-full" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
             </div>
           </section>
-        )}
+        ) : null}
         {(images.data ?? []).length > 0 && (
           <section>
             <h2 className="mb-3 font-display text-2xl font-bold">Gallery</h2>

@@ -9,7 +9,7 @@ import {
   type Collection, type Creator, type Work, type WorkImage,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, Masonry, PinCard, Row, SaveButton, SectionIntro, StaffOnlyBanner } from "../ui";
-import { BookButton, FinalCta } from "../parts";
+import { BookButton, FinalCta, SectorMedia } from "../parts";
 import { FashionHubBanner, FashionSubNav } from "../fashionHub/FashionHub";
 
 const SECTION = {
@@ -154,6 +154,7 @@ export function WorkDetail() {
   return (
     <>
       <StaffOnlyBanner status={w.status} />
+      <SectorMedia item={w} poster={w.cover_path} />
       <div className="mx-auto grid max-w-6xl gap-8 px-4 pt-6 md:grid-cols-[1.4fr_1fr] md:pt-10">
         <Img path={w.cover_path} alt={w.title} ratio={w.cover_w && w.cover_h ? `${w.cover_w} / ${w.cover_h}` : "4 / 5"} className="rounded-3xl" />
         <div className="space-y-5 md:sticky md:top-24 md:self-start">
@@ -238,6 +239,7 @@ export function CreatorPage() {
   return (
     <>
       <StaffOnlyBanner status={p.status} />
+      <SectorMedia item={p} poster={p.avatar_path ?? p.cover_path} heading="Reel" />
       <div className="relative">
         <Img path={p.cover_path ?? p.avatar_path} alt="" ratio="16 / 5" className="max-h-[42vh] min-h-[180px] w-full" />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 to-transparent" aria-hidden />
@@ -312,6 +314,7 @@ export function CollectionDetail() {
   return (
     <>
       <StaffOnlyBanner status={c.status} />
+      <SectorMedia item={c} poster={c.cover_path} />
       <section className="relative">
         <Img path={c.cover_path} alt={c.title} ratio="16 / 7" className="max-h-[70vh] min-h-[320px] w-full" />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/30 to-transparent" aria-hidden />

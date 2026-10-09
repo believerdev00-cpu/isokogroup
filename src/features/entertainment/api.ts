@@ -35,6 +35,9 @@ export type Creator = Common & {
   details: Record<string, string>;
   links: Record<string, string>;
   adult_confirmed: boolean;
+  watch_source: WatchSource | null;
+  watch_ref: string | null;
+  is_free: boolean;
 };
 
 export type WatchSource = "storage" | "youtube";
@@ -90,6 +93,9 @@ export type Work = Common & {
   tags: string[];
   year: number | null;
   trend_rank: number | null;
+  watch_source: WatchSource | null;
+  watch_ref: string | null;
+  is_free: boolean;
 };
 
 export type WorkImage = { id: string; work_id: string; path: string; w: number | null; h: number | null; caption: string | null; kind: "image" | "before" | "after"; sort: number };
@@ -102,6 +108,9 @@ export type Collection = Common & {
   season: string | null;
   held_on: string | null;
   cover_path: string | null;
+  watch_source: WatchSource | null;
+  watch_ref: string | null;
+  is_free: boolean;
 };
 
 export type EntEvent = Common & {
@@ -112,6 +121,9 @@ export type EntEvent = Common & {
   location: string | null;
   cover_path: string | null;
   video_youtube: string | null;
+  watch_source: WatchSource | null;
+  watch_ref: string | null;
+  is_free: boolean;
 };
 
 export type EventImage = { id: string; event_id: string; path: string; w: number | null; h: number | null; caption: string | null; sort: number };
@@ -283,6 +295,14 @@ export function mediaTypeOf(file: { name: string; type: string }): string {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
   return TYPE_BY_EXTENSION[ext] ?? "";
 }
+
+/**
+ * Whether a stored media path is audio rather than video. The sectors outside
+ * films have no "format" column -- the person uploading chose a file, not a
+ * kind -- so the extension the upload wrote is what there is to go on.
+ */
+export const isAudioRef = (ref: string | null | undefined) =>
+  ["mp3", "m4a", "aac", "wav"].includes((ref ?? "").split(".").pop()?.toLowerCase() ?? "");
 
 /** Browsers do not agree about Matroska, so playback is offered, not assumed. */
 export const MATROSKA = "video/x-matroska";
