@@ -27,6 +27,7 @@ import DataAnalysis from "@/components/admin/DataAnalysis";
 import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
 import MyOverview from "@/components/admin/MyOverview";
 import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
+import InitiativeAdmin from "@/components/admin/InitiativeAdmin";
 import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
 import { openSecureFile } from "@/features/services/api";
 import type { BillableTable } from "@/features/finance/api";
@@ -506,6 +507,7 @@ const Admin = () => {
               <TabsTrigger value="services">Travel · Consultancy · Data</TabsTrigger>
               <TabsTrigger value="payouts">Payouts</TabsTrigger>
               <TabsTrigger value="software">Software</TabsTrigger>
+              <TabsTrigger value="initiative">Global Initiative</TabsTrigger>
               <TabsTrigger value="audit">Audit log</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -515,6 +517,7 @@ const Admin = () => {
             <TabsContent value="couriers"><CouriersAdmin /></TabsContent>
             <TabsContent value="training"><TrainingCenterAdmin /></TabsContent>
             <TabsContent value="services"><ServiceStaffAdmin /></TabsContent>
+            <TabsContent value="initiative"><InitiativeAdmin /></TabsContent>
             <TabsContent value="audit"><AuditLogAdmin /></TabsContent>
             <TabsContent value="deliveries"><DeliveriesAnalytics /></TabsContent>
             <TabsContent value="drivers">
