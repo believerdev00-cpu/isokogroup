@@ -197,7 +197,7 @@ export async function documentUrl(path: string) {
  * and neither is the donor id, which they already know.
  */
 export const OWN_DONATION_COLUMNS =
-  "id, amount, payment_method, reference, project_id, designated_by_donor, status, " +
+  "id, amount, payment_method, reference, project_id, focus_area, designated_by_donor, status, " +
   "donor_name, anonymous, submitted_at, reviewed_at, review_note";
 
 export type DonationStatus = "pending" | "confirmed" | "rejected";
@@ -208,6 +208,8 @@ export type OwnDonation = {
   payment_method: "momo" | "bank";
   reference: string;
   project_id: string | null;
+  /** The area the donor asked for, or null for wherever it is needed most. */
+  focus_area: string | null;
   designated_by_donor: boolean;
   status: DonationStatus;
   donor_name: string | null;
@@ -228,8 +230,13 @@ export type DonationInput = {
   amount: number;
   payment_method: "momo" | "bank";
   reference: string;
-  /** null = wherever it is needed most. */
+  /** null = no particular project. */
   project_id: string | null;
+  /**
+   * The area the donor asked for, or null. Ignored when a project is given: the
+   * database reads the area off the project rather than taking it on trust.
+   */
+  focus_area: string | null;
   donor_name: string | null;
   donor_email: string | null;
   anonymous: boolean;

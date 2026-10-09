@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { errorText } from "@/features/services/api";
-import { DONATION_STATUS_LABEL, rwf } from "@/lib/initiative";
+import { DONATION_STATUS_LABEL, areaOf, rwf } from "@/lib/initiative";
 import {
   setDonationStatus, useAdminDonations, useAdminProjects, type AdminDonation,
 } from "@/features/initiative/api";
@@ -36,9 +36,16 @@ const InitiativeDonations = () => {
   const [rejecting, setRejecting] = useState<AdminDonation | null>(null);
   const [note, setNote] = useState("");
 
-  const titleOf = useMemo(() => {
+  // What the donor asked their money to go to: a project, or one of the five
+  // areas, or nothing in particular. A project always wins, because the database
+  // takes the area off the project rather than from the request.
+  const targetOf = useMemo(() => {
     const byId = new Map((projects.data ?? []).map((p) => [p.id, p.title]));
-    return (id: string | null) => (id ? byId.get(id) ?? "a project" : "Wherever needed most");
+    return (d: { project_id: string | null; focus_area: string | null }) => {
+      if (d.project_id) return byId.get(d.project_id) ?? "a project";
+      if (d.focus_area) return areaOf(d.focus_area)?.label ?? d.focus_area;
+      return "Wherever needed most";
+    };
   }, [projects.data]);
 
   const review = async (row: AdminDonation, to: "confirmed" | "rejected", reason?: string) => {
@@ -85,7 +92,7 @@ const InitiativeDonations = () => {
             <TableCell className="capitalize">{d.payment_method === "momo" ? "Mobile Money" : "Bank"}</TableCell>
             <TableCell className="font-mono text-xs">{d.reference}</TableCell>
             <TableCell className="max-w-[14rem] truncate text-sm">
-              {titleOf(d.project_id)}
+              {targetOf(d)}
               {d.designated_by_donor && d.project_id && (
                 <span className="block text-xs text-muted-foreground">chosen by the donor</span>
               )}

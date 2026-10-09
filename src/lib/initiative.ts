@@ -209,3 +209,27 @@ export function isValidClassification(areaKey: string, subKey: string, itemKey?:
 
 export const rwf = (amount: number | string | null | undefined) =>
   `${Number(amount ?? 0).toLocaleString()} RWF`;
+
+/**
+ * Where a donor said their contribution should go.
+ *
+ * The donate form offers one control holding three kinds of answer: nowhere in
+ * particular, one of the five areas, or a named project. They travel in
+ * different columns, so the choice is decoded here rather than inline.
+ *
+ * Choosing a project sends no area. The database reads the area off the project
+ * itself, so a request cannot file a donation under a sector that project is
+ * not in.
+ */
+export const DONATION_GENERAL = "general";
+export const DONATION_AREA_PREFIX = "area:";
+
+export const donationTargetValue = (areaKey: string) => DONATION_AREA_PREFIX + areaKey;
+
+export function donationTarget(choice: string): { project_id: string | null; focus_area: string | null } {
+  if (choice === DONATION_GENERAL) return { project_id: null, focus_area: null };
+  if (choice.startsWith(DONATION_AREA_PREFIX)) {
+    return { project_id: null, focus_area: choice.slice(DONATION_AREA_PREFIX.length) };
+  }
+  return { project_id: choice, focus_area: null };
+}

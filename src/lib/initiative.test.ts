@@ -5,7 +5,8 @@
 // copy of a rule the database also enforces, and the two must agree.
 import { describe, expect, it } from "vitest";
 import {
-  APPLICANT_STATUS_LABEL, DONATIONS_OPEN, FOCUS_AREAS, MIN_DONATION_RWF, PUBLISHABLE_STATUSES,
+  APPLICANT_STATUS_LABEL, DONATIONS_OPEN, DONATION_GENERAL, FOCUS_AREAS, MIN_DONATION_RWF,
+  PUBLISHABLE_STATUSES, donationTarget, donationTargetValue,
   SUGGESTED_DONATIONS_RWF, STATUS_TRANSITIONS, classificationLabel, donationAmountProblem,
   donationProblem, donationReferenceProblem, isValidClassification, rwf, type ProjectStatus,
 } from "./initiative";
@@ -164,5 +165,40 @@ describe("money", () => {
     expect(donationProblem(999, "ab")).toMatch(/smallest contribution/);
     expect(donationProblem(5000, "ab")).toMatch(/transaction reference/);
     expect(donationProblem(5000, "TX12345")).toBeNull();
+  });
+});
+
+// A donation can name a project, or one of the five areas, or nothing in
+// particular. They are one control in the form but different columns in the
+// database, and getting the split wrong would file money under the wrong cause.
+describe("where a donor said their contribution should go", () => {
+  it("sends nothing in particular for the general choice", () => {
+    expect(donationTarget(DONATION_GENERAL)).toEqual({ project_id: null, focus_area: null });
+  });
+
+  it("sends an area, and no project, when an area is chosen", () => {
+    for (const area of FOCUS_AREAS) {
+      expect(donationTarget(donationTargetValue(area.key)))
+        .toEqual({ project_id: null, focus_area: area.key });
+    }
+  });
+
+  it("sends a project, and no area, when a project is chosen", () => {
+    const id = "6f1d0b7a-1111-4c2a-9a3e-2b0f5c7d8e90";
+    expect(donationTarget(id)).toEqual({ project_id: id, focus_area: null });
+  });
+
+  it("never sends both, whatever is chosen", () => {
+    const choices = [DONATION_GENERAL, ...FOCUS_AREAS.map((a) => donationTargetValue(a.key)), "some-project-id"];
+    for (const c of choices) {
+      const t = donationTarget(c);
+      expect(t.project_id === null || t.focus_area === null).toBe(true);
+    }
+  });
+
+  it("covers all five areas, matching what the database accepts", () => {
+    expect(FOCUS_AREAS.map((a) => a.key).sort()).toEqual(
+      ["agriculture", "arts", "entrepreneurship", "research", "unemployment_reduction"],
+    );
   });
 });

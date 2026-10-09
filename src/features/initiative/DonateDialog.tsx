@@ -19,8 +19,9 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { errorText } from "@/features/services/api";
 import {
-  DONATION_STATUS_LABEL, MIN_DONATION_RWF, PAYMENT_METHODS, SUGGESTED_DONATIONS_RWF,
-  donationAmountProblem, donationProblem, rwf, type PaymentMethod,
+  DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF, PAYMENT_METHODS,
+  SUGGESTED_DONATIONS_RWF, donationAmountProblem, donationProblem, donationTarget,
+  donationTargetValue, rwf, type PaymentMethod,
 } from "@/lib/initiative";
 import {
   INITIATIVE, submitDonation, useMyDonations, useSupportableProjects,
@@ -34,7 +35,7 @@ import {
 // statement before it counts. That is why the second step asks for a reference
 // rather than card details: there is no card to take.
 
-const GENERAL = "general";
+const GENERAL = DONATION_GENERAL;
 
 /** Where a contribution goes, and how much of it. */
 function ChooseStep({
@@ -90,6 +91,12 @@ function ChooseStep({
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value={GENERAL}>Wherever it is needed most</SelectItem>
+            {/* The five areas. Most people know the cause they care about long
+                before they have an opinion about a particular project, and there
+                is not always a project open in every area. */}
+            {FOCUS_AREAS.map((a) => (
+              <SelectItem key={a.key} value={donationTargetValue(a.key)}>{a.label}</SelectItem>
+            ))}
             {(open.data ?? []).map((p) => (
               <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
             ))}
@@ -292,7 +299,8 @@ export default function DonateDialog({
         amount: chosen,
         payment_method: method,
         reference: reference.trim(),
-        project_id: project === GENERAL ? null : project,
+        // One control, three kinds of answer; donationTarget splits it.
+        ...donationTarget(project),
         donor_name: anonymous ? null : (name.trim() || null),
         donor_email: user.email ?? null,
         anonymous,
