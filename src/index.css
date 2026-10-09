@@ -489,6 +489,18 @@
 .motion-lite .partners-track > ul + ul { display: none; }
 .motion-lite .partners-row { flex-wrap: wrap; justify-content: center; padding-right: 0; }
 
+/* "Advertise here" (components/AdvertiseStrip) drifts the same way the partner
+   logos do: the row is listed twice so the loop never jumps, it stops on hover
+   and on keyboard focus so nothing moves while it is being read, and
+   motion-lite stands it still. */
+.advertise-track { animation: advertise-scroll 32s linear infinite; }
+.advertise-strip:hover .advertise-track,
+.advertise-strip:focus-visible .advertise-track { animation-play-state: paused; }
+@keyframes advertise-scroll { to { transform: translateX(-50%); } }
+.motion-lite .advertise-track { animation: none; width: auto; flex-wrap: wrap; justify-content: center; }
+.motion-lite .advertise-track > ul + ul { display: none; }
+.motion-lite .advertise-row { flex-wrap: wrap; justify-content: center; padding-right: 0; }
+
 /* The live intake band (components/IntakeTicker): the announcements are listed
    twice so the loop never jumps, and the pass takes as long as the text needs
    (set per band in the component). It stops on hover, on keyboard focus and on

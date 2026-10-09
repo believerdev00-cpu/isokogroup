@@ -28,6 +28,7 @@ import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
 import MyOverview from "@/components/admin/MyOverview";
 import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
 import InitiativeAdmin from "@/components/admin/InitiativeAdmin";
+import AdvertRequests from "@/components/admin/AdvertRequests";
 import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
 import { openSecureFile } from "@/features/services/api";
 import type { BillableTable } from "@/features/finance/api";
@@ -508,6 +509,7 @@ const Admin = () => {
               <TabsTrigger value="payouts">Payouts</TabsTrigger>
               <TabsTrigger value="software">Software</TabsTrigger>
               <TabsTrigger value="initiative">Global Initiative</TabsTrigger>
+              <TabsTrigger value="adverts">Advertising</TabsTrigger>
               <TabsTrigger value="audit">Audit log</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
@@ -518,6 +520,7 @@ const Admin = () => {
             <TabsContent value="training"><TrainingCenterAdmin /></TabsContent>
             <TabsContent value="services"><ServiceStaffAdmin /></TabsContent>
             <TabsContent value="initiative"><InitiativeAdmin /></TabsContent>
+            <TabsContent value="adverts"><AdvertRequests /></TabsContent>
             <TabsContent value="audit"><AuditLogAdmin /></TabsContent>
             <TabsContent value="deliveries"><DeliveriesAnalytics /></TabsContent>
             <TabsContent value="drivers">

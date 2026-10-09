@@ -6,6 +6,7 @@ import CompanyStory from "@/components/CompanyStory";
 import ServicesSection from "@/components/ServicesSection";
 import CTASection from "@/components/CTASection";
 import PartnersStrip from "@/components/PartnersStrip";
+import AdvertiseStrip from "@/components/AdvertiseStrip";
 import Footer from "@/components/Footer";
 
 const Index = () => (
@@ -19,6 +20,8 @@ const Index = () => (
     <CompanyStory />
     <ServicesSection />
     <PartnersStrip />
+    {/* Directly under the partners, drifting the same way */}
+    <AdvertiseStrip />
     <CTASection />
     <Footer />
   </div>
