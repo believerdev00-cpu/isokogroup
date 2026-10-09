@@ -36,7 +36,7 @@ const HeroDonateOverlay = () => {
         <Button
           type="button"
           onClick={() => setOpen(true)}
-          className="pointer-events-auto absolute right-3 top-3 h-10 gap-1.5 rounded-full px-4 text-xs font-bold uppercase tracking-wide shadow-lg md:hidden"
+          className="pointer-events-auto absolute right-3 top-3 h-10 gap-1.5 rounded-full px-4 text-xs font-semibold shadow-lg md:hidden"
         >
           <HeartHandshake className="h-4 w-4" />
           Donate $1
@@ -57,7 +57,7 @@ const HeroDonateOverlay = () => {
           <Button
             type="button"
             onClick={() => setOpen(true)}
-            className="mt-4 h-auto w-full whitespace-normal py-3 text-sm font-bold uppercase leading-snug tracking-wide shadow-lg"
+            className="mt-4 h-auto w-full whitespace-normal py-3 text-sm font-semibold leading-snug shadow-lg"
           >
             <HeartHandshake className="h-5 w-5" />
             Donate with ISOKO Groups Company
