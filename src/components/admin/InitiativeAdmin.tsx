@@ -145,8 +145,9 @@ const InitiativeAdmin = () => {
         <div>
           <h2 className="text-xl font-semibold">Global Initiative</h2>
           <p className="text-sm text-muted-foreground">
-            $1 — One Project. Amounts are in RWF; funds raised are counted from confirmed donations only,
-            and donations are not open yet.
+            $1 — One Project. Amounts are in RWF, and funds raised are counted from confirmed
+            donations only. Donations are open, so contributions can arrive at any time and each
+            one has to be checked against the real statement before it counts.
           </p>
         </div>
         <Button className="gap-2" onClick={() => { setDraft({ ...emptyDraft }); setCreating(true); }}>
