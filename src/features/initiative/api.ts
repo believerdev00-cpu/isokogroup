@@ -28,10 +28,7 @@ export type PublicProject = {
   subcategory: string;
   item: string | null;
   location: string;
-  amount_required: number;
   status: ProjectStatus;
-  /** Summed from confirmed donations; PostgREST sends a bigint as text. */
-  amount_raised: number | string;
   completion_summary: string | null;
   completed_at: string | null;
   created_at: string;
@@ -43,7 +40,9 @@ export type PublicProject = {
  * straight from the table, so claiming the field would describe a value neither
  * query can return.
  */
-export type OwnProject = Omit<PublicProject, "amount_raised"> & {
+export type OwnProject = PublicProject & {
+  /** What the applicant asked for. Never shown to the public. */
+  amount_required: number;
   published: boolean;
   rejection_reason: string | null;
   updated_at: string;
@@ -95,8 +94,8 @@ export function useImpact() {
     staleTime: STALE,
     queryFn: async () => {
       const rows = (unwrap(
-        await db.from("initiative_public_projects").select("status, amount_raised, focus_area"),
-      ) ?? []) as Pick<PublicProject, "status" | "amount_raised" | "focus_area">[];
+        await db.from("initiative_public_projects").select("status, focus_area"),
+      ) ?? []) as Pick<PublicProject, "status" | "focus_area">[];
       const byArea: Record<string, number> = {};
       for (const r of rows) byArea[r.focus_area] = (byArea[r.focus_area] ?? 0) + 1;
       return {
@@ -104,7 +103,7 @@ export function useImpact() {
         completed: rows.filter((r) => r.status === "completed").length,
         funded: rows.filter((r) => ["funded", "in_progress", "completed"].includes(r.status)).length,
         seeking: rows.filter((r) => r.status === "seeking_support").length,
-        raised: rows.reduce((n, r) => n + Number(r.amount_raised ?? 0), 0),
+
         byArea,
       };
     },

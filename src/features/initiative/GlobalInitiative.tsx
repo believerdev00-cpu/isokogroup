@@ -71,10 +71,11 @@ const ProjectCard = ({ p }: { p: PublicProject }) => {
         <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
           {p.completion_summary || p.description}
         </p>
-        <p className="pt-2 text-sm">
-          <span className="font-semibold text-primary">{rwf(p.amount_raised)}</span>
-          <span className="text-muted-foreground"> raised of {rwf(p.amount_required)} · {p.location}</span>
-        </p>
+        {/* No figures here, by design: neither what has been collected nor what
+            is wanted. A target invites someone to measure their gift against it,
+            and a project shown as fully funded tells people to stop giving.
+            Contributions are not capped. */}
+        <p className="pt-2 text-sm text-muted-foreground">{p.location}</p>
       </div>
     </div>
   );
@@ -95,7 +96,7 @@ export default function GlobalInitiative() {
   const impact = useImpact();
   // Only a reading that actually arrived can say the initiative has nothing to
   // show yet. A failed query says nothing at all, and is handled on its own.
-  const nothingYet = !!impact.data && impact.data.published === 0 && impact.data.raised === 0;
+  const nothingYet = !!impact.data && impact.data.published === 0;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -257,7 +258,7 @@ export default function GlobalInitiative() {
                   { label: "Projects published", value: impact.data?.published ?? 0 },
                   { label: "Projects funded", value: impact.data?.funded ?? 0 },
                   { label: "Projects completed", value: impact.data?.completed ?? 0 },
-                  { label: "Confirmed contributions", value: rwf(impact.data?.raised ?? 0) },
+                  { label: "Areas supported", value: Object.keys(impact.data?.byArea ?? {}).length },
                 ].map((s) => (
                   <div key={s.label} className="rounded-xl border border-border bg-card p-6 text-center">
                     <p className="font-display text-3xl font-bold text-primary">{s.value}</p>

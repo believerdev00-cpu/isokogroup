@@ -32,8 +32,6 @@ const project = {
   subcategory: "technical_upskilling",
   item: "coding",
   location: "Kigali",
-  amount_required: 500000,
-  amount_raised: 125000,
   status: "seeking_support",
   completion_summary: null,
   completed_at: null,
@@ -75,27 +73,37 @@ describe("the public page when a section fails to load", () => {
   });
 
   it("offers a way to try again", () => {
-    mount(failed, ok([]), ok({ published: 0, raised: 0, funded: 0, completed: 0, seeking: 0, byArea: {} }));
+    mount(failed, ok([]), ok({ published: 0, funded: 0, completed: 0, seeking: 0, byArea: {} }));
     expect(screen.getAllByRole("button", { name: "Try again" }).length).toBeGreaterThan(0);
   });
 });
 
 describe("the public page when a section loads", () => {
   it("keeps the honest empty states when there really is nothing yet", () => {
-    mount(ok([]), ok([]), ok({ published: 0, raised: 0, funded: 0, completed: 0, seeking: 0, byArea: {} }));
+    mount(ok([]), ok([]), ok({ published: 0, funded: 0, completed: 0, seeking: 0, byArea: {} }));
     expect(screen.getByText(NO_SEEKING)).toBeTruthy();
     expect(screen.getByText(NO_COMPLETED)).toBeTruthy();
     expect(screen.getByText(IMPACT_PENDING)).toBeTruthy();
     expect(screen.queryByText(FAILED_TEXT)).toBeNull();
   });
 
-  it("shows a real project and its real figures", () => {
-    mount(ok([project]), ok([]), ok({ published: 1, raised: 125000, funded: 0, completed: 0, seeking: 1, byArea: {} }));
+  it("shows a real project, and no money figures at all", () => {
+    mount(ok([project]), ok([]), ok({ published: 1, funded: 0, completed: 0, seeking: 1, byArea: {} }));
     expect(screen.getByText("Coding bootcamp")).toBeTruthy();
-    // the card's own figure, and the impact tile that counts the same money
-    expect(screen.getAllByText(/125,000 RWF/).length).toBeGreaterThan(0);
     expect(screen.getByText("Projects published")).toBeTruthy();
     expect(screen.queryByText(NO_SEEKING)).toBeNull();
+
+    // Nothing about a project's money reaches a visitor: not what it has
+    // collected, and not what it wants. A target would read as a ceiling on
+    // giving, and a project shown as fully funded would tell people to stop.
+    // The 1,000 RWF minimum is a different thing -- a floor, not a limit --
+    // and stays.
+    const card = screen.getByText("Coding bootcamp").closest("div");
+    expect(card).not.toBeNull();
+    expect(card.textContent ?? "").not.toMatch(/RWF/);
+    const page = document.body.textContent ?? "";
+    expect(page).not.toMatch(/raised/i);
+    expect(page).not.toMatch(/Confirmed contributions/i);
   });
 
   it("says it is loading rather than empty while a section is still arriving", () => {
@@ -108,7 +116,7 @@ describe("the public page when a section loads", () => {
 });
 
 describe("the homepage promise is kept on the page itself", () => {
-  const empty = () => ok({ published: 0, raised: 0, funded: 0, completed: 0, seeking: 0, byArea: {} });
+  const empty = () => ok({ published: 0, funded: 0, completed: 0, seeking: 0, byArea: {} });
 
   it("invites a contribution, with the minimum stated", () => {
     mount(ok([]), ok([]), empty());
