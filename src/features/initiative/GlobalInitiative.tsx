@@ -279,8 +279,8 @@ export default function GlobalInitiative() {
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
                 Contributions are made in Rwandan Francs to ISOKO GROUP&apos;s own Mobile Money and bank
-                accounts. You pay us directly, tell us the transaction reference, and our team matches it
-                against the real statement before it counts towards a project.
+                accounts. You pay us directly and send the transaction reference, and we match it against
+                our records before it counts towards a project.
               </p>
             </div>
 

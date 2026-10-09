@@ -117,7 +117,7 @@ function ChooseStep({
           <div className="space-y-1">
             <Label htmlFor="donate-anon" className="font-normal">Give without being named publicly</Label>
             <p className="text-xs text-muted-foreground">
-              Our team still sees who gave, because we have to match your payment to a real transaction.
+              Your name will not appear publicly. Our team still sees it, so your payment can be matched.
             </p>
           </div>
         </div>
@@ -158,8 +158,8 @@ function PayStep({
     <div className="space-y-5">
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
         <p className="text-sm">
-          <span className="font-semibold">Step 1.</span> Send {rwf(amount)} to ISOKO GROUP using either
-          account below. The site does not take the payment itself.
+          <span className="font-semibold">Step 1.</span> Pay {rwf(amount)} directly to ISOKO GROUP
+          using the Mobile Money code or bank account below.
         </p>
       </div>
 
@@ -167,8 +167,8 @@ function PayStep({
 
       <div className="space-y-4 rounded-lg border border-border p-4">
         <p className="text-sm">
-          <span className="font-semibold">Step 2.</span> Tell us the transaction reference your bank or
-          Mobile Money confirmation gave you, so our team can match your payment.
+          <span className="font-semibold">Step 2.</span> Enter the transaction reference from your
+          confirmation message, so we can match your payment to your contribution.
         </p>
 
         <div className="space-y-2">
@@ -195,7 +195,7 @@ function PayStep({
           />
           {problem && <p className="text-xs text-destructive">{problem}</p>}
           <p className="text-xs text-muted-foreground">
-            Nothing is counted until our team has checked this against the real statement.
+            Your contribution counts once we have matched it against our Mobile Money and bank records.
           </p>
         </div>
       </div>
@@ -335,9 +335,8 @@ export default function DonateDialog({
                 <div className="space-y-1">
                   <p className="font-semibold">Sign in to give</p>
                   <p className="text-sm text-muted-foreground">
-                    Contributions are matched to a real payment by hand, so we record them against an
-                    account. That is also where you come back to see whether yours has been confirmed.
-                    You can still choose not to be named publicly.
+                    Each contribution is recorded against an account, so you can follow yours from here
+                    and see when it has been confirmed. You can still choose not to be named publicly.
                   </p>
                 </div>
                 <Link to="/login" onClick={() => onOpenChange(false)}>
@@ -372,9 +371,9 @@ export default function DonateDialog({
                 <div className="space-y-1">
                   <p className="font-display text-lg font-bold">Thank you — we have your reference</p>
                   <p className="mx-auto max-w-sm text-sm text-muted-foreground">
-                    Your contribution of {rwf(chosen)} is recorded as waiting to be confirmed. Our team
-                    checks it against the actual payment before it counts towards a project, and you can
-                    see the outcome here or on the Global Initiative page.
+                    Thank you. Your contribution of {rwf(chosen)} is recorded and waiting to be confirmed.
+                    We match it against our Mobile Money and bank records before it counts towards a
+                    project, and you can follow it here or on the Global Initiative page.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
