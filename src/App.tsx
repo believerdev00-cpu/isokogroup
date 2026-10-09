@@ -44,6 +44,7 @@ const StaffRoutes = lazy(() => import("./features/staff/StaffRoutes"));
 const EntRoutes = lazy(() => import("./features/entertainment/EntRoutes"));
 // The Global Initiative: "$1 One Project"
 const GlobalInitiative = lazy(() => import("./features/initiative/GlobalInitiative"));
+const Contact = lazy(() => import("./pages/Contact"));
 const InitiativeApply = lazy(() => import("./features/initiative/InitiativeApply"));
 // The ISOKO Information Hub: research, statistics and reports, with the information engine
 const ResearchRoutes = lazy(() => import("./features/research/ResearchRoutes"));
@@ -113,6 +114,7 @@ const App = () => (
                   <Route path="/training-center/*" element={<Suspense fallback={<PageSkeleton />}><TrainingApp /></Suspense>} />
                   <Route path="/software/academy" element={<Navigate to="/training-center" replace />} />
                   <Route path="/global-initiative" element={page(<GlobalInitiative />)} />
+                  <Route path="/contact" element={page(<Contact />)} />
                   <Route path="/global-initiative/apply" element={page(<InitiativeApply />)} />
                   <Route path="/services" element={page(<Services />)} />
                   <Route path="/travel" element={page(<TravelHome />)} />
