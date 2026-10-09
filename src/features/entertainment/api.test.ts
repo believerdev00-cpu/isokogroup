@@ -35,7 +35,7 @@ vi.mock("tus-js-client", () => ({
   },
 }));
 
-import { MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RESUMABLE_FROM_MB, playbackWindowSeconds, uploadMediaFile } from "./api";
+import { MATROSKA, MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RESUMABLE_FROM_MB, mediaTypeOf, playbackWindowSeconds, uploadMediaFile } from "./api";
 import { BUCKET_LIMIT_MB, PLATFORM_UPLOAD_MB } from "@/lib/uploadLimits";
 
 /** A File of a given size without putting the bytes in memory. */
@@ -104,7 +104,8 @@ describe("how large a film may be", () => {
 
   it("still only takes the file types the player can read", async () => {
     expect(MEDIA_TYPES).toContain("video/mp4");
-    await expect(uploadMediaFile("films", sized(10, "application/zip"))).rejects.toThrow(/MP4 or WebM/);
+    await expect(uploadMediaFile("films", sized(10, "application/zip")))
+      .rejects.toThrow(/MP4, WebM or MKV/);
     expect(tusUploads).toHaveLength(0);
   });
 
@@ -151,5 +152,49 @@ describe("how long a film's link stays usable", () => {
 
   it("gives at least half an hour, so a very short clip is not cut off", () => {
     expect(playbackWindowSeconds(1)).toBeGreaterThanOrEqual(30 * 60);
+  });
+});
+
+// Matroska is the awkward one: Windows has no MIME mapping for .mkv, so the
+// browser hands over a File with an empty type. The old check compared that
+// empty string against the list and refused it, and the upload would have been
+// labelled with nothing, which Storage rejects on its own.
+describe("choosing a Matroska file", () => {
+  const named = (name: string, type: string) => ({ name, type });
+
+  it("accepts .mkv when the browser knows the type", () => {
+    expect(mediaTypeOf(named("film.mkv", "video/x-matroska"))).toBe("video/x-matroska");
+  });
+
+  it("accepts .mkv when the browser says nothing at all", () => {
+    for (const blank of ["", "application/octet-stream", "binary/octet-stream"]) {
+      expect(mediaTypeOf(named("film.mkv", blank))).toBe("video/x-matroska");
+      expect(mediaTypeOf(named("FILM.MKV", blank))).toBe("video/x-matroska");
+    }
+  });
+
+  it("still accepts everything it accepted before", () => {
+    expect(mediaTypeOf(named("a.mp4", "video/mp4"))).toBe("video/mp4");
+    expect(mediaTypeOf(named("a.webm", "video/webm"))).toBe("video/webm");
+    expect(mediaTypeOf(named("a.mp3", "audio/mpeg"))).toBe("audio/mpeg");
+    expect(mediaTypeOf(named("a.wav", "audio/wav"))).toBe("audio/wav");
+    expect(mediaTypeOf(named("a.m4a", "audio/mp4"))).toBe("audio/mp4");
+  });
+
+  it("reads the name only when the browser gave nothing, never to override it", () => {
+    // a type we do not take is refused even if the name looks acceptable
+    expect(mediaTypeOf(named("film.mkv", "application/zip"))).toBe("");
+    expect(mediaTypeOf(named("film.mp4", "text/html"))).toBe("");
+  });
+
+  it("refuses an unknown extension when the browser gave nothing", () => {
+    for (const name of ["film.exe", "film.avi", "film", "film.mov"]) {
+      expect(mediaTypeOf(named(name, ""))).toBe("");
+    }
+  });
+
+  it("lists Matroska among the types the player will be offered", () => {
+    expect(MEDIA_TYPES).toContain("video/x-matroska");
+    expect(MATROSKA).toBe("video/x-matroska");
   });
 });

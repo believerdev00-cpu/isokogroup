@@ -245,7 +245,47 @@ export async function uploadDisplayImage(folder: string, file: File) {
  */
 export const MAX_UPLOAD_MB = uploadLimitMb("entertainment");
 
-export const MEDIA_TYPES = ["video/mp4", "video/webm", "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav"];
+export const MEDIA_TYPES = [
+  "video/mp4", "video/webm", "video/x-matroska",
+  "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav",
+];
+
+/**
+ * The type to use when the browser does not supply one.
+ *
+ * Windows has no MIME mapping for .mkv, so a File picked there arrives with an
+ * empty type -- and some browsers call it application/octet-stream. Either way
+ * the old check rejected it, and the upload would have been labelled with
+ * nothing, which Storage refuses on its own.
+ *
+ * This fills in a label the browser failed to give. It is not a security
+ * check and is not treated as one: what may be uploaded is still decided by
+ * the storage policies and by the bucket allowed_mime_types, both of which run
+ * on the server and neither of which trusts the file name.
+ */
+const TYPE_BY_EXTENSION: Record<string, string> = {
+  mkv: "video/x-matroska",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mp3: "audio/mpeg",
+  m4a: "audio/mp4",
+  aac: "audio/aac",
+  wav: "audio/wav",
+};
+
+/** What a browser calls a file when it has no idea. */
+const UNKNOWN_TYPES = ["", "application/octet-stream", "binary/octet-stream"];
+
+/** The media type of a chosen file, or "" when it is not one we take. */
+export function mediaTypeOf(file: { name: string; type: string }): string {
+  if (MEDIA_TYPES.includes(file.type)) return file.type;
+  if (!UNKNOWN_TYPES.includes(file.type)) return "";
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return TYPE_BY_EXTENSION[ext] ?? "";
+}
+
+/** Browsers do not agree about Matroska, so playback is offered, not assumed. */
+export const MATROSKA = "video/x-matroska";
 
 /**
  * Anything larger than this is sent in pieces instead of in one request. A film
@@ -262,7 +302,7 @@ const CHUNK_BYTES = 6 * 1024 * 1024;
  * A piece that fails is retried on its own, so a film survives a connection
  * that comes and goes, and the browser can tell the staff how far it has got.
  */
-async function uploadInPieces(path: string, file: File, onProgress?: (percent: number) => void) {
+async function uploadInPieces(path: string, file: File, contentType: string, onProgress?: (percent: number) => void) {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Please sign in again before uploading.");
@@ -274,7 +314,7 @@ async function uploadInPieces(path: string, file: File, onProgress?: (percent: n
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
       chunkSize: CHUNK_BYTES,
-      metadata: { bucketName: PRIVATE_BUCKET, objectName: path, contentType: file.type, cacheControl: "3600" },
+      metadata: { bucketName: PRIVATE_BUCKET, objectName: path, contentType, cacheControl: "3600" },
       onError: (error) => reject(new Error(`The upload stopped: ${error.message}. Try again; it carries on from where it stopped.`)),
       onProgress: (sent, total) => onProgress?.(total ? Math.round((sent / total) * 100) : 0),
       onSuccess: () => resolve(),
@@ -292,15 +332,17 @@ async function uploadInPieces(path: string, file: File, onProgress?: (percent: n
  * path. Small files go in one request; larger ones in pieces that can resume.
  */
 export async function uploadMediaFile(folder: string, file: File, onProgress?: (percent: number) => void) {
-  if (!MEDIA_TYPES.includes(file.type)) throw new Error("Please choose an MP4 or WebM video, or an MP3, M4A, AAC or WAV audio file.");
+  // The browser's own type when it gave one, otherwise read from the name.
+  const contentType = mediaTypeOf(file);
+  if (!contentType) throw new Error("Please choose an MP4, WebM or MKV video, or an MP3, M4A, AAC or WAV audio file.");
   if (file.size > MAX_UPLOAD_MB * 1024 * 1024) throw new Error(`Files must be under ${MAX_UPLOAD_MB} MB. Put longer videos on YouTube and paste the link.`);
   const path = `${folder}/${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}`;
   if (file.size > RESUMABLE_FROM_MB * 1024 * 1024) {
-    await uploadInPieces(path, file, onProgress);
+    await uploadInPieces(path, file, contentType, onProgress);
     return path;
   }
   onProgress?.(0);
-  unwrap(await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, { contentType: file.type, upsert: false }));
+  unwrap(await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, { contentType, upsert: false }));
   onProgress?.(100);
   return path;
 }

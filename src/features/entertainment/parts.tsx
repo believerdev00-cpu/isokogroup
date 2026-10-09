@@ -28,6 +28,10 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
   const location = useLocation();
   const [url, setUrl] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "denied">("idle");
+  // Browsers disagree about Matroska: Chrome and Edge play some .mkv files,
+  // Firefox and Safari generally play none. Rather than leave a black rectangle,
+  // the player says so when the file will not run.
+  const [cannotPlay, setCannotPlay] = useState(false);
 
   if (!item.watch_source || !item.watch_ref) {
     return <p className="rounded-xl bg-white/5 p-4 text-sm text-neutral-400">Not available to play yet.</p>;
@@ -38,6 +42,7 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
     setState("loading");
     const link = await playbackUrl(item);
     if (!link) return setState("denied");
+    setCannotPlay(false);
     setUrl(link);
     setState("idle");
   };
@@ -58,18 +63,28 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
     return audio ? (
       <audio src={url} controls controlsList="nodownload" autoPlay className="w-full" />
     ) : (
+      cannotPlay ? (
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-black p-6 text-center">
+        <p className="font-semibold text-white">This browser cannot play this video.</p>
+        <p className="max-w-md text-sm text-neutral-400">
+          It is stored in a format your browser does not support -- Matroska (.mkv) is the usual
+          reason. Google Chrome or Microsoft Edge will often play it. Nothing is wrong with the file.
+        </p>
+      </div>
+    ) : (
       <video
         src={url}
         controls
         controlsList="nodownload"
         disablePictureInPicture
         onContextMenu={(e) => e.preventDefault()}
+        onError={() => setCannotPlay(true)}
         autoPlay
         playsInline
         poster={poster ?? undefined}
         className="aspect-video w-full rounded-xl bg-black"
       />
-    );
+    ));
   }
 
   if (needsAccess && (!user || !isActive || state === "denied")) {

@@ -645,7 +645,7 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
                 <span className="text-xs">Keep this page open. A piece that fails is sent again by itself.</span>
               </>
             ) : (
-              <span className="text-xs">MP4, WebM, MP3, M4A, AAC or WAV · up to {MAX_UPLOAD_MB} MB</span>
+              <span className="text-xs">MP4, WebM, MKV, MP3, M4A, AAC or WAV · up to {MAX_UPLOAD_MB} MB</span>
             )}
           </button>
         )
@@ -670,7 +670,7 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
           <Switch checked={!!draft.is_free} onCheckedChange={(v) => set({ is_free: v })} />
         </label>
       )}
-      <input ref={input} type="file" accept="video/mp4,video/webm,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/x-wav" hidden onChange={(e) => upload(e.target.files?.[0])} />
+      <input ref={input} type="file" accept="video/mp4,video/webm,video/x-matroska,.mkv,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/x-wav" hidden onChange={(e) => upload(e.target.files?.[0])} />
     </div>
   );
 }
