@@ -23,16 +23,14 @@ describe("how large an upload may be", () => {
   });
 
   it("caps a generous bucket at the project's limit", () => {
-    // the entertainment bucket permits 1 GB; the project is what bites
+    // the entertainment bucket permits 500 MB; the project is what bites
     expect(BUCKET_LIMIT_MB.entertainment).toBeGreaterThan(PLATFORM_UPLOAD_MB);
     expect(uploadLimitMb("entertainment")).toBe(PLATFORM_UPLOAD_MB);
   });
 
-  it("has the film bucket ready for 1 GB, whatever the project allows today", () => {
-    // Raising the project limit to 1024 is the only remaining step; the bucket
-    // must not be the thing that blocks it. Mirrors migration
-    // 20261009210000_entertainment_one_gigabyte.sql.
-    expect(BUCKET_LIMIT_MB.entertainment).toBe(1024);
+  it("keeps the film bucket at 500 MB", () => {
+    // Mirrors migration 20261009220000_entertainment_back_to_500mb.sql.
+    expect(BUCKET_LIMIT_MB.entertainment).toBe(500);
   });
 
   it("accepts any size up to the limit, with no minimum", () => {
