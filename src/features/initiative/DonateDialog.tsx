@@ -157,9 +157,11 @@ function PayStep({
   return (
     <div className="space-y-5">
       <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-        <p className="text-sm">
-          <span className="font-semibold">Step 1.</span> Pay {rwf(amount)} directly to ISOKO GROUP
-          using the Mobile Money code or bank account below.
+        <p className="text-sm font-semibold">Step 1: Choose your contribution method</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          Your contribution helps ISOKO Groups support real community projects. You can contribute
+          using Mobile Money or bank transfer. After making your payment, enter your transaction
+          reference below so our team can verify it.
         </p>
       </div>
 
