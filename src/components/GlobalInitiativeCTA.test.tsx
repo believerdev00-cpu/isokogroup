@@ -27,7 +27,7 @@ describe("the Global Initiative band under the hero", () => {
   it("makes Donate a real donate action, not a link somewhere else", () => {
     donationsOpen.value = true;
     mount();
-    const donate = screen.getByRole("button", { name: /Donate with ISOKO/i });
+    const donate = screen.getByRole("button", { name: /^Donate$/ });
     // A link would carry an href and take the visitor off to another page.
     expect(donate.closest("a")).toBeNull();
     expect(donate.getAttribute("href")).toBeNull();
@@ -36,7 +36,7 @@ describe("the Global Initiative band under the hero", () => {
   it("labels the route to the explainer as its own separate action", () => {
     donationsOpen.value = true;
     mount();
-    const link = screen.getByRole("link", { name: /See how it works/i });
+    const link = screen.getByRole("link", { name: /How it works/i });
     expect(link.getAttribute("href")).toBe("/global-initiative");
     // and it does not borrow the donate wording
     expect(link.textContent).not.toMatch(/Donate/i);
@@ -45,7 +45,7 @@ describe("the Global Initiative band under the hero", () => {
   it("keeps the explainer reachable once donations are closed", () => {
     donationsOpen.value = false;
     mount();
-    expect(screen.queryByRole("button", { name: /Donate with ISOKO/i })).toBeNull();
-    expect(screen.getByRole("link", { name: /See how it works/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Donate$/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /How it works/i })).toBeTruthy();
   });
 });

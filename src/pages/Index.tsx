@@ -2,7 +2,6 @@ import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import IntakeTicker from "@/components/IntakeTicker";
 import GlobalInitiativeCTA from "@/components/GlobalInitiativeCTA";
-import HeroDonateOverlay from "@/components/HeroDonateOverlay";
 import CompanyStory from "@/components/CompanyStory";
 import ServicesSection from "@/components/ServicesSection";
 import CTASection from "@/components/CTASection";
@@ -14,16 +13,8 @@ const Index = () => (
     <Header />
     {/* Straight under the navigation: new Training Center intakes announce themselves */}
     <IntakeTicker />
-    {/*
-      The hero is not changed to make room for the Initiative. It stays exactly
-      as it is and the invitation is laid over it from here, which is what this
-      wrapper is for: it gives the overlay something to position against.
-    */}
-    <div className="relative">
-      <HeroSection />
-      <HeroDonateOverlay />
-    </div>
-    {/* Under the hero: the same way in, for anyone who scrolled past it */}
+    <HeroSection />
+    {/* One invitation into the Initiative, in its own band so the hero is left alone */}
     <GlobalInitiativeCTA />
     <CompanyStory />
     <ServicesSection />

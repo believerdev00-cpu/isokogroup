@@ -1,71 +1,57 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { HeartHandshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DONATIONS_OPEN } from "@/lib/initiative";
 import DonateDialog from "@/features/initiative/DonateDialog";
 
 /**
- * The homepage's way into the Global Initiative. It sits in its own band under
- * the hero rather than inside it, so the hero's moving story is left exactly as
- * it is; nothing here carries animation of its own.
+ * The one way into the Global Initiative from the homepage.
  *
- * The hero already shows this invitation to anyone looking at the top of the
- * page, so this band is for people who scrolled past it. That is also why the
- * two must not disagree: a button saying Donate opens the same dialog here as
- * it does over the hero, and the route to the explainer page is a separate,
- * separately labelled action. On a phone the hero shrinks to a small chip with
- * no explanation, so this band is where the fuller invitation actually lands.
+ * There used to be two, this and a card laid over the hero, and they competed
+ * with each other and with the hero's own buttons. One invitation, in its own
+ * band directly under the hero, leaves the hero untouched and says the thing
+ * once.
  *
- * Being the second ask on one screen, it stays an invitation rather than a
- * demand: no shouting capitals, and it says plainly what happens to the money
- * and that a contributor can check on it afterwards.
+ * It stays deliberately spare: an eyebrow, a name, a single sentence, one
+ * button, and a quiet link for anyone who wants to read more before giving.
+ * How a contribution is actually paid and confirmed belongs in the dialog, at
+ * the point where someone is deciding, not on the homepage.
  */
 const GlobalInitiativeCTA = () => {
   const [open, setOpen] = useState(false);
 
   return (
     <section className="border-b border-border bg-card">
-      <div className="container flex flex-col items-start gap-6 py-10 md:flex-row md:items-center md:justify-between md:py-12">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+      <div className="container flex flex-col gap-6 py-10 md:flex-row md:items-center md:justify-between md:gap-10 md:py-12">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             ISOKO Groups Global Initiative
           </p>
-          <h2 className="font-display text-2xl font-bold md:text-3xl">
+          <h2 className="mt-2 font-display text-2xl font-bold tracking-tight md:text-3xl">
             <span className="text-primary">$1</span> — One Project
           </h2>
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Contributions start at 1,000 RWF and are pooled to fund one approved project at a
-            time across entrepreneurship, arts, agriculture, unemployment reduction and research.
-          </p>
-          <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-            You pay ISOKO GROUP directly and send us the transaction reference. We match it to
-            our records by hand, and you can check on yours at any time.
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Contributions start at 1,000 RWF and are pooled to fund one approved project at a time.
           </p>
         </div>
 
-        <div className="flex w-full flex-col gap-3 sm:flex-row md:w-auto md:shrink-0 md:items-center">
-          {/* The same words as the hero, so they must do the same thing. */}
+        <div className="flex items-center gap-5 md:shrink-0">
           {DONATIONS_OPEN && (
             <Button
               type="button"
               size="lg"
               onClick={() => setOpen(true)}
-              className="h-auto w-full whitespace-normal px-7 py-4 text-base font-semibold leading-snug shadow-lg sm:w-auto"
+              className="h-12 px-8 text-base font-semibold"
             >
-              <HeartHandshake className="h-5 w-5" />
-              Donate with ISOKO Groups Company
+              Donate
             </Button>
           )}
-          {/* Going to the explainer is a different action, so it is labelled as one. */}
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="h-auto w-full whitespace-normal px-6 py-4 text-sm font-semibold leading-snug sm:w-auto"
+          <Link
+            to="/global-initiative"
+            className="text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
-            <Link to="/global-initiative">See how it works</Link>
-          </Button>
+            How it works
+          </Link>
         </div>
       </div>
 
