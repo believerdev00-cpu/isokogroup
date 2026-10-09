@@ -63,7 +63,7 @@ export function FilmsPage() {
           {lead.trailer_youtube && <YouTubeButton video={lead.trailer_youtube} label="Trailer" />}
         </Hero>
       ) : (
-        <SectionIntro eyebrow="Isoko Films" title="Trending films" text="Rwandan and African stories, from shorts to features." />
+        <SectionIntro eyebrow="Isoko Films" title="Trending films" text="Stories from around the world, from shorts to features." />
       )}
 
       <div className="relative z-10 space-y-10 pt-4">

@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   AGREEMENT_CHECKBOX_LABEL,
   COUNTRIES,
+  DEFAULT_COUNTRY,
   MAX_PRODUCT_IMAGES,
   PAYMENT_PROVIDERS,
   SELLER_AGREEMENT_VERSION,
@@ -53,7 +54,7 @@ const BecomeSeller = () => {
   const [business, setBusiness] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [countryChoice, setCountryChoice] = useState(COUNTRIES[0]);
+  const [countryChoice, setCountryChoice] = useState<string>(DEFAULT_COUNTRY);
   const [otherCountry, setOtherCountry] = useState("");
   const [tin, setTin] = useState("");
   const [address, setAddress] = useState("");
@@ -149,7 +150,7 @@ const BecomeSeller = () => {
       return;
     }
     if (!/^[A-Za-z0-9 /-]{5,30}$/.test(trimmedTin)) {
-      toast({ title: "Invalid TIN", description: "Enter your Tax Identification Number (Rwanda TINs have 9 digits).", variant: "destructive" });
+      toast({ title: "Invalid TIN", description: "Enter your business Tax Identification Number, as issued in your country.", variant: "destructive" });
       return;
     }
     if (trimmedAddress.length < 3) {

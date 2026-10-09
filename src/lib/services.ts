@@ -13,7 +13,7 @@ export const CATEGORIES: { key: CategoryKey; title: string; blurb: string; icon:
   { key: "shopping", title: "Shopping", blurb: "Buy from local sellers, or sell your own.", icon: ShoppingBag, tint: "from-orange-500 to-red-600" },
   { key: "business", title: "Business Services", blurb: "Advice, data and software for organizations.", icon: Briefcase, tint: "from-slate-700 to-blue-900" },
   { key: "learning", title: "Learning & Media", blurb: "Courses, books and entertainment.", icon: GraduationCap, tint: "from-indigo-600 to-violet-800" },
-  { key: "travel", title: "Travel", blurb: "Your trip in Rwanda, taken care of.", icon: Plane, tint: "from-emerald-700 to-teal-800" },
+  { key: "travel", title: "Travel", blurb: "Your trip, anywhere in the world, taken care of.", icon: Plane, tint: "from-emerald-700 to-teal-800" },
 ];
 
 export type Service = {
@@ -32,7 +32,7 @@ export type Service = {
 export const SERVICES: Service[] = [
   {
     id: "logistics", name: "Logistics & Delivery", category: "logistics", icon: Truck, path: "/logistics",
-    description: "Pickup and delivery across Kigali and beyond, with live tracking.",
+    description: "Pickup and delivery worldwide, with live tracking.",
     action: { label: "Request a delivery", path: "/logistics/delivery" },
     keywords: "delivery courier transport send package parcel driver moto truck shipping",
   },
@@ -110,9 +110,9 @@ export const SERVICES: Service[] = [
   },
   {
     id: "research", name: "Information Hub", category: "learning", icon: BookOpenCheck, path: "/research",
-    description: "Research, statistics, reports and findings about Rwanda and beyond.",
+    description: "Research, statistics, reports and findings from around the world.",
     action: { label: "Search the hub", path: "/research" },
-    keywords: "research statistics data reports studies findings rwanda information knowledge",
+    keywords: "research statistics data reports studies findings worldwide global rwanda information knowledge",
   },
   {
     id: "entertainment", name: "Entertainment", category: "learning", icon: Film, path: "/entertainment",
@@ -124,7 +124,7 @@ export const SERVICES: Service[] = [
     id: "travel", name: "Travel Agency", category: "travel", icon: Plane, path: "/travel",
     description: "Airport pickup, hotel, transport and tours, one team for your whole trip.",
     action: { label: "Plan my trip", path: "/travel/plan" },
-    keywords: "trip tourism hotel tour safari gorilla airport pickup visit rwanda kigali",
+    keywords: "trip tourism hotel tour safari gorilla airport pickup visit worldwide international rwanda kigali",
   },
 ];
 

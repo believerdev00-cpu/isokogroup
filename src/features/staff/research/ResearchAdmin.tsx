@@ -495,7 +495,7 @@ export function ResearchItems() {
   );
 }
 
-export const ResearchCountries = () => <Shell title="Countries" subtitle="Rwanda first. Other countries are kept inactive until there is information about them."><EntityManager config={COUNTRIES} /></Shell>;
+export const ResearchCountries = () => <Shell title="Countries" subtitle="A country stays inactive until there is information about it."><EntityManager config={COUNTRIES} /></Shell>;
 export const ResearchRegions = () => <Shell title="Regions" subtitle="Provinces, districts, sectors, cities… each country keeps its own structure."><EntityManager config={REGIONS} /></Shell>;
 export const ResearchTopics = () => <Shell title="Topics" subtitle="The subjects information is filed under, with subtopics."><EntityManager config={TOPICS} /></Shell>;
 

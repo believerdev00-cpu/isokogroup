@@ -15,7 +15,7 @@ const KIND_ICON: Record<Kind, typeof BarChart3> = {
 
 const SUGGESTIONS = [
   "What is the population of Rwanda?",
-  "What are the main economic activities in Rwanda?",
+  "Which countries export the most coffee?",
   "What does research say about youth employment?",
   "What are the latest tourism statistics?",
 ];
@@ -23,8 +23,8 @@ const SUGGESTIONS = [
 /** The Information Hub front page: search first, then ways in. */
 export default function HubHome() {
   useSeo({
-    title: `${HUB_NAME}: research, statistics and reports about Rwanda`,
-    description: "Find information, explore research, statistics, reports, studies, findings and datasets about Rwanda and beyond, in one place.",
+    title: `${HUB_NAME}: research, statistics and reports from around the world`,
+    description: "Find information, explore research, statistics, reports, studies, findings and datasets from around the world, in one place.",
     canonical: HUB,
     jsonLd: {
       "@context": "https://schema.org",
@@ -57,7 +57,7 @@ export default function HubHome() {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-red-300">{HUB_NAME}</p>
           <h1 className="mx-auto mt-4 max-w-3xl font-display text-4xl font-bold leading-tight sm:text-6xl">{TAGLINE}</h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-white/75 sm:text-lg">
-            Research, statistics, reports, studies and findings about Rwanda, and more countries to come. Ask a question in your own words.
+            Research, statistics, reports, studies and findings from around the world. Ask a question in your own words.
           </p>
           <div className="mx-auto mt-8 max-w-3xl">
             <HubSearchBox size="lg" className="[&_input]:border-white/15 [&_input]:bg-white [&_input]:text-neutral-900" />

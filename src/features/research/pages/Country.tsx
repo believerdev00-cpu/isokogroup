@@ -33,7 +33,7 @@ export default function HubCountry() {
         ) : countries.isError ? (
           <ErrorState onRetry={() => countries.refetch()} />
         ) : !country ? (
-          <EmptyState title="We don't cover this country yet" text="Rwanda is where the hub starts; more countries are on the way.">
+          <EmptyState title="We don't cover this country yet" text="More countries are being added to the hub all the time.">
             <Chip to={HUB}>Information Hub</Chip>
           </EmptyState>
         ) : (

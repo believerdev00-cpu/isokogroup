@@ -11,6 +11,13 @@ import { db, errorText, rpc, todayIso } from "@/features/services/api";
 import { ChoiceCard, Field, FlowColumn, FormError, PageLoading, PrimaryButton, RequestReceived, ServiceLayout, StepHeader, THEME } from "@/features/services/ui";
 import { NEEDS, PLAN_EVERYTHING, type Need, type Package } from "./data";
 
+// A few common asks, as suggestions only -- the field takes anywhere.
+const POPULAR_DESTINATIONS = [
+  "Rwanda", "Kenya", "Tanzania", "Uganda", "South Africa", "Dubai", "Qatar",
+  "Turkey", "United Kingdom", "United States", "Canada", "France", "China",
+  "India", "Thailand", "Singapore",
+];
+
 const TOTAL = 4;
 
 // PLAN MY TRIP: where, when, what help, how to reach you. Nothing else; the
@@ -26,6 +33,7 @@ export default function PlanTrip() {
   });
 
   const [step, setStep] = useState(1);
+  const [destination, setDestination] = useState("");
   const [from, setFrom] = useState("");
   const [arrival, setArrival] = useState("");
   const [departure, setDeparture] = useState("");
@@ -57,7 +65,7 @@ export default function PlanTrip() {
       const pkgNote = pkg.data ? `Package: ${pkg.data.name} (${pkg.data.days} days)` : "";
       const r = await rpc<{ reference: string; token: string }>("travel_request_trip", {
         p: {
-          destination: "Rwanda",
+          destination: destination.trim() || "Rwanda",
           travelling_from: from,
           arrival_date: arrival,
           departure_date: departure,
@@ -123,7 +131,29 @@ export default function PlanTrip() {
           <>
             <StepHeader service="travel" step={1} total={TOTAL} title="Where are you going?" />
             <div className="space-y-5">
-              <ChoiceCard service="travel" multi={false} selected onClick={() => {}} icon={MapPin} title="Rwanda 🇷🇼" description="Kigali, Akagera, Musanze, Volcanoes, Nyungwe, Lake Kivu" />
+              <Field label="Which country or city are you going to?" htmlFor="destination" optional>
+                <Input
+                  id="destination"
+                  placeholder="e.g. Rwanda, Dubai, Nairobi, Paris, Bangkok"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  maxLength={60}
+                  list="travel-destinations"
+                  autoComplete="off"
+                />
+                <datalist id="travel-destinations">
+                  {POPULAR_DESTINATIONS.map((d) => <option key={d} value={d} />)}
+                </datalist>
+              </Field>
+              <ChoiceCard
+                service="travel"
+                multi={false}
+                selected={destination.trim().toLowerCase() === "rwanda"}
+                onClick={() => setDestination("Rwanda")}
+                icon={MapPin}
+                title="Rwanda 🇷🇼"
+                description="Kigali, Akagera, Musanze, Volcanoes, Nyungwe, Lake Kivu"
+              />
               <Field label="Where are you travelling from?" htmlFor="from" optional>
                 <Input id="from" placeholder="e.g. Dubai" value={from} onChange={(e) => setFrom(e.target.value)} maxLength={80} autoComplete="country-name" />
               </Field>

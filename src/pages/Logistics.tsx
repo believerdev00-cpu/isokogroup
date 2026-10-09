@@ -82,7 +82,7 @@ const Logistics = () => {
             <p className="text-lg text-muted-foreground max-w-2xl">
               From sourcing to delivery — we handle everything. Transport,
               packaging, procurement, and full supply-chain management across
-              Rwanda and beyond.
+              Worldwide.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
               <Button asChild size="lg" className="hover-glow">

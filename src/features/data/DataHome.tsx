@@ -95,7 +95,7 @@ export default function DataHome() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">ISOKO Information Hub</p>
             <p className="mt-1 font-display text-2xl font-bold">Looking for information instead?</p>
-            <p className="mt-1 text-muted-foreground">Research, statistics, reports and findings about Rwanda, free to explore. Ask a question in your own words.</p>
+            <p className="mt-1 text-muted-foreground">Research, statistics, reports and findings from around the world, free to explore. Ask a question in your own words.</p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
             Explore the hub <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

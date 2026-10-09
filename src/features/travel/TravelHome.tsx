@@ -53,17 +53,17 @@ export default function TravelHome() {
             Your journey. <span className="text-amber-300">Our responsibility.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-emerald-50/85 sm:text-xl">
-            From airport pickup to your return flight, Isoko takes care of your trip in Rwanda.
+            From airport pickup to your return flight, Isoko takes care of your trip, anywhere in the world.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <PlanButton light />
             <Button asChild size="lg" variant="ghost" className="h-14 text-base text-white hover:bg-white/10 hover:text-white">
-              <a href="#rwanda">EXPLORE RWANDA</a>
+              <a href="#destinations">EXPLORE DESTINATIONS</a>
             </Button>
           </div>
           <ul className="mt-12 flex flex-wrap gap-x-8 gap-y-3 text-sm text-emerald-50/80">
             <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-amber-300" /> One team for your whole trip</li>
-            <li className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> Local specialists in Rwanda</li>
+            <li className="flex items-center gap-2"><Users className="h-4 w-4 text-amber-300" /> Local specialists on the ground</li>
             <li className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-amber-300" /> No account needed to ask</li>
           </ul>
           </div>
@@ -111,10 +111,10 @@ export default function TravelHome() {
       </section>
 
       {/* Destinations */}
-      <section id="rwanda" className="scroll-mt-20 bg-muted/40 py-16 sm:py-20">
+      <section id="destinations" className="scroll-mt-20 bg-muted/40 py-16 sm:py-20">
         <div className="container max-w-5xl">
-          <h2 className="font-display text-3xl font-bold sm:text-4xl">Explore Rwanda</h2>
-          <p className="mt-3 max-w-2xl text-muted-foreground sm:text-lg">Six places our guests love. Mention any of them when you plan your trip.</p>
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">Featured destinations in Rwanda</h2>
+          <p className="mt-3 max-w-2xl text-muted-foreground sm:text-lg">Six places our guests love, at home in Rwanda. Travelling elsewhere? Tell us where and our specialist plans it.</p>
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {DESTINATIONS.map((d, i) => (
               <article
@@ -190,7 +190,7 @@ export default function TravelHome() {
       <section className={cn("relative overflow-hidden text-white", THEME.travel.hero)}>
         <Hills className="absolute inset-x-0 bottom-0 h-32 w-full" />
         <div className="container relative max-w-3xl py-16 text-center sm:py-20">
-          <h2 className="font-display text-3xl font-bold sm:text-4xl">Coming to Rwanda?</h2>
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">Planning a trip?</h2>
           <p className="mt-3 text-emerald-50/85 sm:text-lg">Four short questions. Our specialist does the planning.</p>
           <PlanButton light className="mt-8" />
         </div>

@@ -222,7 +222,7 @@ export default function InitiativeApply() {
                       <div className="space-y-2">
                         <Label htmlFor="location">Location</Label>
                         <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)}
-                          placeholder="e.g. Kimironko, Kigali" required maxLength={160} />
+                          placeholder="e.g. city and country" required maxLength={160} />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="amount">Amount needed (RWF)</Label>

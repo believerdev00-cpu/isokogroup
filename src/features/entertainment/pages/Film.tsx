@@ -96,7 +96,7 @@ export function FilmHub() {
           {lead.trailer_youtube && <YouTubeButton video={lead.trailer_youtube} label={t("ent.trailer")} />}
         </Hero>
       ) : (
-        <SectionIntro eyebrow="Isoko Entertainment" title={t("ent.film")} text="Rwandan and African stories: movies and TV series, by genre." />
+        <SectionIntro eyebrow="Isoko Entertainment" title={t("ent.film")} text="Stories from around the world: movies and TV series, by genre." />
       )}
 
       <div className="relative z-10 space-y-12 pt-6">
@@ -237,7 +237,7 @@ export function SeriesPage() {
           {lead.trailer_youtube && <YouTubeButton video={lead.trailer_youtube} label={t("ent.trailer")} />}
         </Hero>
       ) : (
-        <SectionIntro eyebrow={t("ent.film")} title={t("ent.tvSeries")} text="Series from Rwanda and Africa, season by season." />
+        <SectionIntro eyebrow={t("ent.film")} title={t("ent.tvSeries")} text="Series from around the world, season by season." />
       )}
       <div className="relative z-10 space-y-6 px-4 pt-4 md:px-10">
         {list.length === 0 ? (

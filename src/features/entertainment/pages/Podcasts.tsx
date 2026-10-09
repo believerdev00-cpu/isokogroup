@@ -48,7 +48,7 @@ export function PodcastsPage() {
           </Link>
         </Hero>
       ) : (
-        <SectionIntro eyebrow="Isoko Podcasts" title="Podcasts" text="Conversations on business, culture, tech and life in Rwanda and beyond. Audio and video." />
+        <SectionIntro eyebrow="Isoko Podcasts" title="Podcasts" text="Conversations on business, culture, tech and life around the world. Audio and video." />
       )}
 
       <div className="relative z-10 space-y-10 pt-4">

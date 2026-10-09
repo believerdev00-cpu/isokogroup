@@ -16,7 +16,7 @@ const SECTION = {
   photo: { eyebrow: "Isoko Photo Studio", title: "Photo Studio", icon: Camera, people: "photographer", peopleTitle: "Featured photographers",
     text: "Portraits, weddings, events, commercial and studio photography by Isoko and the photographers we work with.", book: "book a photo shoot with Isoko Photo Studio", bookLabel: "Book Photo Studio" },
   art: { eyebrow: "Isoko Art & Design", title: "Art & Design", icon: Brush, people: "artist", peopleTitle: "Artists and designers",
-    text: "Graphic design, digital art, illustration, branding, UI/UX and posters from Rwandan creatives.", book: "commission design work from Isoko Art & Design", bookLabel: "Commission work" },
+    text: "Graphic design, digital art, illustration, branding, UI/UX and posters from creatives around the world.", book: "commission design work from Isoko Art & Design", bookLabel: "Commission work" },
   fashion: { eyebrow: "Isoko Fashion Agency", title: "Fashion", icon: Shirt, people: "model", peopleTitle: "Featured models",
     text: "Models, designers, collections, campaigns, shows and editorial photography.", book: "book a model or a fashion shoot with Isoko Fashion Agency", bookLabel: "Request a model" },
 } as const;

@@ -74,7 +74,7 @@ export default function EntHome() {
           video="/videos/entertainment-podcast.mp4"
           image="/videos/entertainment-podcast.jpg"
           eyebrow="Isoko Studioz"
-          title="Stories made in Rwanda, for the world"
+          title="Stories from around the world"
           text="Films, podcasts, photography, art, fashion, live streams and event coverage from Isoko Entertainment."
         >
           <Link to={`${ENT}/film`} className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 font-semibold text-black hover:bg-white/85">

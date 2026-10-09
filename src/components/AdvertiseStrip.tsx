@@ -17,7 +17,7 @@ import AdvertiseDialog from "@/features/adverts/AdvertiseDialog";
  */
 const INVITATIONS = [
   "Advertise here",
-  "Reach buyers across Rwanda",
+  "Reach buyers worldwide",
   "Put your brand on ISOKO GROUP",
   "Homepage · Marketplace · Banners",
   "Advertise here",

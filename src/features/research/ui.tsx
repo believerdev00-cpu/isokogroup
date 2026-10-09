@@ -31,7 +31,7 @@ export function HubSearchBox({ initial = "", size = "md", autoFocus, placeholder
           autoFocus={autoFocus}
           maxLength={300}
           enterKeyHint="search"
-          placeholder={placeholder ?? "Search Rwanda, research, statistics, reports, studies and more…"}
+          placeholder={placeholder ?? "Search research, statistics, reports, studies and more…"}
           className={cn(
             "w-full rounded-full border border-border bg-background text-foreground shadow-sm outline-none ring-primary/30 placeholder:text-muted-foreground focus:ring-4",
             big ? "h-14 pl-12 pr-4 text-base sm:text-lg" : "h-11 pl-10 pr-4 text-sm",

@@ -19,7 +19,7 @@ export default function About() {
   return (
     <>
       <PublicHero eyebrow="About us" title="Skills that open doors">
-        Isoko Training Center helps young people and professionals in Rwanda gain practical, job-ready skills in technology, design and business.
+        Isoko Training Center helps young people and professionals around the world gain practical, job-ready skills in technology, design and business.
       </PublicHero>
       <div className="container space-y-14 py-12">
         <section className="max-w-3xl">

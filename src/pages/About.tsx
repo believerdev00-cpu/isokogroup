@@ -74,7 +74,7 @@ const pillars = [
 
 const values = [
   { icon: ShieldCheck, title: "Trust", desc: "Verified sellers, transparent pricing and confirmed deliveries — every time." },
-  { icon: HeartHandshake, title: "Community", desc: "We build for Rwandans first: local sellers, local couriers, local stories." },
+  { icon: HeartHandshake, title: "Community", desc: "We build for the people who use us: independent sellers, local couriers, real stories." },
   { icon: Sparkles, title: "Quality", desc: "From packaging to film production, we obsess over the details our clients see." },
   { icon: Users, title: "Opportunity", desc: "We open doors for small businesses, students and creators to grow online." },
 ];
@@ -95,9 +95,9 @@ const About = () => {
           <div className="container grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-5">
               <span className="text-sm font-semibold uppercase tracking-wider text-primary">Our Story</span>
-              <h2 className="text-3xl md:text-4xl font-display font-bold">Built in Kigali, for Africa and the world.</h2>
+              <h2 className="text-3xl md:text-4xl font-display font-bold">Built in Kigali, serving the world.</h2>
               <p className="text-muted-foreground leading-relaxed">
-                ISOKO GROUPS started with a simple observation: Rwandan customers were juggling separate apps
+                ISOKO GROUPS started with a simple observation: customers were juggling separate apps
                 and contacts to send a parcel, order a product, find a book or get a website built. We set out
                 to bring those services together — operated by one team, from one office in Kimironko, with one
                 set of standards.
@@ -149,8 +149,8 @@ const About = () => {
               </div>
               <h3 className="text-2xl font-display font-bold">Our Mission</h3>
               <p className="text-muted-foreground leading-relaxed">
-                To make essential digital and logistics services accessible, affordable and reliable for every
-                Rwandan — by combining commerce, knowledge and technology under one trusted group.
+                To make essential digital and logistics services accessible, affordable and reliable for everyone,
+                anywhere in the world — by combining commerce, knowledge and technology under one trusted group.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card p-8 space-y-4">
@@ -159,7 +159,7 @@ const About = () => {
               </div>
               <h3 className="text-2xl font-display font-bold">Our Vision</h3>
               <p className="text-muted-foreground leading-relaxed">
-                To become the most trusted multi-service platform in East Africa, where buyers, sellers,
+                To become the most trusted multi-service platform in the world, where buyers, sellers,
                 students and creators find everything they need to grow — in one place.
               </p>
             </div>

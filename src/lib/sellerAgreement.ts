@@ -131,4 +131,5 @@ export const AGREEMENT_CHECKBOX_LABEL = "I have read, understood, and agree to t
 // The payment providers sellers in Rwanda use most; "Other" lets them type one
 export const PAYMENT_PROVIDERS = ["MTN Mobile Money", "Airtel Money", "Bank of Kigali", "Equity Bank", "I&M Bank", "Other bank"];
 
-export const COUNTRIES = ["Rwanda", "Burundi", "DR Congo", "Kenya", "Tanzania", "Uganda", "Other"];
+// Every country, not just the neighbours: ISOKO GROUPS sells worldwide.
+export { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";

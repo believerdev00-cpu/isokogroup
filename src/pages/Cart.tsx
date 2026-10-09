@@ -180,7 +180,7 @@ const Cart = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Shipping address</label>
-                <Input placeholder="Street, City, Rwanda" value={shipping} onChange={(e) => setShipping(e.target.value)} />
+                <Input placeholder="Street, City, Country" value={shipping} onChange={(e) => setShipping(e.target.value)} />
               </div>
 
               <div className="space-y-2">
