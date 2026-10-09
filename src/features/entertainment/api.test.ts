@@ -35,7 +35,7 @@ vi.mock("tus-js-client", () => ({
   },
 }));
 
-import { MATROSKA, MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RESUMABLE_FROM_MB, mediaTypeOf, playbackWindowSeconds, uploadMediaFile } from "./api";
+import { MATROSKA, MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RECOMMENDED_FORMAT, RESUMABLE_FROM_MB, mediaTypeOf, playbackCaution, playbackWindowSeconds, uploadMediaFile } from "./api";
 import { BUCKET_LIMIT_MB, PLATFORM_UPLOAD_MB } from "@/lib/uploadLimits";
 
 /** A File of a given size without putting the bytes in memory. */
@@ -196,5 +196,50 @@ describe("choosing a Matroska file", () => {
   it("lists Matroska among the types the player will be offered", () => {
     expect(MEDIA_TYPES).toContain("video/x-matroska");
     expect(MATROSKA).toBe("video/x-matroska");
+  });
+});
+
+// Staff are steered towards the one format every device has always played,
+// without MKV being taken away from them. The wording has to stay inside what
+// was actually measured: Chrome and Edge were tested directly, Safari and iOS
+// were not reachable, so the caution says unconfirmed rather than unsupported.
+describe("advice about what will play", () => {
+  it("recommends MP4 with H.264 and AAC", () => {
+    expect(RECOMMENDED_FORMAT).toMatch(/MP4/);
+    expect(RECOMMENDED_FORMAT).toMatch(/H\.264/);
+    expect(RECOMMENDED_FORMAT).toMatch(/AAC/);
+  });
+
+  it("says nothing about the formats that play everywhere", () => {
+    for (const type of ["video/mp4", "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav"]) {
+      expect(playbackCaution(type)).toBeNull();
+    }
+  });
+
+  it("cautions about Matroska, and points at MP4 instead", () => {
+    const c = playbackCaution(MATROSKA);
+    expect(c).toMatch(/MKV/);
+    expect(c).toMatch(/Chrome and Edge/);
+    expect(c).toMatch(/iPhone/);
+    expect(c).toContain(RECOMMENDED_FORMAT);
+  });
+
+  it("cautions about WebM for the same reason", () => {
+    expect(playbackCaution("video/webm")).toMatch(/WebM/);
+  });
+
+  it("does not claim Apple support is absent, only unconfirmed", () => {
+    // what was measured was Chrome and Edge; Safari was never reachable
+    for (const type of [MATROSKA, "video/webm"]) {
+      const c = playbackCaution(type) ?? "";
+      expect(c).toMatch(/not confirmed/i);
+      expect(c).not.toMatch(/does not work|cannot play|unsupported/i);
+    }
+  });
+
+  it("reaches the caution through the resolved type, not the browser's", () => {
+    // Windows reports nothing for .mkv, so a caution keyed on file.type alone
+    // would never fire for the format that most needs one
+    expect(playbackCaution(mediaTypeOf({ name: "film.mkv", type: "" }))).toMatch(/MKV/);
   });
 });

@@ -288,6 +288,37 @@ export function mediaTypeOf(file: { name: string; type: string }): string {
 export const MATROSKA = "video/x-matroska";
 
 /**
+ * The format to upload when it matters that everyone can watch.
+ *
+ * Chrome and Edge answered "probably" to MP4 with H.264 and AAC, which is the
+ * strongest answer a browser gives, and it is the one format Apple devices have
+ * always played. Nothing else on the accepted list can be said that confidently
+ * about every device.
+ */
+export const RECOMMENDED_FORMAT = "MP4 (H.264 video, AAC audio)";
+
+/**
+ * What to warn the desk about after they pick a file, or null when the format
+ * raises nothing worth saying.
+ *
+ * The wording stays inside what was actually tested. Chrome and Edge were
+ * measured directly and do play Matroska carrying H.264 and AAC. Safari, iOS
+ * and Firefox were not reachable from the machine this was checked on, so the
+ * caution says support is unconfirmed rather than claiming it is absent.
+ */
+export function playbackCaution(contentType: string): string | null {
+  if (contentType === MATROSKA) {
+    return "MKV plays in Chrome and Edge. Support on Safari, iPhone and iPad is not confirmed. "
+      + "If your viewers use Apple devices, upload " + RECOMMENDED_FORMAT + " instead.";
+  }
+  if (contentType === "video/webm") {
+    return "WebM plays in Chrome and Edge. Support on Safari, iPhone and iPad is not confirmed. "
+      + "If your viewers use Apple devices, upload " + RECOMMENDED_FORMAT + " instead.";
+  }
+  return null;
+}
+
+/**
  * Anything larger than this is sent in pieces instead of in one request. A film
  * takes minutes to upload, and one dropped connection would otherwise throw the
  * whole thing away.

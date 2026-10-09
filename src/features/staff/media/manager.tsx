@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { db, errorText, unwrap } from "@/features/services/api";
-import { MAX_UPLOAD_MB, mediaUrl, uploadDisplayImage, uploadMediaFile, youtubeId, type Status } from "@/features/entertainment/api";
+import { MAX_UPLOAD_MB, RECOMMENDED_FORMAT, mediaTypeOf, mediaUrl, playbackCaution, uploadDisplayImage, uploadMediaFile, youtubeId, type Status } from "@/features/entertainment/api";
 import { EmptyState, Pill } from "../common";
 
 type Row = Record<string, unknown> & { id: string };
@@ -583,6 +583,9 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
   const [busy, setBusy] = useState(false);
   const [percent, setPercent] = useState(0);
   const [mode, setMode] = useState<"file" | "youtube">(source === "youtube" ? "youtube" : "file");
+  // A toast disappears before anyone has read it, and this is the kind of thing
+  // somebody needs to see while deciding whether to upload a different file.
+  const [caution, setCaution] = useState<string | null>(null);
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
@@ -593,6 +596,7 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
     }
     setBusy(true);
     setPercent(0);
+    setCaution(null);
     try {
       const minutes = await mediaMinutes(file);
       const path = await uploadMediaFile(folder, file, setPercent);
@@ -602,6 +606,8 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
         ...("format" in draft || folder === "episodes" ? { format: file.type.startsWith("audio") ? "audio" : "video" } : {}),
       });
       toast.success("Uploaded");
+      // mediaTypeOf, not file.type: Windows reports nothing for .mkv
+      setCaution(playbackCaution(mediaTypeOf(file)));
     } catch (e) {
       toast.error(errorText(e));
     } finally {
@@ -645,7 +651,9 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
                 <span className="text-xs">Keep this page open. A piece that fails is sent again by itself.</span>
               </>
             ) : (
-              <span className="text-xs">MP4, WebM, MKV, MP3, M4A, AAC or WAV · up to {MAX_UPLOAD_MB} MB</span>
+              <span className="text-xs">
+                {RECOMMENDED_FORMAT} plays everywhere · WebM, MKV, MP3, M4A, AAC and WAV also accepted · up to {MAX_UPLOAD_MB} MB
+              </span>
             )}
           </button>
         )
@@ -662,6 +670,12 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
             <span className="text-xs text-muted-foreground">Anyone can watch YouTube videos. Set the video to “Unlisted” on YouTube if it shouldn't show up there.</span>
           )}
         </div>
+      )}
+
+      {caution && (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+          {caution}
+        </p>
       )}
 
       {source === "storage" && (
