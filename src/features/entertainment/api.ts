@@ -5,6 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import * as tus from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadLimitMb } from "@/lib/uploadLimits";
 import { db, rpc, unwrap } from "@/features/services/api";
 
 export type Status = "draft" | "published" | "scheduled" | "archived";
@@ -210,15 +211,13 @@ export async function uploadDisplayImage(folder: string, file: File) {
 /**
  * The largest film or episode that can be uploaded, in megabytes.
  *
- * Three limits have to agree, and the smallest one wins:
- *   1. this number (what the browser refuses before it starts),
- *   2. the Supabase project's upload limit (Dashboard > Storage > Settings;
- *      supabase/config.toml sets it for the local stack), and
- *   3. the 'entertainment' bucket's file_size_limit, which is 500 MB.
- * Raising this number alone is not enough: the project's limit has to be at
- * least as large, or the upload is refused with "Payload too large".
+ * Not a number of its own any more. The bucket permits 500 MB but the project
+ * permits less, and the smaller wins, so this is derived rather than stated:
+ * saying 500 here while the project refuses anything over 50 told staff a
+ * figure that was not true and failed their upload minutes later.
+ * See src/lib/uploadLimits.ts -- there is one number to change.
  */
-export const MAX_UPLOAD_MB = 500;
+export const MAX_UPLOAD_MB = uploadLimitMb("entertainment");
 
 export const MEDIA_TYPES = ["video/mp4", "video/webm", "audio/mpeg", "audio/mp4", "audio/aac", "audio/wav", "audio/x-wav"];
 
