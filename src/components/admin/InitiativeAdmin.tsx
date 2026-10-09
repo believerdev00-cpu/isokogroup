@@ -18,6 +18,7 @@ import {
   createOwnProject, documentUrl, setPublished, setStatus, updateProject, useAdminProjects, type AdminProject,
 } from "@/features/initiative/api";
 import { AlertCircle, Check, Eye, EyeOff, FileText, Plus, X } from "lucide-react";
+import InitiativeDonations from "./InitiativeDonations";
 
 const emptyDraft = {
   title: "", description: "", focus_area: "", subcategory: "", item: "", location: "", amount_required: "",
@@ -274,6 +275,9 @@ const InitiativeAdmin = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Money that donors say they have sent, checked by hand against the statement */}
+      <InitiativeDonations />
 
       {/* A project ISOKO runs itself */}
       <Dialog open={creating} onOpenChange={setCreating}>

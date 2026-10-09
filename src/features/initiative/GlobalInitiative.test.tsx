@@ -4,6 +4,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/components/Header", () => ({ default: () => null }));
 vi.mock("@/components/Footer", () => ({ default: () => null }));
@@ -42,7 +43,14 @@ const project = {
 const mount = (seeking: unknown, completed: unknown, impact: unknown) => {
   usePublicProjects.mockImplementation((s: string) => (s === "completed" ? completed : seeking));
   useImpact.mockReturnValue(impact);
-  return render(<MemoryRouter><GlobalInitiative /></MemoryRouter>);
+  // The page carries the donate dialog, which asks for a query client even
+  // while it is closed.
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter><GlobalInitiative /></MemoryRouter>
+    </QueryClientProvider>,
+  );
 };
 
 const NO_SEEKING = "No projects are currently seeking support.";
@@ -100,11 +108,29 @@ describe("the public page when a section loads", () => {
 });
 
 describe("the homepage promise is kept on the page itself", () => {
-  it("says donations are not open and publishes no payment details", () => {
-    const { container } = mount(ok([]), ok([]), ok({ published: 0, raised: 0, funded: 0, completed: 0, seeking: 0, byArea: {} }));
-    expect(screen.getByText("Donations are not yet open")).toBeTruthy();
+  const empty = () => ok({ published: 0, raised: 0, funded: 0, completed: 0, seeking: 0, byArea: {} });
+
+  it("invites a contribution, with the minimum stated", () => {
+    mount(ok([]), ok([]), empty());
+    expect(screen.getByText("Contribute from 1,000 RWF")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /Donate with ISOKO Groups Company/i }).length).toBeGreaterThan(0);
+  });
+
+  /**
+   * The account numbers belong to site_settings, which an admin edits, and they
+   * are only shown once a donor is actually being asked to pay. An invented
+   * number must never reappear in the source: these three are the placeholders
+   * this feature was built against before the real accounts were known.
+   */
+  it("publishes no invented payment details", () => {
+    const { container } = mount(ok([]), ok([]), empty());
     for (const placeholder of ["*182*8*1*123456#", "00040-12345678-90", "BKIGRWRW"]) {
       expect(container.textContent).not.toContain(placeholder);
     }
+  });
+
+  it("never asks for card details", () => {
+    const { container } = mount(ok([]), ok([]), empty());
+    expect(container.textContent).toContain("No card details are ever asked for");
   });
 });

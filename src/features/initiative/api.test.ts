@@ -32,7 +32,10 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { storage: { from: () => ({ upload: vi.fn(), remove: vi.fn(), createSignedUrl: vi.fn() }) } },
 }));
 
-import { DOCUMENT_EXTENSIONS, DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, OWN_COLUMNS, submitApplication, useMyApplications } from "./api";
+import {
+  DOCUMENT_EXTENSIONS, DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, OWN_COLUMNS, OWN_DONATION_COLUMNS,
+  submitApplication, submitDonation, useMyApplications, useMyDonations,
+} from "./api";
 
 describe("supporting documents", () => {
   it("accepts only the four kinds the bucket accepts", () => {
@@ -59,6 +62,28 @@ describe("supporting documents", () => {
 
   it("agrees with the bucket's size limit", () => {
     expect(MAX_DOCUMENT_BYTES).toBe(5 * 1024 * 1024);
+  });
+});
+
+describe("what a donor reads back about their own contribution", () => {
+  const columns = OWN_DONATION_COLUMNS.split(",").map((c) => c.trim());
+
+  it("never asks for the reviewing admin or the donor account id", () => {
+    // reviewed_by is the admin who checked the statement, which is no part of
+    // telling a donor whether their payment was found.
+    for (const forbidden of ["reviewed_by", "user_id"]) {
+      expect(columns, forbidden).not.toContain(forbidden);
+    }
+  });
+
+  it("does ask for what the donor needs to see", () => {
+    for (const needed of ["amount", "status", "reference", "submitted_at", "review_note"]) {
+      expect(columns, needed).toContain(needed);
+    }
+  });
+
+  it("is a column list, not a wildcard", () => {
+    expect(OWN_DONATION_COLUMNS).not.toContain("*");
   });
 });
 
@@ -115,6 +140,27 @@ describe("the queries an applicant's own row goes through", () => {
       amount_required: 500000,
     });
     expect(selected).toEqual([OWN_COLUMNS]);
+    expect(selected).not.toContain("*");
+  });
+
+  it("useMyDonations asks for the named columns, never every column", async () => {
+    renderHook(() => useMyDonations("11111111-1111-1111-1111-111111111111"), { wrapper });
+    await waitFor(() => expect(selected.length).toBeGreaterThan(0));
+    expect(selected).toContain(OWN_DONATION_COLUMNS);
+    expect(selected).not.toContain("*");
+  });
+
+  it("submitDonation asks for the named columns, never every column", async () => {
+    await submitDonation({
+      amount: 5000,
+      payment_method: "momo",
+      reference: "TX12345",
+      project_id: null,
+      donor_name: "A Donor",
+      donor_email: "donor@example.com",
+      anonymous: false,
+    });
+    expect(selected).toEqual([OWN_DONATION_COLUMNS]);
     expect(selected).not.toContain("*");
   });
 

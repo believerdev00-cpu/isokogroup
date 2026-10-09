@@ -1,7 +1,13 @@
 // Reading and writing the Global Initiative. Everything goes through
 // row-level security: the public view shows only published projects and only
-// the columns a visitor may see, an applicant reads their own rows, and an
-// admin reads the rest. Nothing here handles money — donations are not open.
+// the columns a visitor may see, an applicant reads their own rows, a donor
+// reads their own donations, and an admin reads the rest.
+//
+// No money moves through this file. A donor pays ISOKO GROUP directly, using
+// the Mobile Money code or bank account the site already publishes, and then
+// submits the transaction reference. That is a claim, not a payment: it is
+// stored as 'pending' and an admin confirms it against the real statement
+// before it counts towards anything.
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { db, unwrap } from "@/features/services/api";
@@ -183,6 +189,85 @@ export async function documentUrl(path: string) {
   return data.signedUrl;
 }
 
+// ---------- donations ----------
+
+/**
+ * A donation as its donor may read it back. The account id of the admin who
+ * reviewed it is not part of telling a donor whether their payment was found,
+ * and neither is the donor id, which they already know.
+ */
+export const OWN_DONATION_COLUMNS =
+  "id, amount, payment_method, reference, project_id, designated_by_donor, status, " +
+  "donor_name, anonymous, submitted_at, reviewed_at, review_note";
+
+export type DonationStatus = "pending" | "confirmed" | "rejected";
+
+export type OwnDonation = {
+  id: string;
+  amount: number;
+  payment_method: "momo" | "bank";
+  reference: string;
+  project_id: string | null;
+  designated_by_donor: boolean;
+  status: DonationStatus;
+  donor_name: string | null;
+  anonymous: boolean;
+  submitted_at: string;
+  reviewed_at: string | null;
+  review_note: string | null;
+};
+
+export type AdminDonation = OwnDonation & {
+  user_id: string | null;
+  donor_email: string | null;
+  reviewed_by: string | null;
+};
+
+/** What the donor fills in. Everything else about the row is set by the database. */
+export type DonationInput = {
+  amount: number;
+  payment_method: "momo" | "bank";
+  reference: string;
+  /** null = wherever it is needed most. */
+  project_id: string | null;
+  donor_name: string | null;
+  donor_email: string | null;
+  anonymous: boolean;
+};
+
+/**
+ * Records that a donor says they have paid. The database stamps the account,
+ * forces the row to 'pending', refuses a project the public page does not
+ * offer, and will not take a fourth unconfirmed claim from one account, so this
+ * sends only what the donor typed.
+ */
+export async function submitDonation(input: DonationInput) {
+  return unwrap(
+    await db.from("initiative_donations").insert(input).select(OWN_DONATION_COLUMNS).single(),
+  ) as OwnDonation;
+}
+
+/** The signed-in donor's own donations, and where each one got to. */
+export function useMyDonations(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["initiative", "donations", "mine", userId],
+    enabled: !!userId,
+    queryFn: async () =>
+      unwrap(
+        await db
+          .from("initiative_donations")
+          .select(OWN_DONATION_COLUMNS)
+          .eq("user_id", userId)
+          .order("submitted_at", { ascending: false }),
+      ) as OwnDonation[],
+  });
+}
+
+/** Projects a donor may actually choose: published, and still being worked on. */
+export function useSupportableProjects() {
+  return usePublicProjects(["seeking_support", "funded", "in_progress"]);
+}
+
 // ---------- admin ----------
 
 export function useAdminProjects() {
@@ -226,4 +311,31 @@ export async function createOwnProject(input: ApplicationInput) {
   return unwrap(
     await db.from("initiative_projects").insert({ ...input, user_id: null }).select("*").single(),
   ) as AdminProject;
+}
+
+/** Every donation, for the review desk. */
+export function useAdminDonations() {
+  return useQuery({
+    queryKey: ["initiative", "donations", "admin"],
+    queryFn: async () =>
+      unwrap(
+        await db.from("initiative_donations").select("*").order("submitted_at", { ascending: false }),
+      ) as AdminDonation[],
+  });
+}
+
+/**
+ * Confirms or rejects a donation after checking the reference against the real
+ * statement. The database stamps who did it and when, and refuses a second
+ * review, so this sends only the decision and the note explaining it.
+ */
+export async function setDonationStatus(id: string, to: "confirmed" | "rejected", note?: string) {
+  return unwrap(
+    await db
+      .from("initiative_donations")
+      .update({ status: to, ...(note ? { review_note: note } : {}) })
+      .eq("id", id)
+      .select("*")
+      .single(),
+  ) as AdminDonation;
 }

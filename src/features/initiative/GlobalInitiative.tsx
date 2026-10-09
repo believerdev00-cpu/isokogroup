@@ -1,14 +1,16 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useSeo } from "@/lib/seo";
 import {
-  FOCUS_AREAS, MIN_DONATION_RWF, classificationLabel, rwf,
+  DONATIONS_OPEN, FOCUS_AREAS, MIN_DONATION_RWF, classificationLabel, rwf,
 } from "@/lib/initiative";
 import { INITIATIVE, INITIATIVE_NAME, TAGLINE, useImpact, usePublicProjects, type PublicProject } from "./api";
+import DonateDialog from "./DonateDialog";
 import {
-  AlertCircle, ArrowRight, Briefcase, FlaskConical, GraduationCap, HeartHandshake, Info, Lock, Mail, Palette, Phone, Sprout,
+  AlertCircle, ArrowRight, Briefcase, FlaskConical, GraduationCap, HeartHandshake, Info, Mail, Palette, Phone, Sprout,
 } from "lucide-react";
 
 const AREA_ICONS: Record<string, typeof Briefcase> = {
@@ -23,7 +25,7 @@ const STEPS = [
   {
     step: "01",
     title: "You contribute",
-    desc: `Contributions start at ${rwf(MIN_DONATION_RWF)} and are made through ISOKO GROUP's own payment channels. Contributions are not open yet.`,
+    desc: `Contributions start at ${rwf(MIN_DONATION_RWF)} and are made to ISOKO GROUP's own Mobile Money or bank account. You then send us the transaction reference.`,
   },
   {
     step: "02",
@@ -87,6 +89,7 @@ export default function GlobalInitiative() {
     canonical: INITIATIVE,
   });
 
+  const [donateOpen, setDonateOpen] = useState(false);
   const seeking = usePublicProjects("seeking_support");
   const completed = usePublicProjects("completed");
   const impact = useImpact();
@@ -266,29 +269,48 @@ export default function GlobalInitiative() {
           </div>
         </section>
 
-        {/* Contributing — closed */}
+        {/* Contributing */}
         <section id="donate" className="scroll-mt-20 border-y border-border bg-card py-16 md:py-20">
           <div className="container max-w-4xl">
             <div className="mb-10 space-y-3 text-center">
               <span className="text-sm font-semibold uppercase tracking-wider text-primary">Donate</span>
-              <h2 className="font-display text-3xl font-bold md:text-4xl">Donations are not yet open</h2>
+              <h2 className="font-display text-3xl font-bold md:text-4xl">
+                Contribute from {rwf(MIN_DONATION_RWF)}
+              </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
-                We are not collecting contributions through the website yet, and no payment details are
-                published here until ISOKO GROUP&apos;s accounts have been confirmed. Nobody is asked to
-                send money to an unverified number.
+                Contributions are made in Rwandan Francs to ISOKO GROUP&apos;s own Mobile Money and bank
+                accounts. You pay us directly, tell us the transaction reference, and our team matches it
+                against the real statement before it counts towards a project.
               </p>
             </div>
 
-            <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center">
-              <Lock className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-              <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground">
-                When contributions open, they will be made and recorded in Rwandan Francs, starting at{" "}
-                {rwf(MIN_DONATION_RWF)}, and every one will be checked by our team against the actual
-                payment before it counts towards a project. In the meantime you can{" "}
+            <div className="mx-auto max-w-xl space-y-4 rounded-xl border border-border bg-background p-6 text-center md:p-8">
+              {DONATIONS_OPEN ? (
+                <Button
+                  size="lg"
+                  className="h-auto w-full whitespace-normal py-4 text-base font-bold uppercase leading-snug tracking-wide"
+                  onClick={() => setDonateOpen(true)}
+                >
+                  <HeartHandshake className="h-5 w-5" />
+                  Donate with ISOKO Groups Company
+                </Button>
+              ) : (
+                <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                  Contributions are paused for the moment. Nothing is being collected, and nobody is
+                  being asked to send money.
+                </p>
+              )}
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                No card details are ever asked for, and nothing is taken from you on this website. A
+                contribution waits to be confirmed until a person has checked it against the statement,
+                so no figure on this page is one we have not verified.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Need support for your own project instead?{" "}
                 <Link to={`${INITIATIVE}/apply`} className="text-primary hover:underline">
-                  apply for project support
-                </Link>{" "}
-                or reach us below.
+                  Apply for project support
+                </Link>
+                .
               </p>
             </div>
           </div>
@@ -333,6 +355,8 @@ export default function GlobalInitiative() {
       </main>
 
       <Footer />
+
+      <DonateDialog open={donateOpen} onOpenChange={setDonateOpen} />
     </div>
   );
 }

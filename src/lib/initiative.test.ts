@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 import {
   APPLICANT_STATUS_LABEL, DONATIONS_OPEN, FOCUS_AREAS, MIN_DONATION_RWF, PUBLISHABLE_STATUSES,
-  STATUS_TRANSITIONS, classificationLabel, isValidClassification, rwf, type ProjectStatus,
+  SUGGESTED_DONATIONS_RWF, STATUS_TRANSITIONS, classificationLabel, donationAmountProblem,
+  donationProblem, donationReferenceProblem, isValidClassification, rwf, type ProjectStatus,
 } from "./initiative";
 
 const APPROVED: Record<string, Record<string, string[]>> = {
@@ -123,9 +124,45 @@ describe("project lifecycle", () => {
 
 describe("money", () => {
   it("is Rwandan francs, and the campaign name is never an exchange rate", () => {
-    expect(DONATIONS_OPEN).toBe(false);
     expect(MIN_DONATION_RWF).toBe(1000);
     expect(rwf(1000)).toBe("1,000 RWF");
     expect(rwf(null)).toBe("0 RWF");
+    // Every suggested amount is a round figure in francs at or above the
+    // minimum. None of them is derived from a rate against another currency.
+    expect(SUGGESTED_DONATIONS_RWF.every((v) => Number.isInteger(v) && v >= MIN_DONATION_RWF)).toBe(true);
+  });
+
+  it("is being collected", () => {
+    expect(DONATIONS_OPEN).toBe(true);
+  });
+
+  /**
+   * The database puts the same minimum and the same reference length on a
+   * donation. These are the website half of that pair, so a contribution the
+   * database would refuse is refused before anybody is asked to pay.
+   */
+  it("refuses the amounts the database refuses", () => {
+    expect(donationAmountProblem(999)).toMatch(/smallest contribution/);
+    expect(donationAmountProblem(0)).toMatch(/smallest contribution/);
+    expect(donationAmountProblem(-5000)).toMatch(/smallest contribution/);
+    expect(donationAmountProblem(1000.5)).toMatch(/whole Rwandan francs/);
+    expect(donationAmountProblem(Number.NaN)).toMatch(/whole Rwandan francs/);
+    expect(donationAmountProblem(1000)).toBeNull();
+    expect(donationAmountProblem(25000)).toBeNull();
+  });
+
+  it("refuses the references the database refuses", () => {
+    expect(donationReferenceProblem("abc")).toMatch(/transaction reference/);
+    expect(donationReferenceProblem("")).toMatch(/transaction reference/);
+    expect(donationReferenceProblem("    ")).toMatch(/transaction reference/);
+    expect(donationReferenceProblem("x".repeat(121))).toMatch(/too long/);
+    expect(donationReferenceProblem("TX12345")).toBeNull();
+    expect(donationReferenceProblem("  TX12345  ")).toBeNull();
+  });
+
+  it("reports the amount before the reference, so the first step is fixed first", () => {
+    expect(donationProblem(999, "ab")).toMatch(/smallest contribution/);
+    expect(donationProblem(5000, "ab")).toMatch(/transaction reference/);
+    expect(donationProblem(5000, "TX12345")).toBeNull();
   });
 });

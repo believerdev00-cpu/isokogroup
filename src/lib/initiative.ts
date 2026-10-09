@@ -134,15 +134,57 @@ export const APPLICANT_STATUS_LABEL: Record<string, string> = {
 };
 
 /**
- * The smallest contribution, in whole RWF, for when donations open. The campaign
- * is called "$1 One Project"; this is not an exchange rate and the site never
- * says the two amounts are equal.
+ * The smallest contribution, in whole RWF. The campaign is called "$1 One
+ * Project"; this is a round figure in that spirit, not an exchange rate, and the
+ * site never says the two amounts are equal. The database holds the same
+ * minimum as a CHECK constraint, so the two must be changed together.
  */
 export const MIN_DONATION_RWF = 1000;
-export const SUGGESTED_DONATIONS_RWF = [1000, 5000, 10000];
+export const SUGGESTED_DONATIONS_RWF = [1000, 5000, 10000, 25000];
 
-/** Donations are not being collected yet. The page says so, and no code takes money. */
-export const DONATIONS_OPEN = false;
+/**
+ * Donations are collected. Nothing on the site moves money: a donor pays ISOKO
+ * GROUP with the Mobile Money code or bank account the site already publishes,
+ * then submits the transaction reference, and an admin confirms it against the
+ * statement before it counts towards anything.
+ */
+export const DONATIONS_OPEN = true;
+
+/** How a donor paid. The database accepts these two and nothing else. */
+export const PAYMENT_METHODS = [
+  { key: "momo", label: "Mobile Money (MTN MoMo)" },
+  { key: "bank", label: "Bank transfer" },
+] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number]["key"];
+
+/** Wording for a donor reading their own contribution back. */
+export const DONATION_STATUS_LABEL: Record<string, string> = {
+  pending: "Waiting to be confirmed",
+  confirmed: "Confirmed",
+  rejected: "Could not be matched",
+};
+
+/**
+ * The same rules the database puts on a donation, so the form can say what is
+ * wrong before anything is sent. Each returns the reason, or null when it is
+ * fine. The two halves are separate because the form asks for the amount on one
+ * step and the transaction reference on the next.
+ */
+export function donationAmountProblem(amount: number): string | null {
+  if (!Number.isInteger(amount)) return "Enter the amount in whole Rwandan francs.";
+  if (amount < MIN_DONATION_RWF) return `The smallest contribution is ${rwf(MIN_DONATION_RWF)}.`;
+  return null;
+}
+
+export function donationReferenceProblem(reference: string): string | null {
+  const given = reference.trim();
+  if (given.length < 4) return "Enter the transaction reference from your payment confirmation.";
+  if (given.length > 120) return "That transaction reference is too long.";
+  return null;
+}
+
+export const donationProblem = (amount: number, reference: string): string | null =>
+  donationAmountProblem(amount) ?? donationReferenceProblem(reference);
 
 export const areaOf = (key: string) => FOCUS_AREAS.find((a) => a.key === key);
 export const subcategoryOf = (area: FocusArea | undefined, key: string) =>
