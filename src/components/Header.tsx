@@ -23,6 +23,7 @@ import logo from "@/assets/isoko-logo.jpeg";
 import ThemeToggle from "@/components/ThemeToggle";
 import NotificationsBell from "@/components/NotificationsBell";
 import CartBadge from "@/components/CartBadge";
+import MessagesBadge from "@/components/MessagesBadge";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { SearchTrigger, useServiceSearch } from "@/components/ServiceSearch";
 
@@ -130,6 +131,7 @@ const Header = () => {
   const accountLinks = [
     { to: "/dashboard", label: t("nav.dashboard") },
     { to: "/my-orders", label: t("nav.myOrders") },
+    { to: "/messages", label: t("nav.messages") },
     { to: "/insights", label: t("nav.insights") },
     { to: "/seller", label: t("nav.seller") },
     { to: "/subscription", label: t("nav.subscription") },
@@ -168,6 +170,7 @@ const Header = () => {
           <LanguageMenu />
           <ThemeToggle />
           <CartBadge />
+          {user && <MessagesBadge />}
           {user && <NotificationsBell />}
           {user ? (
             <DropdownMenu>
@@ -206,6 +209,7 @@ const Header = () => {
             <Search className="h-5 w-5" />
           </Button>
           {user && <CartBadge />}
+          {user && <MessagesBadge />}
           {user && <NotificationsBell />}
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
