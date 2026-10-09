@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import * as tus from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadLimitMb } from "@/lib/uploadLimits";
+import { tooLargeMessage, uploadLimitMb } from "@/lib/uploadLimits";
 import { db, rpc, unwrap } from "@/features/services/api";
 
 export type Status = "draft" | "published" | "scheduled" | "archived";
@@ -244,6 +244,24 @@ export async function uploadDisplayImage(folder: string, file: File) {
   unwrap(await store.upload(path, lg.blob, opts));
   unwrap(await store.upload(path.replace(/\.webp$/, "-sm.webp"), sm.blob, opts));
   return { path, w: lg.w, h: lg.h };
+}
+
+/**
+ * A video or sound for a public gallery: stored exactly as it is.
+ *
+ * uploadDisplayImage cannot be used for these -- it decodes the file and
+ * re-encodes it as WebP, which is right for a still and meaningless for a
+ * video. The bucket is the public one, so the address is permanent rather
+ * than signed.
+ */
+export async function uploadPublicMedia(folder: string, file: File) {
+  const contentType = mediaTypeOf(file);
+  if (!contentType) throw new Error("Please choose an MP4, WebM or MKV video, or an MP3, M4A, AAC or WAV audio file.");
+  const limit = uploadLimitMb("media-public");
+  if (file.size > limit * 1024 * 1024) throw new Error(tooLargeMessage(file, limit));
+  const path = `${folder}/${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}`;
+  unwrap(await supabase.storage.from(PUBLIC_BUCKET).upload(path, file, { contentType, cacheControl: "31536000", upsert: false }));
+  return { path, w: null as number | null, h: null as number | null };
 }
 
 /**

@@ -18,6 +18,7 @@ import { db, errorText, formatDate, rpc, unwrap } from "@/features/services/api"
 import { AttentionTile, EmptyState, Pill } from "../common";
 import { EntityManager, type EntityConfig } from "../media/manager";
 import { CreateFromDocument, useReviewQueue } from "./ResearchFeeds";
+import { MEDIA_ACCEPT } from "@/lib/mediaKind";
 import { KIND_LABEL, KINDS, MAX_DOC_MB, RESEARCH_BUCKET, Shell } from "./shared";
 
 export { KINDS };
@@ -35,7 +36,7 @@ const DOC_MIMES = [
   "application/pdf", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/zip", "application/json", "text/plain",
 ];
-const DOC_ACCEPT = ".pdf,.csv,.xlsx,.xls,.docx,.zip,.json,.txt";
+const DOC_ACCEPT = `.pdf,.csv,.xlsx,.xls,.docx,.zip,.json,.txt,${MEDIA_ACCEPT}`;
 
 const tooLong = (v: unknown, max: number) => typeof v === "string" && v.trim().length > max;
 const isHttps = (v: unknown) => typeof v !== "string" || v.trim() === "" || /^https:\/\//.test(v.trim());

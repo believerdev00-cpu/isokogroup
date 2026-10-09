@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { db, errorText, unwrap } from "@/features/services/api";
-import { MAX_UPLOAD_MB, RECOMMENDED_FORMAT, mediaTypeOf, mediaUrl, playbackCaution, uploadDisplayImage, uploadMediaFile, youtubeId, type Status } from "@/features/entertainment/api";
+import { MAX_UPLOAD_MB, RECOMMENDED_FORMAT, mediaTypeOf, mediaUrl, playbackCaution, uploadDisplayImage, uploadMediaFile, uploadPublicMedia, youtubeId, type Status } from "@/features/entertainment/api";
+import { MEDIA_ACCEPT, fileKind, mediaKindOf } from "@/lib/mediaKind";
 import { EmptyState, Pill } from "../common";
 
 type Row = Record<string, unknown> & { id: string };
@@ -721,7 +722,8 @@ export function ImagesEditor({ table, column, parentId, kinds }: { table: "ent_w
     setBusy(files.length);
     for (const [i, file] of [...files].entries()) {
       try {
-        const up = await uploadDisplayImage(table === "ent_work_images" ? "works" : table === "ent_fashion_design_images" ? "fashion-hub" : "events", file);
+        const folder = table === "ent_work_images" ? "works" : table === "ent_fashion_design_images" ? "fashion-hub" : "events";
+        const up = fileKind(file) === "image" ? await uploadDisplayImage(folder, file) : await uploadPublicMedia(folder, file);
         unwrap(await db.from(table).insert({ [column]: parentId, path: up.path, w: up.w, h: up.h, sort: start + i }));
       } catch (e) {
         toast.error(`${file.name}: ${errorText(e)}`);
@@ -752,15 +754,21 @@ export function ImagesEditor({ table, column, parentId, kinds }: { table: "ent_w
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold">Gallery ({images.data?.length ?? 0})</p>
         <Button type="button" size="sm" variant="outline" className="gap-1.5" disabled={busy > 0} onClick={() => input.current?.click()}>
-          {busy > 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} {busy > 0 ? `Uploading ${busy}…` : "Add images"}
+          {busy > 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} {busy > 0 ? `Uploading ${busy}…` : "Add images, video or audio"}
         </Button>
-        <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif" hidden onChange={(e) => upload(e.target.files)} />
+        <input ref={input} type="file" multiple accept={MEDIA_ACCEPT} hidden onChange={(e) => upload(e.target.files)} />
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {(images.data ?? []).map((img) => (
           <div key={img.id} className="space-y-1">
-            <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-              <img src={mediaUrl(String(img.path), "sm") ?? undefined} alt="" className="h-full w-full object-cover" loading="lazy" />
+            <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-muted">
+              {mediaKindOf(String(img.path)) === "video" ? (
+                <video src={mediaUrl(String(img.path)) ?? undefined} className="h-full w-full object-cover" muted playsInline preload="metadata" controls />
+              ) : mediaKindOf(String(img.path)) === "audio" ? (
+                <audio src={mediaUrl(String(img.path)) ?? undefined} className="absolute inset-x-1 bottom-1 w-[calc(100%-0.5rem)]" controls preload="metadata" />
+              ) : (
+                <img src={mediaUrl(String(img.path), "sm") ?? undefined} alt="" className="h-full w-full object-cover" loading="lazy" />
+              )}
               <button type="button" onClick={() => remove(img.id)} className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white" aria-label="Remove image">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>

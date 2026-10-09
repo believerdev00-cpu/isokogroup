@@ -4,6 +4,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { siteSettingsNow } from "@/lib/siteSettings";
+import { MEDIA_ACCEPT } from "@/lib/mediaKind";
+import { uploadLimitMb } from "@/lib/uploadLimits";
 
 export type ServiceKey = "travel" | "consultancy" | "data";
 
@@ -78,9 +80,9 @@ export function customerWhatsapp(phone: string, text = "") {
 
 // ============== FILES ==============
 const BUCKET = "service-files";
-export const MAX_FILE_MB = 25;
-export const DATA_FILE_ACCEPT = ".xlsx,.xls,.csv,.pdf,.doc,.docx,.ppt,.pptx,.zip,.json,.txt,.png,.jpg,.jpeg";
-export const DOC_FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp";
+export const MAX_FILE_MB = uploadLimitMb("service-files");
+export const DATA_FILE_ACCEPT = `.xlsx,.xls,.csv,.pdf,.doc,.docx,.ppt,.pptx,.zip,.json,.txt,.png,.jpg,.jpeg,${MEDIA_ACCEPT}`;
+export const DOC_FILE_ACCEPT = `.pdf,.jpg,.jpeg,.png,.webp,${MEDIA_ACCEPT}`;
 
 function safeName(name: string) {
   const clean = name.normalize("NFKD").replace(/[^\w.\- ]+/g, "").replace(/\s+/g, "_").slice(-80);

@@ -7,6 +7,7 @@ import { ArrowRight, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Film, I
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { db, unwrap } from "@/features/services/api";
+import { mediaKindOf } from "@/lib/mediaKind";
 import { mediaUrl, type Status } from "./api";
 
 // ============== IMAGES ==============
@@ -15,11 +16,36 @@ export function Img({ path, src, alt, size = "lg", className, ratio }: {
   path?: string | null; src?: string | null; alt: string; size?: "sm" | "lg"; className?: string; ratio?: string;
 }) {
   const url = src ?? mediaUrl(path, size);
+  const kind = mediaKindOf(path);
   const [failed, setFailed] = useState(false);
   return (
     <div className={cn("relative overflow-hidden bg-neutral-800", className)} style={ratio ? { aspectRatio: ratio } : undefined}>
       {url && !failed ? (
-        <img src={url} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+        // Galleries hold video and sound as well as stills now, so the same
+        // component has to play as well as show. A video given an <img> is a
+        // broken icon, and a sound given one is nothing at all.
+        kind === "video" ? (
+          <video
+            src={mediaUrl(path) ?? src ?? undefined}
+            className="absolute inset-0 h-full w-full object-cover"
+            controls
+            playsInline
+            preload="metadata"
+            onError={() => setFailed(true)}
+          />
+        ) : kind === "audio" ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-neutral-900 p-3">
+            <audio
+              src={mediaUrl(path) ?? src ?? undefined}
+              className="w-full"
+              controls
+              preload="metadata"
+              onError={() => setFailed(true)}
+            />
+          </div>
+        ) : (
+          <img src={url} alt={alt} loading="lazy" decoding="async" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+        )
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-neutral-600" aria-hidden>
           <ImageIcon className="h-8 w-8" />

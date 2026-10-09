@@ -32,16 +32,19 @@ export const PLATFORM_UPLOAD_MB = 50;
 /** Each bucket's own file_size_limit, as set by migration. */
 export const BUCKET_LIMIT_MB = {
   entertainment: 500,
-  research: 25,
-  "service-files": 25,
-  training: 8,
-  initiative: 5,
-  "media-public": 5,
-  "payment-proofs": 5,
+  research: 50,
+  "service-files": 50,
+  training: 50,
+  initiative: 50,
+  "media-public": 50,
   books: 50,
-  "delivery-proofs": 15,
+  "delivery-proofs": 50,
+  "product-images": 50,
+  adverts: 50,
+  // stills only, and deliberately smaller: see
+  // 20261009240000_video_audio_in_every_bucket.sql
+  "payment-proofs": 5,
   "id-documents": 15,
-  "product-images": 10,
 } as const;
 
 export type UploadBucket = keyof typeof BUCKET_LIMIT_MB;

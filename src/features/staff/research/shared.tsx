@@ -5,6 +5,7 @@ import { Link, NavLink } from "react-router-dom";
 import { BookOpenCheck, ClipboardCheck, DownloadCloud, ExternalLink, Globe2, HelpCircle, Layers, MapPinned, Tags } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { uploadLimitMb } from "@/lib/uploadLimits";
 import { StaffPage } from "../common";
 
 export const KINDS: [string, string][] = [
@@ -14,7 +15,7 @@ export const KINDS: [string, string][] = [
 export const KIND_LABEL = Object.fromEntries(KINDS) as Record<string, string>;
 
 export const RESEARCH_BUCKET = "research";
-export const MAX_DOC_MB = 25;
+export const MAX_DOC_MB = uploadLimitMb("research");
 
 export const NAV = [
   { to: "/staff/research", label: "Overview", icon: BookOpenCheck, end: true },

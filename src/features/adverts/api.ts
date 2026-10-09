@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { db, rpc, unwrap } from "@/features/services/api";
+import { MEDIA_ACCEPT } from "@/lib/mediaKind";
+import { tooLargeMessage, uploadLimitMb } from "@/lib/uploadLimits";
 
 // Asking ISOKO GROUP to carry your advertising. The request is a lead: nothing
 // is published and nobody is charged by it, and a person reads every one.
@@ -18,9 +20,18 @@ export const ARTWORK_TYPES: Record<string, string> = {
   "image/webp": "webp",
   "image/avif": "avif",
   "application/pdf": "pdf",
+  // an advert is as often a clip or a radio-style spot as it is a still
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/x-matroska": "mkv",
+  "audio/mpeg": "mp3",
+  "audio/mp4": "m4a",
+  "audio/aac": "aac",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
 };
-export const ARTWORK_ACCEPT = "image/jpeg,image/png,image/webp,image/avif,application/pdf";
-export const MAX_ARTWORK_BYTES = 10 * 1024 * 1024;
+export const ARTWORK_ACCEPT = `image/jpeg,image/png,image/webp,image/avif,application/pdf,${MEDIA_ACCEPT}`;
+export const MAX_ARTWORK_BYTES = uploadLimitMb("adverts") * 1024 * 1024;
 
 /** Where an advert could run. The wording is what the office uses. */
 export const PLACEMENTS = [
@@ -101,10 +112,9 @@ export function advertProblem(input: AdvertInput): string | null {
 }
 
 export function artworkProblem(file: File): string | null {
-  if (!ARTWORK_TYPES[file.type]) return "Choose a JPG, PNG, WEBP, AVIF or PDF file.";
-  if (file.size > MAX_ARTWORK_BYTES) {
-    return `${file.name} is ${Math.round(file.size / 1024 / 1024)} MB. The largest upload is 10 MB.`;
-  }
+  if (!ARTWORK_TYPES[file.type]) return "Choose a JPG, PNG, WEBP, AVIF or PDF file, or an MP4, WebM, MKV, MP3, M4A, AAC or WAV.";
+  // the figure came from a number written twice; it is the bucket's now
+  if (file.size > MAX_ARTWORK_BYTES) return tooLargeMessage(file, uploadLimitMb("adverts"));
   return null;
 }
 

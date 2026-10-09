@@ -3,6 +3,7 @@
 // database still checks everything itself -- these only decide what the person
 // sees first.
 import { describe, expect, it } from "vitest";
+import { uploadLimitMb } from "@/lib/uploadLimits";
 import {
   ARTWORK_TYPES, DURATIONS, MAX_ARTWORK_BYTES, PLACEMENTS,
   advertProblem, artworkProblem, type AdvertInput,
@@ -74,23 +75,32 @@ describe("what the artwork upload accepts", () => {
     }
   });
 
-  it("refuses anything else, including a video", () => {
-    for (const type of ["video/mp4", "application/zip", "text/html", ""]) {
+  it("refuses anything that is not artwork, a video or a sound", () => {
+    for (const type of ["application/zip", "text/html", "application/x-msdownload", ""]) {
       expect(artworkProblem(file(type, 1))).toMatch(/JPG, PNG, WEBP, AVIF or PDF/);
     }
   });
 
-  it("accepts any size up to ten megabytes, with no minimum", () => {
-    for (const mb of [0.001, 0.5, 5, 9.9, 10]) {
+  it("takes a video or a sound, because an advert is often one", () => {
+    for (const type of ["video/mp4", "video/webm", "audio/mpeg", "audio/wav"]) {
+      expect(artworkProblem(file(type, 1))).toBeNull();
+    }
+  });
+
+  it("accepts any size up to the bucket's limit, with no minimum", () => {
+    const limit = MAX_ARTWORK_BYTES / 1024 / 1024;
+    for (const mb of [0.001, 0.5, 5, 9.9, limit]) {
       expect(artworkProblem(file("image/png", mb))).toBeNull();
     }
-    expect(MAX_ARTWORK_BYTES).toBe(10 * 1024 * 1024);
+    // one number, in uploadLimits, rather than a figure repeated here
+    expect(MAX_ARTWORK_BYTES).toBe(uploadLimitMb("adverts") * 1024 * 1024);
   });
 
   it("says how big a file is when it is too big", () => {
-    const problem = artworkProblem(file("image/png", 12, "banner.png"));
+    const over = MAX_ARTWORK_BYTES / 1024 / 1024 + 2;
+    const problem = artworkProblem(file("image/png", over, "banner.png"));
     expect(problem).toContain("banner.png");
-    expect(problem).toContain("12 MB");
-    expect(problem).toContain("10 MB");
+    expect(problem).toContain(`${over} MB`);
+    expect(problem).toContain(`${uploadLimitMb("adverts")} MB`);
   });
 });
