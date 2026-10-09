@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MEDIA_ACCEPT, mediaKindOf } from "@/lib/mediaKind";
+import { uploadLimitMb } from "@/lib/uploadLimits";
 import {
   MAX_PRODUCT_IMAGES,
   PRODUCT_IMAGES_BUCKET,
@@ -143,21 +145,29 @@ const ProductImagesDialog = ({ product, sellerId, open, onOpenChange, onSaved }:
         <DialogHeader>
           <DialogTitle>Images of {product.name}</DialogTitle>
           <DialogDescription>
-            Up to {MAX_PRODUCT_IMAGES} images, JPG, PNG or WEBP, 5MB each. The first one is what customers see in the marketplace.
+            Up to {MAX_PRODUCT_IMAGES} items, {uploadLimitMb("product-images")} MB each: pictures (JPG, PNG, WEBP), video (MP4, WebM) or sound (MP3, M4A, WAV). The first picture is the one customers see in the marketplace.
           </DialogDescription>
         </DialogHeader>
 
-        <input ref={addRef} type="file" accept="image/*" multiple className="hidden" onChange={handleAdd} />
-        <input ref={replaceRef} type="file" accept="image/*" className="hidden" onChange={handleReplace} />
+        <input ref={addRef} type="file" accept={MEDIA_ACCEPT} multiple className="hidden" onChange={handleAdd} />
+        <input ref={replaceRef} type="file" accept={MEDIA_ACCEPT} className="hidden" onChange={handleReplace} />
 
         {items.length === 0 ? (
-          <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">No images yet.</p>
+          <p className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nothing added yet.</p>
         ) : (
           <ul className="grid grid-cols-2 gap-3">
             {items.map((it, i) => (
               <li key={it.preview} className="rounded-lg border border-border p-2 space-y-2">
                 <div className="relative">
-                  <img src={it.preview} alt={`${product.name} image ${i + 1}`} className="h-32 w-full rounded object-cover" />
+                  {mediaKindOf(it.file?.name ?? it.url) === "video" ? (
+                    <video src={it.preview} className="h-32 w-full rounded object-cover" controls playsInline preload="metadata" />
+                  ) : mediaKindOf(it.file?.name ?? it.url) === "audio" ? (
+                    <div className="flex h-32 w-full items-center justify-center rounded bg-muted px-2">
+                      <audio src={it.preview} className="w-full" controls preload="metadata" />
+                    </div>
+                  ) : (
+                    <img src={it.preview} alt={`${product.name} item ${i + 1}`} className="h-32 w-full rounded object-cover" />
+                  )}
                   <span className="absolute top-1 left-1 rounded bg-background/90 px-1.5 py-0.5 text-xs font-medium">
                     {i === 0 ? "Main image" : `Image ${i + 1}`}{it.file ? " · new" : ""}
                   </span>

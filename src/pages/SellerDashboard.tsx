@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { MEDIA_ACCEPT } from "@/lib/mediaKind";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
@@ -430,7 +431,7 @@ const SellerDashboard = () => {
                       <div className="space-y-2">
                         <Label>Product images (maximum {MAX_PRODUCT_IMAGES})</Label>
                         <p className="text-xs text-muted-foreground">JPG, PNG or WEBP, up to 5MB each. The first image is the one customers see in the marketplace.</p>
-                        <Input type="file" accept="image/*" multiple onChange={handleImagesChange} disabled={productImages.length >= MAX_PRODUCT_IMAGES} />
+                        <Input type="file" accept={MEDIA_ACCEPT} multiple onChange={handleImagesChange} disabled={productImages.length >= MAX_PRODUCT_IMAGES} />
                         {productImages.length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {productImages.map((f, i) => (

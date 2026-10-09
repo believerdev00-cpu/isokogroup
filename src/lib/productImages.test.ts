@@ -4,6 +4,7 @@ import {
   imageFileProblem,
   imagesLeft,
   imagesPatch,
+  MAX_IMAGE_SIZE,
   isProductInStock,
   ownStoragePath,
   productImages,
@@ -26,6 +27,14 @@ describe("productImages", () => {
 });
 
 describe("imagesPatch", () => {
+  it("uses the first picture as the cover, not a video put first", () => {
+    const vid = url("clip.mp4");
+    expect(imagesPatch([vid, url("a.jpg")])).toEqual({ image_urls: [vid, url("a.jpg")], image_url: url("a.jpg") });
+  });
+  it("falls back to the first item when there is no picture at all", () => {
+    const vid = url("clip.mp4");
+    expect(imagesPatch([vid])).toEqual({ image_urls: [vid], image_url: vid });
+  });
   it("keeps image_url as the first image", () => {
     expect(imagesPatch([url("b.jpg"), url("a.jpg")])).toEqual({ image_urls: [url("b.jpg"), url("a.jpg")], image_url: url("b.jpg") });
   });
@@ -41,15 +50,21 @@ describe("imagesPatch", () => {
 });
 
 describe("imageFileProblem", () => {
-  it("accepts an image under 5MB", () => {
+  it("accepts a picture", () => {
     expect(imageFileProblem(new File(["x"], "a.jpg", { type: "image/jpeg" }))).toBeNull();
   });
-  it("refuses a file that is not an image", () => {
-    expect(imageFileProblem(new File(["x"], "a.pdf", { type: "application/pdf" }))).toMatch(/not an image/);
+  it("accepts a video or a sound: a product is often better shown moving", () => {
+    expect(imageFileProblem(new File(["x"], "a.mp4", { type: "video/mp4" }))).toBeNull();
+    expect(imageFileProblem(new File(["x"], "a.mp3", { type: "audio/mpeg" }))).toBeNull();
   });
-  it("refuses a file over 5MB", () => {
-    const big = new File([new Uint8Array(5 * 1024 * 1024 + 1)], "big.png", { type: "image/png" });
-    expect(imageFileProblem(big)).toMatch(/over 5MB/);
+  it("refuses a file that is none of those", () => {
+    expect(imageFileProblem(new File(["x"], "a.pdf", { type: "application/pdf" })))
+      .toMatch(/not a picture, a video or a sound/);
+  });
+  it("refuses a file over the bucket's limit", () => {
+    const over = MAX_IMAGE_SIZE + 1;
+    const big = new File([new Uint8Array(over)], "big.png", { type: "image/png" });
+    expect(imageFileProblem(big)).toMatch(/The largest upload is/);
   });
 });
 

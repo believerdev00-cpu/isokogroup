@@ -1,3 +1,4 @@
+import { mediaKindOf } from "@/lib/mediaKind";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -103,12 +104,26 @@ const Marketplace = () => {
               {filtered.map((product, i) => (
                 <div key={product.id || i} className="group card-interactive rounded-xl border border-border bg-card overflow-hidden">
                   <div className="aspect-square overflow-hidden relative">
-                    <img
-                      src={product.images[shownImage[product.id] ?? 0] || "/placeholder.svg"}
-                      alt={product.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                    {mediaKindOf(product.images[shownImage[product.id] ?? 0]) === "video" ? (
+                      <video
+                        src={product.images[shownImage[product.id] ?? 0]}
+                        className="w-full h-full object-cover"
+                        controls
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : mediaKindOf(product.images[shownImage[product.id] ?? 0]) === "audio" ? (
+                      <div className="flex h-full w-full items-center justify-center bg-muted px-3">
+                        <audio src={product.images[shownImage[product.id] ?? 0]} className="w-full" controls preload="metadata" />
+                      </div>
+                    ) : (
+                      <img
+                        src={product.images[shownImage[product.id] ?? 0] || "/placeholder.svg"}
+                        alt={product.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    )}
                     {!product.inStock && (
                       <span className="absolute top-2 left-2 rounded-full bg-background/90 px-2 py-0.5 text-xs font-medium text-destructive">Out of stock</span>
                     )}

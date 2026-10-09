@@ -2,11 +2,13 @@
 // `image_urls` holds them; `image_url` is always the first, because the
 // marketplace, cart and admin pages were built around one image.
 import { MAX_PRODUCT_IMAGES } from "@/lib/sellerAgreement";
+import { isImagePath, isMediaFile } from "@/lib/mediaKind";
+import { tooLargeMessage, uploadLimitMb } from "@/lib/uploadLimits";
 
 export { MAX_PRODUCT_IMAGES };
 
 export const PRODUCT_IMAGES_BUCKET = "product-images";
-export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB each
+export const MAX_IMAGE_SIZE = uploadLimitMb("product-images") * 1024 * 1024;
 
 type ProductLike = { image_url?: string | null; image_urls?: string[] | null; stock?: number | null };
 
@@ -17,16 +19,23 @@ export const productImages = (p: ProductLike): string[] =>
 /** Sold out when nothing is left in stock. */
 export const isProductInStock = (p: ProductLike) => (p.stock ?? 0) > 0;
 
-/** The columns to save for a new image list: image_url mirrors the first image. */
+/**
+ * The columns to save for a new media list.
+ *
+ * image_url is the cover: it is what the marketplace card, the cart and the
+ * admin table show, and those are all <img>. A seller may now add a video, so
+ * the cover is the first still rather than simply the first item -- otherwise
+ * putting a clip first would leave a broken thumbnail everywhere.
+ */
 export const imagesPatch = (urls: string[]) => {
   const list = urls.filter(Boolean).slice(0, MAX_PRODUCT_IMAGES);
-  return { image_urls: list, image_url: list[0] ?? null };
+  return { image_urls: list, image_url: list.find(isImagePath) ?? list[0] ?? null };
 };
 
-/** Why a file can't be a product image, or null when it can. */
+/** Why a file can't be product media, or null when it can. */
 export const imageFileProblem = (file: File): string | null => {
-  if (!file.type.startsWith("image/")) return `${file.name} is not an image.`;
-  if (file.size > MAX_IMAGE_SIZE) return `${file.name} is over 5MB.`;
+  if (!isMediaFile(file)) return `${file.name} is not a picture, a video or a sound.`;
+  if (file.size > MAX_IMAGE_SIZE) return tooLargeMessage(file, uploadLimitMb("product-images"));
   return null;
 };
 
