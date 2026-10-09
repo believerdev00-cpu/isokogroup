@@ -184,9 +184,16 @@ const Entertainment = () => {
               </div>
               {playing.media_url && (
                 playing.type === "film" ? (
-                  <video src={playing.media_url} controls className="w-full rounded-lg bg-black aspect-video" />
+                  <video
+                    src={playing.media_url}
+                    controls
+                    controlsList="nodownload"
+                    disablePictureInPicture
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="w-full rounded-lg bg-black aspect-video"
+                  />
                 ) : (
-                  <audio src={playing.media_url} controls className="w-full" />
+                  <audio src={playing.media_url} controls controlsList="nodownload" className="w-full" />
                 )
               )}
             </div>

@@ -35,7 +35,7 @@ vi.mock("tus-js-client", () => ({
   },
 }));
 
-import { MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RESUMABLE_FROM_MB, uploadMediaFile } from "./api";
+import { MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RESUMABLE_FROM_MB, playbackWindowSeconds, uploadMediaFile } from "./api";
 import { BUCKET_LIMIT_MB, PLATFORM_UPLOAD_MB } from "@/lib/uploadLimits";
 
 /** A File of a given size without putting the bytes in memory. */
@@ -117,5 +117,39 @@ describe("how large a film may be", () => {
   it("keeps the file's own extension", async () => {
     await expect(uploadMediaFile("episodes", sized(MAX_UPLOAD_MB, "video/webm", "episode one.webm"))).resolves.toMatch(/^episodes\/.+\.webm$/);
     expect((tusUploads[0].options.metadata as { contentType: string }).contentType).toBe("video/webm");
+  });
+});
+
+// The signed link is the film. It sits in the page, and anyone who copies it
+// can fetch the whole file until it expires, so it should not outlive the
+// viewing by hours. It also must not expire during the viewing: the player
+// never asks for a fresh one, so a window that closes mid-film stops playback.
+describe("how long a film's link stays usable", () => {
+  it("outlasts the film it is for", () => {
+    for (const mins of [5, 22, 45, 90, 150]) {
+      expect(playbackWindowSeconds(mins)).toBeGreaterThan(mins * 60);
+    }
+  });
+
+  it("is far shorter than four hours for a short episode", () => {
+    const FOUR_HOURS = 4 * 60 * 60;
+    expect(playbackWindowSeconds(20)).toBeLessThan(FOUR_HOURS / 2);
+    expect(playbackWindowSeconds(45)).toBeLessThan(FOUR_HOURS);
+  });
+
+  it("never exceeds four hours, however long the film claims to be", () => {
+    for (const mins of [200, 500, 1000]) {
+      expect(playbackWindowSeconds(mins)).toBeLessThanOrEqual(4 * 60 * 60);
+    }
+  });
+
+  it("falls back to four hours when the runtime is unknown", () => {
+    for (const unknown of [null, undefined, 0]) {
+      expect(playbackWindowSeconds(unknown)).toBe(4 * 60 * 60);
+    }
+  });
+
+  it("gives at least half an hour, so a very short clip is not cut off", () => {
+    expect(playbackWindowSeconds(1)).toBeGreaterThanOrEqual(30 * 60);
   });
 });

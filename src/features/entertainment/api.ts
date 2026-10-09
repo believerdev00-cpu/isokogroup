@@ -167,11 +167,37 @@ export const youtubeThumb = (ref: string | null | undefined) => {
  * short-lived Storage link that only subscribers (and staff) can get.
  * null means "no access" (the page offers to subscribe).
  */
-export async function playbackUrl(item: { watch_source: WatchSource | null; watch_ref: string | null }) {
+export async function playbackUrl(item: {
+  watch_source: WatchSource | null;
+  watch_ref: string | null;
+  duration_minutes?: number | null;
+}) {
   if (!item.watch_source || !item.watch_ref) return null;
   if (item.watch_source === "youtube") return youtubeEmbed(item.watch_ref, true);
-  const { data, error } = await supabase.storage.from(PRIVATE_BUCKET).createSignedUrl(item.watch_ref, 4 * 60 * 60);
+  const { data, error } = await supabase.storage
+    .from(PRIVATE_BUCKET)
+    .createSignedUrl(item.watch_ref, playbackWindowSeconds(item.duration_minutes));
   return error ? null : data.signedUrl;
+}
+
+/**
+ * How long a film's link stays usable.
+ *
+ * It used to be four hours for everything. That link is the file itself: it
+ * sits in the page, and anyone who copies it can fetch the whole film for as
+ * long as it lasts. Four hours for a twenty-minute episode is three and a half
+ * hours of nothing but exposure.
+ *
+ * It cannot simply be made short, either. The player never asks for a fresh
+ * link, so a window that closes mid-film stops playback. So the window is the
+ * runtime plus enough slack to pause, answer the door and come back, bounded at
+ * both ends -- and four hours only for something whose length is unknown.
+ */
+export function playbackWindowSeconds(durationMinutes: number | null | undefined): number {
+  const FOUR_HOURS = 4 * 60 * 60;
+  if (!durationMinutes || durationMinutes <= 0) return FOUR_HOURS;
+  const withSlack = (durationMinutes + 45) * 60;
+  return Math.min(Math.max(withSlack, 30 * 60), FOUR_HOURS);
 }
 
 // Images are resized in the browser before upload (the free Supabase plan has no

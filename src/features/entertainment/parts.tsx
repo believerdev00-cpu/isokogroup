@@ -8,7 +8,14 @@ import { whatsappLink } from "@/features/services/api";
 import { mediaUrl, playbackUrl, youtubeEmbed, type WatchSource } from "./api";
 import { DemoBadge } from "./ui";
 
-type Playable = { watch_source: WatchSource | null; watch_ref: string | null; is_free: boolean };
+// duration_minutes is here so the signed link can be made to last the film
+// and no longer. Every caller passes a whole title or episode, which carries it.
+type Playable = {
+  watch_source: WatchSource | null;
+  watch_ref: string | null;
+  is_free: boolean;
+  duration_minutes?: number | null;
+};
 
 /**
  * Plays a film or episode. YouTube items play for everyone; files kept by
@@ -43,10 +50,25 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
         </div>
       );
     }
+    // controlsList="nodownload" removes the Download item Chrome and Edge put
+    // in the player menu by default -- without it the site offers subscribers a
+    // one-click copy of the film. It is a closed door, not a locked one: the
+    // signed link is still in the page and can be fetched by hand. Only a video
+    // platform with segmented, encrypted delivery changes that.
     return audio ? (
-      <audio src={url} controls autoPlay className="w-full" />
+      <audio src={url} controls controlsList="nodownload" autoPlay className="w-full" />
     ) : (
-      <video src={url} controls autoPlay playsInline poster={poster ?? undefined} className="aspect-video w-full rounded-xl bg-black" />
+      <video
+        src={url}
+        controls
+        controlsList="nodownload"
+        disablePictureInPicture
+        onContextMenu={(e) => e.preventDefault()}
+        autoPlay
+        playsInline
+        poster={poster ?? undefined}
+        className="aspect-video w-full rounded-xl bg-black"
+      />
     );
   }
 
