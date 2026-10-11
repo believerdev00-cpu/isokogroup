@@ -6,7 +6,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { BookOpenCheck, ExternalLink, FileText, Link2, Loader2, Plus, Tags, Trash2, Upload } from "lucide-react";
+import { BookOpenCheck, ExternalLink, FileText, Image as ImageIcon, Link2, Music, Plus, Tags, Trash2, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +16,10 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { db, errorText, formatDate, rpc, unwrap } from "@/features/services/api";
 import { AttentionTile, EmptyState, Pill } from "../common";
-import { EntityManager, type EntityConfig } from "../media/manager";
+import { DropZone, EntityManager, type EntityConfig } from "../media/manager";
 import { CreateFromDocument, useReviewQueue } from "./ResearchFeeds";
-import { MEDIA_ACCEPT } from "@/lib/mediaKind";
-import { KIND_LABEL, KINDS, MAX_DOC_MB, RESEARCH_BUCKET, Shell } from "./shared";
+import { mediaKindOf } from "@/lib/mediaKind";
+import { DOC_ACCEPT, KIND_LABEL, KINDS, RESEARCH_BUCKET, RESEARCH_FILE_HINT, Shell, researchFileError } from "./shared";
 
 export { KINDS };
 
@@ -32,12 +32,6 @@ const SOURCE_TYPES: [string, string][] = [
   ["research_institution", "Research institution"], ["international_org", "International organization"],
   ["publication", "Publication"], ["organization", "Organization"], ["isoko", "ISOKO research"], ["other", "Other"],
 ];
-const DOC_MIMES = [
-  "application/pdf", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/zip", "application/json", "text/plain",
-];
-const DOC_ACCEPT = `.pdf,.csv,.xlsx,.xls,.docx,.zip,.json,.txt,${MEDIA_ACCEPT}`;
-
 const tooLong = (v: unknown, max: number) => typeof v === "string" && v.trim().length > max;
 const isHttps = (v: unknown) => typeof v !== "string" || v.trim() === "" || /^https:\/\//.test(v.trim());
 
@@ -312,8 +306,8 @@ export function DocumentsEditor({ itemId }: { itemId: string }) {
     setBusy(files.length);
     for (const file of [...files]) {
       try {
-        if (!DOC_MIMES.includes(file.type)) throw new Error("Choose a PDF, CSV, Excel, Word, ZIP, JSON or text file.");
-        if (file.size > MAX_DOC_MB * 1024 * 1024) throw new Error(`Files must be under ${MAX_DOC_MB} MB.`);
+        const wrong = researchFileError(file);
+        if (wrong) throw new Error(wrong);
         const safe = file.name.replace(/[^\w.-]+/g, "-").slice(0, 100);
         const path = `${itemId}/${crypto.randomUUID()}-${safe}`;
         unwrap(await supabase.storage.from(RESEARCH_BUCKET).upload(path, file, { contentType: file.type, upsert: false }));
@@ -346,19 +340,27 @@ export function DocumentsEditor({ itemId }: { itemId: string }) {
   };
   return (
     <div className="space-y-2 rounded-xl border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">Documents <span className="font-normal text-muted-foreground">({docs.data?.length ?? 0}, staff only)</span></p>
-        <Button type="button" size="sm" variant="outline" className="gap-1.5" disabled={busy > 0} onClick={() => input.current?.click()}>
-          {busy > 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} {busy > 0 ? `Uploading ${busy}…` : "Add files"}
-        </Button>
-        <input ref={input} type="file" multiple accept={DOC_ACCEPT} hidden onChange={(e) => upload(e.target.files)} />
-      </div>
-      <p className="text-xs text-muted-foreground">The full report, dataset or questionnaire behind the item. Visitors never see or download these; they read the findings on the page.</p>
+      <p className="text-sm font-semibold">Files <span className="font-normal text-muted-foreground">({docs.data?.length ?? 0}, staff only)</span></p>
+      <p className="text-xs text-muted-foreground">The report, dataset or questionnaire behind the item, and the photographs, video or recordings it came from. Visitors never see or download these; they read the findings on the page.</p>
+      <DropZone
+        busy={busy > 0}
+        title="Add files, or drag them in"
+        hint={RESEARCH_FILE_HINT}
+        note={busy > 0 ? `${busy} left to send. Keep this page open.` : undefined}
+        onOpen={() => input.current?.click()}
+        onFiles={upload}
+      />
+      <input ref={input} type="file" multiple accept={DOC_ACCEPT} hidden onChange={(e) => upload(e.target.files)} />
       {(docs.data ?? []).length > 0 && (
         <ul className="divide-y rounded-lg border text-xs">
           {(docs.data ?? []).map((d) => (
             <li key={d.id} className="flex items-center gap-2 p-2">
-              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+              {(() => {
+                // The name carries the extension the uploader wrote, so a
+                // photograph does not sit in the list looking like a PDF.
+                const Icon = { image: ImageIcon, video: Video, audio: Music, other: FileText }[mediaKindOf(String(d.name))];
+                return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
+              })()}
               <button type="button" onClick={() => open(d)} className="min-w-0 flex-1 truncate text-left font-medium hover:underline">{String(d.name)}</button>
               <span className="shrink-0 text-muted-foreground">{(Number(d.size) / 1024 / 1024).toFixed(1)} MB</span>
               <button type="button" onClick={() => remove(d)} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label={`Remove ${String(d.name)}`}><Trash2 className="h-4 w-4" /></button>
