@@ -9,7 +9,7 @@ import {
   ENT, linkFor, onlyPublic, trending, useBySlug, useCategories, useChildren, useTitles, type Credit, type Title,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, PosterCard, Row, SaveButton, SectionIntro, StaffOnlyBanner } from "../ui";
-import { FinalCta, Hero, heroImage, Player, YouTubeButton } from "../parts";
+import { FinalCta, Hero, heroMedia, heroStill, Player, YouTubeButton } from "../parts";
 
 
 const AFRICA = new Set([
@@ -50,7 +50,7 @@ export function FilmsPage() {
       {lead ? (
         <Hero
           tall
-          image={heroImage(lead.backdrop_path ?? lead.poster_path)}
+          {...heroMedia(lead.backdrop_path ?? lead.poster_path, lead.poster_path)}
           eyebrow="Isoko Films"
           title={lead.title}
           text={lead.tagline ?? lead.description}
@@ -120,7 +120,7 @@ export function FilmDetail() {
     <>
       <StaffOnlyBanner status={t.status} />
       <Hero
-        image={heroImage(t.backdrop_path ?? t.poster_path)}
+        {...heroMedia(t.backdrop_path ?? t.poster_path, t.poster_path)}
         eyebrow="Film"
         title={t.title}
         text={t.tagline}
@@ -134,7 +134,7 @@ export function FilmDetail() {
       <div className="grid gap-10 px-4 md:grid-cols-[1fr_320px] md:px-10">
         <div className="space-y-8">
           <div id="watch">
-            <Player item={t} poster={heroImage(t.backdrop_path)} label="Watch now" />
+            <Player item={t} poster={heroStill(t.backdrop_path)} label="Watch now" />
           </div>
           {t.description && <p className="max-w-3xl whitespace-pre-line text-lg leading-relaxed text-neutral-200">{t.description}</p>}
           {cast.length > 0 && (

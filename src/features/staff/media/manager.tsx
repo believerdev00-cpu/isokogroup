@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Check, ChevronDown, Eye, EyeOff, MoreVertical, ImagePlus, Loader2, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
+import { Archive, Check, ChevronDown, Eye, EyeOff, MoreVertical, ImagePlus, Loader2, Music, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +20,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { db, errorText, unwrap } from "@/features/services/api";
-import { MAX_UPLOAD_MB, RECOMMENDED_FORMAT, mediaTypeOf, mediaUrl, playbackCaution, uploadDisplayImage, uploadMediaFile, uploadPublicMedia, youtubeId, type Status } from "@/features/entertainment/api";
+import { MAX_IMAGE_MB, MAX_UPLOAD_MB, RECOMMENDED_FORMAT, mediaTypeOf, mediaUrl, playbackCaution, uploadDisplayImage, uploadMediaFile, uploadPublicMedia, youtubeId, type Status } from "@/features/entertainment/api";
 import { MEDIA_ACCEPT, fileKind, mediaKindOf } from "@/lib/mediaKind";
+import { uploadLimitMb } from "@/lib/uploadLimits";
 import { EmptyState, Pill } from "../common";
 
 type Row = Record<string, unknown> & { id: string };
@@ -541,6 +542,20 @@ function PairsInput({ value, onChange }: { value: Record<string, string>; onChan
   );
 }
 
+/**
+ * A poster, cover, banner or photo -- which no longer has to be a photograph.
+ *
+ * A still is re-encoded as WebP at two sizes, which is what uploadDisplayImage
+ * is for and what makes a page load quickly. A video or a sound cannot go
+ * through that: decoding an MP4 and writing it out as WebP would either fail
+ * or throw the sound away, so those are stored exactly as they arrive. That is
+ * the only difference; both end up in the same public bucket, and both are one
+ * path in the same column.
+ *
+ * The two limits differ because the two paths differ, so the hint states both
+ * rather than the smaller one. Being refused at 30 MB after the wait, by a
+ * control that said 50, is the failure this is written to avoid.
+ */
 function ImageInput({ value, folder, onChange }: { value: string | null; folder: string; onChange: (path: string | null, w?: number, h?: number) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -548,8 +563,10 @@ function ImageInput({ value, folder, onChange }: { value: string | null; folder:
     if (!file) return;
     setBusy(true);
     try {
-      const up = await uploadDisplayImage(folder, file);
-      onChange(up.path, up.w, up.h);
+      const up = fileKind(file) === "image" ? await uploadDisplayImage(folder, file) : await uploadPublicMedia(folder, file);
+      // A video and a sound have no width or height to record; the columns
+      // that hold them stay empty rather than keeping the old picture's size.
+      onChange(up.path, up.w ?? undefined, up.h ?? undefined);
     } catch (e) {
       toast.error(errorText(e));
     } finally {
@@ -557,18 +574,29 @@ function ImageInput({ value, folder, onChange }: { value: string | null; folder:
       if (input.current) input.current.value = "";
     }
   };
+  const kind = mediaKindOf(value);
   return (
-    <div className="flex items-center gap-3">
-      <span className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
-        {value && <img src={mediaUrl(value, "sm") ?? undefined} alt="" className="h-full w-full object-cover" />}
+    <div className="flex items-start gap-3">
+      <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
+        {!value ? null : kind === "video" ? (
+          <video src={mediaUrl(value) ?? undefined} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+        ) : kind === "audio" ? (
+          <Music className="h-7 w-7 text-muted-foreground" aria-hidden />
+        ) : (
+          <img src={mediaUrl(value, "sm") ?? undefined} alt="" className="h-full w-full object-cover" />
+        )}
       </span>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col items-start gap-1.5">
         <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={busy} onClick={() => input.current?.click()}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} {value ? "Replace" : "Upload"}
         </Button>
+        {kind === "audio" && <audio src={mediaUrl(value) ?? undefined} controls preload="metadata" className="h-8 max-w-[240px]" />}
+        <p className="text-xs text-muted-foreground">
+          Picture, video or sound · picture up to {MAX_IMAGE_MB} MB, video or sound up to {uploadLimitMb("media-public")} MB
+        </p>
         {value && <button type="button" className="text-left text-xs text-muted-foreground underline" onClick={() => onChange(null)}>Remove</button>}
       </div>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/avif" hidden onChange={(e) => pick(e.target.files?.[0])} />
+      <input ref={input} type="file" accept={MEDIA_ACCEPT} hidden onChange={(e) => pick(e.target.files?.[0])} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import {
   type Work,
 } from "../api";
 import { Masonry, PinCard, PosterCard, Row, WideCard, LiveBadge } from "../ui";
-import { FinalCta, Hero, heroImage, YouTubeButton } from "../parts";
+import { Cover, FinalCta, Hero, heroMedia, YouTubeButton } from "../parts";
 import PartnersStrip from "@/components/PartnersStrip";
 
 /** The Isoko Entertainment front page: what's featured, then a row or wall per section. */
@@ -53,7 +53,7 @@ export default function EntHome() {
       {lead ? (
         <Hero
           tall
-          image={heroImage(lead.backdrop_path ?? lead.poster_path)}
+          {...heroMedia(lead.backdrop_path ?? lead.poster_path, lead.poster_path)}
           eyebrow={kindLabel(lead.kind)}
           title={lead.title}
           text={lead.tagline ?? lead.description}
@@ -166,7 +166,7 @@ export default function EntHome() {
                 .slice(0, 3)
                 .map((f, i) => (
                   <Link key={f.id} to={f.to} className={`group relative overflow-hidden rounded-2xl ${i === 0 ? "md:col-span-2 md:row-span-2" : ""}`}>
-                    <img src={heroImage(f.path) ?? undefined} alt={f.title} loading="lazy" className={`w-full object-cover transition-transform duration-700 group-hover:scale-105 ${i === 0 ? "aspect-[4/5] md:aspect-auto md:h-full" : "aspect-[4/3]"}`} />
+                    <Cover path={f.path} alt={f.title} className={`w-full object-cover transition-transform duration-700 group-hover:scale-105 ${i === 0 ? "aspect-[4/5] md:aspect-auto md:h-full" : "aspect-[4/3]"}`} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent" aria-hidden />
                     <div className="absolute bottom-4 left-4 right-4">
                       <p className="text-xs uppercase tracking-[0.2em] text-white/70">{f.sub}</p>

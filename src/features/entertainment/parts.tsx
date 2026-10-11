@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/features/services/api";
+import { mediaKindOf } from "@/lib/mediaKind";
 import { isAudioRef, mediaUrl, playbackUrl, youtubeEmbed, type WatchSource } from "./api";
 import { DemoBadge } from "./ui";
 
@@ -190,6 +191,62 @@ export function Hero({ image, video, eyebrow, title, text, meta, demo, children,
 }
 
 export const heroImage = (path: string | null | undefined) => mediaUrl(path, "lg");
+
+/**
+ * What a banner should show for a picture that may not be a picture.
+ *
+ * A poster, a backdrop or a cover can now be a video or a sound, because the
+ * same single upload control takes all three. A banner cannot treat them
+ * alike: a video belongs in <video>, where Hero already plays it muted and
+ * looping, and an <img> pointed at an MP4 is a broken icon.
+ *
+ * A sound is not a backdrop at all. There is nothing to look at, so it falls
+ * back to the still passed as `also` -- normally the poster when the backdrop
+ * is the sound -- and to Hero's gradient when there is no still either.
+ *
+ * Returns Hero's own props, so a caller spreads it: <Hero {...heroMedia(a, b)} />
+ */
+export function heroMedia(path: string | null | undefined, also?: string | null) {
+  const still = mediaKindOf(also) === "image" ? heroImage(also) : null;
+  switch (mediaKindOf(path)) {
+    case "video":
+      return { video: mediaUrl(path) ?? undefined, image: still };
+    case "audio":
+      return { image: still };
+    default:
+      // "other" lands here too: an unrecognised extension is shown as a
+      // picture, exactly as it was before any of this.
+      return { image: heroImage(path) };
+  }
+}
+
+/**
+ * A cover that may not be a picture, filling whatever box the caller gives it.
+ *
+ * Img (ui.tsx) answers the same question for cards, but it owns its box and
+ * its aspect ratio. These banners size themselves with their own classes, so
+ * this keeps the class list and changes only the tag.
+ */
+export function Cover({ path, alt = "", className }: { path: string | null | undefined; alt?: string; className?: string }) {
+  switch (mediaKindOf(path)) {
+    case "video":
+      // Muted and looping: a banner that demanded a click to start, or made
+      // noise on arrival, would be worse than the still it replaced.
+      return <video src={mediaUrl(path) ?? undefined} className={className} muted loop autoPlay playsInline preload="metadata" aria-label={alt || undefined} />;
+    case "audio":
+      return (
+        <div className={cn(className, "flex items-center justify-center bg-neutral-900")}>
+          <audio src={mediaUrl(path) ?? undefined} controls preload="metadata" className="w-full max-w-md px-4" />
+        </div>
+      );
+    default:
+      return <img src={heroImage(path) ?? undefined} alt={alt} loading="lazy" className={className} />;
+  }
+}
+
+/** The same path, but only when it is a still: for a poster= attribute. */
+export const heroStill = (path: string | null | undefined) =>
+  mediaKindOf(path) === "image" ? heroImage(path) : null;
 
 /**
  * Asking Isoko Entertainment for a shoot, a model, event coverage or a

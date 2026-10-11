@@ -9,7 +9,7 @@ import {
   type Credit, type Episode, type Title,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, PosterCard, Row, SaveButton, SectionIntro, StaffOnlyBanner } from "../ui";
-import { FinalCta, Hero, heroImage, Player, YouTubeButton } from "../parts";
+import { FinalCta, Hero, heroMedia, Player, YouTubeButton } from "../parts";
 import { Fact, FilmsPage, PersonName } from "./Films";
 
 // Entertainment → Film → Genre | Movies | TV Series. Movies are titles of kind
@@ -83,7 +83,7 @@ export function FilmHub() {
       {lead ? (
         <Hero
           tall
-          image={heroImage(lead.backdrop_path ?? lead.poster_path)}
+          {...heroMedia(lead.backdrop_path ?? lead.poster_path, lead.poster_path)}
           eyebrow={lead.kind === "series" ? t("ent.tvSeries") : t("ent.movies")}
           title={lead.title}
           text={lead.tagline ?? lead.description}
@@ -229,7 +229,7 @@ export function SeriesPage() {
   return (
     <>
       {lead ? (
-        <Hero image={heroImage(lead.backdrop_path ?? lead.poster_path)} eyebrow={t("ent.tvSeries")} title={lead.title} text={lead.tagline ?? lead.description} demo={lead.is_demo}
+        <Hero {...heroMedia(lead.backdrop_path ?? lead.poster_path, lead.poster_path)} eyebrow={t("ent.tvSeries")} title={lead.title} text={lead.tagline ?? lead.description} demo={lead.is_demo}
           meta={[year(lead), ...lead.genres.slice(0, 3)].filter(Boolean).map((m) => <span key={m}>{m}</span>)}>
           <Link to={linkFor("series", lead.slug)} className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 font-semibold text-black hover:bg-white/85">
             {t("ent.watch")} <ArrowRight className="h-5 w-5" />
@@ -295,7 +295,7 @@ export function SeriesDetail() {
     <>
       <StaffOnlyBanner status={s.status} />
       <Hero
-        image={heroImage(s.backdrop_path ?? s.poster_path)}
+        {...heroMedia(s.backdrop_path ?? s.poster_path, s.poster_path)}
         eyebrow={t("ent.tvSeries")}
         title={s.title}
         text={s.tagline}

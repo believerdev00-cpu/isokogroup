@@ -9,7 +9,7 @@ import {
   type Credit, type Episode, type Title,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, Row, SaveButton, SectionIntro, StaffOnlyBanner, WideCard } from "../ui";
-import { FinalCta, Hero, heroImage, Player } from "../parts";
+import { FinalCta, Hero, heroMedia, Player } from "../parts";
 import { Fact, PersonName } from "./Films";
 
 type EpisodeWithShow = Episode & { show: Pick<Title, "slug" | "title" | "poster_path" | "status" | "publish_at" | "kind"> | null };
@@ -42,7 +42,7 @@ export function PodcastsPage() {
   return (
     <>
       {lead ? (
-        <Hero image={heroImage(lead.backdrop_path ?? lead.poster_path)} eyebrow="Featured podcast" title={lead.title} text={lead.tagline ?? lead.description} demo={lead.is_demo}>
+        <Hero {...heroMedia(lead.backdrop_path ?? lead.poster_path, lead.poster_path)} eyebrow="Featured podcast" title={lead.title} text={lead.tagline ?? lead.description} demo={lead.is_demo}>
           <Link to={linkFor("podcast", lead.slug)} className="inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 font-semibold text-black hover:bg-white/85">
             <Headphones className="h-5 w-5" /> Listen
           </Link>

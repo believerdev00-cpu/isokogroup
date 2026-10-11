@@ -9,7 +9,7 @@ import {
   type Creator, type EntEvent, type EventImage, type LiveStream,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, LiveBadge, Masonry, Row, SaveButton, SectionIntro, StaffOnlyBanner, WideCard } from "../ui";
-import { BookButton, FinalCta, SectorMedia, heroImage } from "../parts";
+import { BookButton, Cover, FinalCta, SectorMedia } from "../parts";
 
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
@@ -166,7 +166,7 @@ export function EventDetail() {
     <>
       <StaffOnlyBanner status={e.status} />
       <section className="relative">
-        <img src={heroImage(e.cover_path) ?? undefined} alt="" className="h-[52vh] min-h-[300px] w-full bg-neutral-800 object-cover" />
+        <Cover path={e.cover_path} className="h-[52vh] min-h-[300px] w-full bg-neutral-800 object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/30 to-transparent" aria-hidden />
         <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-6xl px-4 pb-8">
           <h1 className="font-display text-4xl font-bold md:text-6xl">{e.title}</h1>
