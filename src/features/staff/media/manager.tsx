@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Check, ChevronDown, Eye, EyeOff, MoreVertical, ImagePlus, Loader2, Music, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
+import { Archive, Check, ChevronDown, Eye, EyeOff, MoreVertical, Loader2, Music, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -440,13 +440,21 @@ const toLocal = (v: unknown) => {
 // ============== FIELDS ==============
 function FieldInput({ field: f, draft, set }: { field: Field; draft: Row; set: (p: Record<string, unknown>) => void }) {
   const v = draft[f.key];
-  const wrap = (child: ReactNode, wide = f.wide) => (
-    <label className={cn("grid content-start gap-1.5 text-sm font-medium", wide && "sm:col-span-2")}>
+  const inside = (child: ReactNode) => (
+    <>
       <span>{f.label}{f.required && <span className="text-destructive"> *</span>}</span>
       {child}
       {f.help && <span className="text-xs font-normal text-muted-foreground">{f.help}</span>}
-    </label>
+    </>
   );
+  const cls = (wide?: boolean) => cn("grid content-start gap-1.5 text-sm font-medium", wide && "sm:col-span-2");
+  const wrap = (child: ReactNode, wide = f.wide) => <label className={cls(wide)}>{inside(child)}</label>;
+  /**
+   * The same thing without the <label>. A hidden file input inside a label
+   * belongs to it, so clicking the heading, the hint or the picture already
+   * chosen would open a file dialog. Everything else here wants the label.
+   */
+  const wrapFile = (child: ReactNode, wide = f.wide) => <div className={cls(wide)}>{inside(child)}</div>;
   switch (f.type) {
     case "textarea":
       return wrap(<Textarea rows={4} value={String(v ?? "")} onChange={(e) => set({ [f.key]: e.target.value })} />, true);
@@ -495,7 +503,7 @@ function FieldInput({ field: f, draft, set }: { field: Field; draft: Row; set: (
     case "pairs":
       return wrap(<PairsInput value={(v as Record<string, string>) ?? {}} onChange={(p) => set({ [f.key]: p })} />, true);
     case "image":
-      return wrap(<ImageInput value={v as string | null} folder={f.folder ?? "misc"} onChange={(path, w, h) => set({ [f.key]: path, ...(f.dims ? { [f.dims[0]]: w, [f.dims[1]]: h } : {}) })} />, f.wide);
+      return wrapFile(<ImageInput value={v as string | null} folder={f.folder ?? "misc"} onChange={(path, w, h) => set({ [f.key]: path, ...(f.dims ? { [f.dims[0]]: w, [f.dims[1]]: h } : {}) })} />, f.wide);
     case "watch":
       return <WatchInput draft={draft} set={set} folder={f.folder ?? "media"} />;
     case "relation":
@@ -556,6 +564,63 @@ function PairsInput({ value, onChange }: { value: Record<string, string>; onChan
  * rather than the smaller one. Being refused at 30 MB after the wait, by a
  * control that said 50, is the failure this is written to avoid.
  */
+/**
+ * The target every upload on this desk shares.
+ *
+ * The film dialog had the good one -- a wide dashed panel that says what it
+ * takes and how large, and turns into a progress bar while it works -- and
+ * everything else had a small "Upload" button that said nothing. Staff
+ * learned the film form and then met something different everywhere else.
+ * This is that panel, as one component, so there is one thing to learn.
+ *
+ * It takes a dropped file as well as a chosen one. Nothing here owns the
+ * <input>: the caller keeps it, because each caller already needs it for its
+ * own "Replace" button, and two of them would mean two file dialogs.
+ */
+export function DropZone({ busy, title, hint, percent, note, onOpen, onFiles }: {
+  busy?: boolean; title: string; hint: ReactNode; percent?: number; note?: string;
+  onOpen: () => void; onFiles: (files: FileList | null) => void;
+}) {
+  const [over, setOver] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onOpen}
+      onDragOver={(e) => { e.preventDefault(); if (!busy) setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => { e.preventDefault(); setOver(false); if (!busy) onFiles(e.dataTransfer.files); }}
+      className={cn(
+        "flex w-full flex-col items-center gap-1 rounded-lg border-2 border-dashed p-5 text-sm text-muted-foreground",
+        busy ? "cursor-default" : "hover:border-primary hover:text-foreground",
+        over && "border-primary bg-primary/5 text-foreground",
+      )}
+    >
+      {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+      <span className="font-semibold text-foreground">
+        {busy ? (percent == null ? "Uploading…" : `Uploading… ${percent}%`) : title}
+      </span>
+      {busy ? (
+        <>
+          {/* Determinate only where the upload actually reports progress: a
+              bar that invents its own figure is worse than no bar. */}
+          {percent != null && (
+            <span aria-hidden className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
+              <span className="block h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${percent}%` }} />
+            </span>
+          )}
+          {note && <span className="text-xs">{note}</span>}
+        </>
+      ) : (
+        <span className="text-xs">{hint}</span>
+      )}
+    </button>
+  );
+}
+
+/** What a picture, video or sound upload accepts, said once. */
+const MEDIA_HINT = `JPEG, PNG, WebP or AVIF up to ${MAX_IMAGE_MB} MB · MP4, WebM, MKV, MP3, M4A, AAC or WAV up to ${uploadLimitMb("media-public")} MB`;
+
 function ImageInput({ value, folder, onChange }: { value: string | null; folder: string; onChange: (path: string | null, w?: number, h?: number) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -575,29 +640,45 @@ function ImageInput({ value, folder, onChange }: { value: string | null; folder:
     }
   };
   const kind = mediaKindOf(value);
+  const what = kind === "video" ? "Video" : kind === "audio" ? "Sound" : "Picture";
   return (
-    <div className="flex items-start gap-3">
-      <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
-        {!value ? null : kind === "video" ? (
-          <video src={mediaUrl(value) ?? undefined} className="h-full w-full object-cover" muted playsInline preload="metadata" />
-        ) : kind === "audio" ? (
-          <Music className="h-7 w-7 text-muted-foreground" aria-hidden />
-        ) : (
-          <img src={mediaUrl(value, "sm") ?? undefined} alt="" className="h-full w-full object-cover" />
-        )}
-      </span>
-      <div className="flex flex-col items-start gap-1.5">
-        <Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={busy} onClick={() => input.current?.click()}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} {value ? "Replace" : "Upload"}
-        </Button>
-        {kind === "audio" && <audio src={mediaUrl(value) ?? undefined} controls preload="metadata" className="h-8 max-w-[240px]" />}
-        <p className="text-xs text-muted-foreground">
-          Picture, video or sound · picture up to {MAX_IMAGE_MB} MB, video or sound up to {uploadLimitMb("media-public")} MB
-        </p>
-        {value && <button type="button" className="text-left text-xs text-muted-foreground underline" onClick={() => onChange(null)}>Remove</button>}
-      </div>
+    <>
+      {value ? (
+        // The same confirmed row the film's video block shows: what is there,
+        // and the two things anyone wants next.
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
+            {kind === "video" ? (
+              <video src={mediaUrl(value) ?? undefined} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+            ) : kind === "audio" ? (
+              <Music className="h-6 w-6 text-muted-foreground" aria-hidden />
+            ) : (
+              <img src={mediaUrl(value, "sm") ?? undefined} alt="" className="h-full w-full object-cover" />
+            )}
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-400">
+              <Check className="h-4 w-4" /> {what} uploaded
+            </span>
+            {kind === "audio" && <audio src={mediaUrl(value) ?? undefined} controls preload="metadata" className="h-8 w-full max-w-[260px]" />}
+          </div>
+          <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => input.current?.click()}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Replace"}
+          </Button>
+          <button type="button" className="text-xs text-muted-foreground underline" onClick={() => onChange(null)}>Remove</button>
+        </div>
+      ) : (
+        <DropZone
+          busy={busy}
+          title="Choose a picture, video or sound, or drag it in"
+          hint={MEDIA_HINT}
+          note="Keep this page open."
+          onOpen={() => input.current?.click()}
+          onFiles={(files) => pick(files?.[0])}
+        />
+      )}
       <input ref={input} type="file" accept={MEDIA_ACCEPT} hidden onChange={(e) => pick(e.target.files?.[0])} />
-    </div>
+    </>
   );
 }
 
@@ -663,28 +744,16 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
             <button type="button" className="text-xs text-muted-foreground underline" onClick={() => set({ watch_source: null, watch_ref: null })}>Remove</button>
           </div>
         ) : (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => input.current?.click()}
-            className="flex flex-col items-center gap-1 rounded-lg border-2 border-dashed p-5 text-sm text-muted-foreground hover:border-primary hover:text-foreground"
-          >
-            {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
-            <span className="font-semibold text-foreground">{busy ? `Uploading… ${percent}%` : "Choose a video or audio file"}</span>
-            {busy ? (
-              <>
-                {/* A film takes minutes, so the desk shows how far it has got */}
-                <span aria-hidden className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-muted">
-                  <span className="block h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${percent}%` }} />
-                </span>
-                <span className="text-xs">Keep this page open. A piece that fails is sent again by itself.</span>
-              </>
-            ) : (
-              <span className="text-xs">
-                {RECOMMENDED_FORMAT} plays everywhere · WebM, MKV, MP3, M4A, AAC and WAV also accepted · up to {MAX_UPLOAD_MB} MB
-              </span>
-            )}
-          </button>
+          <DropZone
+            busy={busy}
+            /* A film takes minutes, and this upload reports its real progress */
+            percent={percent}
+            title="Choose a video or audio file, or drag it in"
+            hint={`${RECOMMENDED_FORMAT} plays everywhere · WebM, MKV, MP3, M4A, AAC and WAV also accepted · up to ${MAX_UPLOAD_MB} MB`}
+            note="Keep this page open. A piece that fails is sent again by itself."
+            onOpen={() => input.current?.click()}
+            onFiles={(files) => upload(files?.[0])}
+          />
         )
       ) : (
         <div className="grid gap-1.5">
@@ -779,13 +848,16 @@ export function ImagesEditor({ table, column, parentId, kinds }: { table: "ent_w
   };
   return (
     <div className="space-y-3 rounded-xl border p-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold">Gallery ({images.data?.length ?? 0})</p>
-        <Button type="button" size="sm" variant="outline" className="gap-1.5" disabled={busy > 0} onClick={() => input.current?.click()}>
-          {busy > 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} {busy > 0 ? `Uploading ${busy}…` : "Add images, video or audio"}
-        </Button>
-        <input ref={input} type="file" multiple accept={MEDIA_ACCEPT} hidden onChange={(e) => upload(e.target.files)} />
-      </div>
+      <p className="text-sm font-semibold">Gallery ({images.data?.length ?? 0})</p>
+      <DropZone
+        busy={busy > 0}
+        title="Add pictures, video or sound, or drag them in"
+        hint={MEDIA_HINT}
+        note={busy > 0 ? `${busy} left to send. Keep this page open.` : undefined}
+        onOpen={() => input.current?.click()}
+        onFiles={upload}
+      />
+      <input ref={input} type="file" multiple accept={MEDIA_ACCEPT} hidden onChange={(e) => upload(e.target.files)} />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {(images.data ?? []).map((img) => (
           <div key={img.id} className="space-y-1">
