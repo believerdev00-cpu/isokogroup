@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { errorText, formatDate } from "@/features/services/api";
-import { mediaUrl } from "@/features/entertainment/api";
+import { mediaUrl, youtubeId } from "@/features/entertainment/api";
 import {
   AVAILABILITY_LABEL, REQUEST_STATUSES, linkForDesign, updateFashionRequest, useFashionDesk, type DeskRow, type RequestStatus,
 } from "@/features/entertainment/fashionHub/api";
@@ -38,13 +38,18 @@ const DESIGNS: EntityConfig = {
       options: (Object.keys(AVAILABILITY_LABEL) as (keyof typeof AVAILABILITY_LABEL)[]).map((value) => ({ value, label: AVAILABILITY_LABEL[value] })) },
     { key: "category_id", label: "Category", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section: "design" }) } },
     { key: "designer_id", label: "Designer", type: "relation", relation: { table: "ent_creators", label: "display_name", filter: () => ({ kinds: ["designer"] }) } },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "fashion-hub", basic: true, help: "Upload a video or audio file, or paste a YouTube link for anything larger. For clothing this is most of what there is to see." },
     { key: "style_notes", label: "Style notes", type: "textarea", wide: true, help: "Cut, occasion, how it is worn." },
     { key: "colors", label: "Available colours", type: "tags" },
     { key: "sizes", label: "Available sizes", type: "tags", help: "e.g. S, M, L, XL or measurements." },
     { key: "fabric", label: "Fabric / material", type: "text" },
   ],
   defaults: { status: "draft", availability: "on_request", colors: [], sizes: [] },
-  validate: (d) => (d.status === "scheduled" && !d.publish_at ? "Choose when it should go on the website." : null),
+  validate: (d) => {
+    if (d.status === "scheduled" && !d.publish_at) return "Choose when it should go on the website.";
+    if (d.watch_source === "youtube" && !youtubeId(String(d.watch_ref ?? ""))) return "That doesn't look like a YouTube link.";
+    return null;
+  },
   extrasHint: "Add more pictures below if you like, or press Done.",
   extras: (r) => <ImagesEditor table="ent_fashion_design_images" column="design_id" parentId={r.id} />,
 };

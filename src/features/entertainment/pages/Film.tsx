@@ -9,7 +9,7 @@ import {
   type Credit, type Episode, type Title,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, PosterCard, Row, SaveButton, SectionIntro, StaffOnlyBanner } from "../ui";
-import { FinalCta, Hero, heroMedia, Player, YouTubeButton } from "../parts";
+import { FinalCta, Hero, heroMedia, Player, SectorMedia, YouTubeButton } from "../parts";
 import { Fact, FilmsPage, PersonName } from "./Films";
 
 // Entertainment → Film → Genre | Movies | TV Series. Movies are titles of kind
@@ -310,6 +310,10 @@ export function SeriesDetail() {
         {s.trailer_youtube && <YouTubeButton video={s.trailer_youtube} label={t("ent.trailer")} />}
         <SaveButton type="title" id={s.id} />
       </Hero>
+
+      {/* The series' own video: a trailer, and only while no episode is
+          playing -- two players on one page compete for the same attention. */}
+      {!current && <SectorMedia item={s} poster={s.poster_path} heading={t("ent.trailer")} />}
 
       <div className="grid gap-10 px-4 md:grid-cols-[1fr_320px] md:px-10">
         <div className="space-y-8">

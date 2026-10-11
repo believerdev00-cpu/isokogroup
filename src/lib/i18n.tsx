@@ -270,6 +270,7 @@ export const translations: Record<string, Partial<Record<Lang, string>>> = {
   "hub.availability": { en: "Availability", rw: "Kuboneka", sw: "Upatikanaji", fr: "Disponibilité", zh: "供应情况" },
   "hub.category": { en: "Category", rw: "Icyiciro", sw: "Kategoria", fr: "Catégorie", zh: "类别" },
   "hub.style": { en: "Style", rw: "Umudeli", sw: "Mtindo", fr: "Style", zh: "款式" },
+  "hub.watch": { en: "Watch", rw: "Reba", sw: "Tazama", fr: "Regarder", zh: "观看" },
   "hub.myRequests": { en: "My fashion requests", rw: "Ibyo nasabye ku mideli", sw: "Maombi yangu ya mitindo", fr: "Mes demandes mode", zh: "我的时尚请求" },
   "hub.accountNeeded": { en: "An account is required to send a request. Register or sign in and you'll come back to this style.", rw: "Konti irakenewe kugira ngo wohereze icyifuzo. Iyandikishe cyangwa winjire, uzagaruka kuri uyu mudeli.", sw: "Akaunti inahitajika ili kutuma ombi. Jisajili au ingia na utarudi kwenye mtindo huu.", fr: "Un compte est nécessaire pour envoyer une demande. Inscrivez-vous ou connectez-vous : vous reviendrez à ce style.", zh: "发送请求需要账户。注册或登录后将返回此款式。" },
   "hub.noDesigns": { en: "No styles have been published yet. Check back soon.", rw: "Nta mideli iratangazwa. Ongera ugaruke vuba.", sw: "Hakuna mitindo iliyochapishwa bado. Rudi tena hivi karibuni.", fr: "Aucun style n'a encore été publié. Revenez bientôt.", zh: "尚未发布任何款式，敬请期待。" },

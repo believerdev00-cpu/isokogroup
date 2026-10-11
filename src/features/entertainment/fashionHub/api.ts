@@ -5,7 +5,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { db, rpc, unwrap } from "@/features/services/api";
-import type { Status } from "@/features/entertainment/api";
+import type { Status, WatchSource } from "@/features/entertainment/api";
 
 export const HUB = "/entertainment/fashion/hub";
 export const linkForDesign = (slug: string) => `${HUB}/${slug}`;
@@ -30,6 +30,10 @@ export type Design = {
   cover_path: string | null;
   cover_w: number | null;
   cover_h: number | null;
+  // a garment is better shown moving than photographed: 20261011100000
+  watch_source: WatchSource | null;
+  watch_ref: string | null;
+  is_free: boolean;
   status: Status;
   publish_at: string | null;
   featured: boolean;

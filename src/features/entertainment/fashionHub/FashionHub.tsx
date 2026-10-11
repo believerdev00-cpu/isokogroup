@@ -17,7 +17,8 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { db, errorText, formatDate, unwrap } from "@/features/services/api";
 import { PageLoading } from "@/features/services/ui";
-import { ENT, linkFor, onlyPublic, useCreators, type Creator } from "../api";
+import { ENT, isAudioRef, linkFor, onlyPublic, useCreators, type Creator } from "../api";
+import { Player } from "../parts";
 import { CategoryChips, Img, Masonry, PinCard, SectionIntro, StaffOnlyBanner } from "../ui";
 import {
   AVAILABILITY_LABEL, HUB, linkForDesign, submitFashionRequest, useDesign, useDesignCategories, useDesignImages, useDesigns,
@@ -210,6 +211,11 @@ export function DesignDetail() {
       <div className="mx-auto grid max-w-6xl gap-8 px-4 pt-6 md:grid-cols-[1.3fr_1fr] md:pt-8">
         <div className="space-y-3">
           <Img path={d.cover_path} alt={d.name} ratio={d.cover_w && d.cover_h ? `${d.cover_w} / ${d.cover_h}` : "4 / 5"} className="rounded-3xl" />
+          {/* Clothing is better seen moving than photographed, so the video
+              sits with the stills rather than below everything else. */}
+          {d.watch_source && d.watch_ref && (
+            <Player item={d} audio={d.watch_source === "storage" && isAudioRef(d.watch_ref)} poster={d.cover_path} label={t("hub.watch")} />
+          )}
           {gallery.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
               {gallery.map((i) => (

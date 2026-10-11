@@ -65,8 +65,11 @@ const SERIES_EPISODES: EntityConfig = {
   defaults: { season: 1, format: "video", status: "draft" },
 };
 
-// Films, podcast shows and TV series share one table; a series has no video
-// of its own (it plays through its episodes) and no length.
+// Films, podcast shows and TV series share one table. All three can carry a
+// video of their own: a film is the video, and a series or a show uses it for
+// the trailer that introduces it -- staff were uploading those as films to get
+// around its absence, which put a trailer in the films list. Only a film has a
+// length, because only a film's own video is the whole thing.
 const NOUN = { film: "Film", podcast: "Podcast", series: "TV series" } as const;
 const titleConfig = (kind: "film" | "podcast" | "series"): EntityConfig => ({
   table: "ent_titles", noun: NOUN[kind], titleKey: "title", imageKey: "poster_path",
@@ -76,7 +79,12 @@ const titleConfig = (kind: "film" | "podcast" | "series"): EntityConfig => ({
     { key: "title", label: `${NOUN[kind]} name`, type: "text", required: true, basic: true },
     { key: "description", label: "Description", type: "textarea", basic: true },
     { key: "poster_path", label: kind === "podcast" ? "Cover picture" : "Poster or picture", type: "image", folder: kind, basic: true },
-    ...(kind === "film" ? [{ key: "watch", label: "Video", type: "watch" as const, folder: "films", basic: true }] : []),
+    {
+      key: "watch",
+      label: kind === "film" ? "Video" : kind === "series" ? "Trailer or video" : "Trailer or audio",
+      type: "watch", folder: kind === "film" ? "films" : kind === "series" ? "series" : "podcasts", basic: true,
+      ...(kind === "film" ? {} : { help: "Optional. The episodes below are what people come to watch; this plays on the page that introduces them." }),
+    },
     { key: "tagline", label: "Short tagline", type: "text", wide: true },
     { key: "trailer_youtube", label: "Trailer (YouTube link)", type: "text", wide: true },
     { key: "category_id", label: kind === "podcast" ? "Category" : "Genre", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section: kind === "podcast" ? "podcast" : "film" }) } },
@@ -130,7 +138,7 @@ const PEOPLE: EntityConfig = {
     { key: "location", label: "Location", type: "text" },
     { key: "headline", label: "One-line summary", type: "text", help: "e.g. “Wedding and portrait photographer in Kigali”." },
     { key: "cover_path", label: "Banner picture", type: "image", folder: "people" },
-    { key: "watch", label: "Video or audio", type: "watch", folder: "people", help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "people", basic: true, help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
     { key: "services", label: "Services offered", type: "tags" },
     { key: "details", label: "Details to show", type: "pairs", help: "Only what the person agreed to show (for models: height, sizes, experience). No phone numbers or addresses." },
     { key: "links", label: "Links", type: "pairs", help: "e.g. Instagram → https://instagram.com/…" },
@@ -154,7 +162,7 @@ const workConfig = (section: "photo" | "art" | "fashion", noun: string): EntityC
     { key: "description", label: "Description", type: "textarea", basic: true },
     { key: "cover_path", label: "Main picture", type: "image", folder: `works/${section}`, dims: ["cover_w", "cover_h"], basic: true },
     { key: "creator_id", label: section === "fashion" ? "Model or designer" : section === "photo" ? "Photographer" : "Artist or designer", type: "relation", relation: { table: "ent_creators", label: "display_name" } },
-    { key: "watch", label: "Video or audio", type: "watch", folder: `works/${section}`, help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
+    { key: "watch", label: "Video or audio", type: "watch", folder: `works/${section}`, basic: true, help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
     { key: "category_id", label: "Category", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section }) } },
     { key: "tags", label: "Tags", type: "tags" },
     { key: "year", label: "Year", type: "number" },
@@ -175,7 +183,7 @@ const COLLECTIONS: EntityConfig = {
     { key: "cover_path", label: "Main picture", type: "image", folder: "collections", basic: true },
     { key: "kind", label: "Type", type: "select", required: true, options: opts([["collection", "Collection"], ["campaign", "Campaign"], ["show", "Fashion show"], ["lookbook", "Lookbook"], ["editorial", "Editorial"]]) },
     { key: "designer_id", label: "Designer", type: "relation", relation: { table: "ent_creators", label: "display_name", filter: () => ({ kinds: ["designer"] }) } },
-    { key: "watch", label: "Video or audio", type: "watch", folder: "collections", help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "collections", basic: true, help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
     { key: "season", label: "Season", type: "text", help: "e.g. Spring 2026" },
     { key: "held_on", label: "Date", type: "date" },
   ],
@@ -195,7 +203,7 @@ const EVENTS: EntityConfig = {
     { key: "held_on", label: "Date", type: "date" },
     { key: "location", label: "Place", type: "text" },
     { key: "category_id", label: "Category", type: "relation", relation: { table: "ent_categories", label: "name", filter: () => ({ section: "event" }) } },
-    { key: "watch", label: "Video or audio", type: "watch", folder: "events", help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "events", basic: true, help: "Upload a video or audio file, or paste a YouTube link for anything larger." },
   ],
   defaults: { status: "draft" },
   validate: (d) => {

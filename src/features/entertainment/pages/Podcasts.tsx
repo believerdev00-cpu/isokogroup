@@ -9,7 +9,7 @@ import {
   type Credit, type Episode, type Title,
 } from "../api";
 import { CategoryChips, ComingSoon, EntNotFound, Img, Row, SaveButton, SectionIntro, StaffOnlyBanner, WideCard } from "../ui";
-import { FinalCta, Hero, heroMedia, Player } from "../parts";
+import { FinalCta, Hero, heroMedia, Player, SectorMedia } from "../parts";
 import { Fact, PersonName } from "./Films";
 
 type EpisodeWithShow = Episode & { show: Pick<Title, "slug" | "title" | "poster_path" | "status" | "publish_at" | "kind"> | null };
@@ -158,6 +158,8 @@ export function ShowDetail() {
         </div>
         {s.description && <p className="mt-8 max-w-3xl whitespace-pre-line leading-relaxed text-neutral-300">{s.description}</p>}
       </section>
+
+      <SectorMedia item={s} poster={s.poster_path} heading="Trailer" />
 
       <section className="px-4 md:px-10">
         <h2 className="mb-3 font-display text-2xl font-bold">Episodes</h2>
