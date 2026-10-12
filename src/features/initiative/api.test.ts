@@ -28,14 +28,50 @@ vi.mock("@/features/services/api", () => ({
   errorText: (e: unknown) => (e instanceof Error ? e.message : "error"),
 }));
 // No real client, and no storage call: these tests never leave the process.
+const upload = vi.hoisted(() => vi.fn());
+const info = vi.hoisted(() => vi.fn());
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { storage: { from: () => ({ upload: vi.fn(), remove: vi.fn(), createSignedUrl: vi.fn() }) } },
+  supabase: { storage: { from: () => ({ upload, info, remove: vi.fn(), createSignedUrl: vi.fn() }) } },
 }));
 
 import {
   DOCUMENT_EXTENSIONS, DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, OWN_COLUMNS, OWN_DONATION_COLUMNS,
   submitApplication, submitDonation, useMyApplications, useMyDonations,
 } from "./api";
+
+describe("an application that carries a document", () => {
+  const document = () => {
+    const f = new File([new Uint8Array(0)], "proof.pdf", { type: "application/pdf" });
+    Object.defineProperty(f, "size", { value: 4096 });
+    return f;
+  };
+  const application = { title: "A clinic", summary: "s", country: "RW" } as never;
+
+  beforeEach(() => {
+    upload.mockReset();
+    upload.mockResolvedValue({ data: { path: "u/1.pdf" }, error: null });
+    info.mockReset();
+    info.mockResolvedValue({ data: { size: 4096 }, error: null });
+  });
+
+  it("files the application when the document arrived whole", async () => {
+    await expect(submitApplication("user-1", application, document())).resolves.toBeDefined();
+    expect(info).toHaveBeenCalledTimes(1);
+  });
+
+  // Otherwise the reviewer opens the application and finds nothing to read,
+  // with no way to tell whether the applicant sent anything at all.
+  it("files nothing when the document arrived short", async () => {
+    info.mockResolvedValue({ data: { size: 24 }, error: null });
+    await expect(submitApplication("user-1", application, document())).rejects.toThrow(/stopped early/);
+  });
+
+  it("still files an application that carries no document at all", async () => {
+    await expect(submitApplication("user-1", application, null)).resolves.toBeDefined();
+    expect(upload).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+  });
+});
 
 describe("supporting documents", () => {
   it("accepts only the four kinds the bucket accepts", () => {

@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { tooLargeMessage, uploadLimitMb, withinLimit } from "@/lib/uploadLimits";
+import { assertStored } from "@/lib/uploadVerify";
 import { Link, Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Users, ShoppingCart, DollarSign, TrendingUp, Package, BookOpen, Truck, Box, Bell, Settings, FileText, Eye, Download, Film, Mic, Upload, Wallet, CheckCircle } from "lucide-react";
@@ -227,6 +228,7 @@ const Admin = () => {
       contentType: file.type || undefined,
     });
     if (error) throw error;
+    await assertStored("books", path, file.size);
     return path; // private bucket: subscribers get short-lived links
   };
 
@@ -261,7 +263,14 @@ const Admin = () => {
   };
 
   // Entertainment handlers
+  //
+  // Two things used to be missing here and both end the same way: an item
+  // published against a file that cannot be played. The size was never
+  // checked, so an upload storage would refuse ran until it failed; and what
+  // landed was never counted, so one that ended early was saved as if whole.
+  // See src/lib/uploadVerify.ts for the film this was written for.
   const uploadEntFile = async (file: File, prefix: string, onProgress?: (pct: number) => void) => {
+    if (!withinLimit(file, "entertainment")) throw new Error(tooLargeMessage(file, uploadLimitMb("entertainment")));
     const ext = file.name.split(".").pop();
     const path = `${prefix}/${crypto.randomUUID()}.${ext}`;
     const SIX_MB = 6 * 1024 * 1024;
@@ -274,6 +283,7 @@ const Admin = () => {
         contentType: file.type || undefined,
       });
       if (error) throw error;
+      await assertStored("entertainment", path, file.size);
       onProgress?.(100);
       return path; // private bucket: subscribers get short-lived links
     }
@@ -313,6 +323,7 @@ const Admin = () => {
       upload.start();
     });
 
+    await assertStored("entertainment", path, file.size);
     return path;
   };
 

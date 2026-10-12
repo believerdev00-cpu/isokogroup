@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Truck, MapPin, Camera, CheckCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { useToast } from "@/hooks/use-toast";
 
 const statusColor = (s: string) => {
@@ -67,6 +68,8 @@ const DriverDashboard = () => {
       const path = `${user!.id}/${id}-${Date.now()}.${file.name.split(".").pop()}`;
       const { error: upErr } = await supabase.storage.from("delivery-proofs").upload(path, file);
       if (upErr) throw upErr;
+      // The delivery is marked done against this file; a short one proves nothing.
+      await assertStored("delivery-proofs", path, file.size);
       // The path, not a link: the customer and admins open it through file-access
       await updateStatus(id, "delivered", {
         proof_url: path,

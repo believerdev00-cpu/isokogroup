@@ -15,6 +15,7 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { db, errorText, formatDate, rpc, unwrap } from "@/features/services/api";
 import { EmptyState, Pill } from "../common";
 import { KIND_LABEL, MAX_DOC_MB, RESEARCH_BUCKET, Shell } from "./shared";
@@ -308,6 +309,9 @@ export function CreateFromDocument({ kind }: { kind?: string }) {
     const path = `ingest/${crypto.randomUUID()}-${safe}`;
     try {
       unwrap(await supabase.storage.from(RESEARCH_BUCKET).upload(path, file, { contentType: type, upsert: false }));
+      // The ingest function reads this file back. Half of one yields a draft
+      // built from half a document, which is worse than no draft at all.
+      await assertStored(RESEARCH_BUCKET, path, file.size);
       const r = await callHubFunction<IngestResult>("research-ingest", { path, ...(kind ? { kind } : {}) });
       toast.success(`Draft created: “${r.title}”`, {
         description: `${r.figures} ${r.figures === 1 ? "figure" : "figures"} found. Check the text and the figures against the document, then publish.`,

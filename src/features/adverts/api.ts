@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { db, rpc, unwrap } from "@/features/services/api";
 import { MEDIA_ACCEPT } from "@/lib/mediaKind";
 import { tooLargeMessage, uploadLimitMb } from "@/lib/uploadLimits";
@@ -131,6 +132,9 @@ export async function uploadArtwork(userId: string, file: File) {
     upsert: false,
   });
   if (error) throw new Error(error.message);
+  // The submit function is given a path and cannot tell a whole file from a
+  // truncated one, so that is settled before it is handed over.
+  await assertStored(ARTWORK_BUCKET, path, file.size);
   return path;
 }
 

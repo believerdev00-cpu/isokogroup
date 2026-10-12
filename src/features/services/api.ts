@@ -3,6 +3,7 @@
 // staff read and write the service's tables directly, under row-level security.
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { siteSettingsNow } from "@/lib/siteSettings";
 import { MEDIA_ACCEPT } from "@/lib/mediaKind";
 import { uploadLimitMb } from "@/lib/uploadLimits";
@@ -133,6 +134,8 @@ export async function uploadStaffFile(service: ServiceKey, requestId: string, fi
   const path = `${service}/internal/${requestId}/${Date.now()}-${safeName(file.name)}`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type || undefined, upsert: false });
   if (error) throw new Error(`Could not upload ${file.name}: ${error.message}`);
+  // A deliverable that arrived short is shared with the customer as if whole.
+  await assertStored(BUCKET, path, file.size);
   return path;
 }
 

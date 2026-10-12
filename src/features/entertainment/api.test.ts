@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const upload = vi.hoisted(() => vi.fn());
-const list = vi.hoisted(() => vi.fn());
+const info = vi.hoisted(() => vi.fn());
+const buckets = vi.hoisted(() => [] as string[]);
 const getSession = vi.hoisted(() => vi.fn());
 const tusUploads = vi.hoisted(() => [] as { file: unknown; options: Record<string, never> & Record<string, unknown>; started: boolean }[]);
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { storage: { from: () => ({ upload, list }) }, auth: { getSession } },
+  supabase: { storage: { from: (b: string) => (buckets.push(b), { upload, info }) }, auth: { getSession } },
 }));
 
 // A stand-in for the resumable protocol: it records how it was set up, reports
@@ -36,7 +37,7 @@ vi.mock("tus-js-client", () => ({
   },
 }));
 
-import { MATROSKA, MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RECOMMENDED_FORMAT, RESUMABLE_FROM_MB, mediaTypeOf, playbackCaution, playbackWindowSeconds, uploadMediaFile } from "./api";
+import { MATROSKA, MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, PUBLIC_BUCKET, RECOMMENDED_FORMAT, RESUMABLE_FROM_MB, mediaTypeOf, playbackCaution, playbackWindowSeconds, uploadMediaFile, uploadPublicMedia } from "./api";
 import { BUCKET_LIMIT_MB, PLATFORM_UPLOAD_MB } from "@/lib/uploadLimits";
 
 /** What the most recent `sized` file claims to weigh, for the storage stand-in. */
@@ -57,10 +58,9 @@ describe("how large a film may be", () => {
     getSession.mockResolvedValue({ data: { session: { access_token: "staff-token" } } });
     // By default storage reports back exactly what was sent, so the upload is
     // confirmed; the tests below override this to describe a short one.
-    list.mockReset();
-    list.mockImplementation((_folder: string, opts: { search: string }) =>
-      Promise.resolve({ data: [{ name: opts.search, metadata: { size: lastSize } }], error: null }),
-    );
+    info.mockReset();
+    info.mockImplementation((path: string) => Promise.resolve({ data: { name: path, size: lastSize }, error: null }));
+    buckets.length = 0;
     tusUploads.length = 0;
   });
 
@@ -132,32 +132,41 @@ describe("how large a film may be", () => {
   // the caller is told the upload worked.
   it("refuses an upload that arrived short", async () => {
     const file = sized(20);
-    list.mockImplementation((_f: string, o: { search: string }) =>
-      Promise.resolve({ data: [{ name: o.search, metadata: { size: 24 } }], error: null }),
-    );
+    info.mockImplementation((path: string) => Promise.resolve({ data: { name: path, size: 24 }, error: null }));
     await expect(uploadMediaFile("films", file)).rejects.toThrow(/stopped early/);
+    // and it says how much of what, so the desk knows to upload again
+    await expect(uploadMediaFile("films", file)).rejects.toThrow(/0\.0 MB of 20\.0 MB/);
   });
 
   it("refuses an upload that left nothing behind", async () => {
-    list.mockResolvedValue({ data: [], error: null });
+    info.mockResolvedValue({ data: null, error: { message: "Object not found", statusCode: "404" } });
     await expect(uploadMediaFile("films", sized(20))).rejects.toThrow(/did not finish/);
   });
 
   it("refuses when storage will not say what arrived", async () => {
     // Publishing a film nobody can watch is worse than one more upload.
-    list.mockResolvedValue({ data: null, error: { message: "network down" } });
+    info.mockResolvedValue({ data: null, error: { message: "network down", statusCode: "500" } });
     await expect(uploadMediaFile("films", sized(20))).rejects.toThrow(/could not be confirmed/);
+  });
+
+  // The public gallery takes video and sound exactly as they are -- the same
+  // file, the same ways to arrive short -- and used to save the path unchecked.
+  it("checks a public gallery video the same way", async () => {
+    await expect(uploadPublicMedia("works", sized(5))).resolves.toMatchObject({ path: expect.stringMatching(/^works/) });
+    expect(buckets).toContain(PUBLIC_BUCKET);
+    info.mockImplementation((path: string) => Promise.resolve({ data: { name: path, size: 24 }, error: null }));
+    await expect(uploadPublicMedia("works", sized(5))).rejects.toThrow(/stopped early/);
   });
 
   it("accepts an upload that arrived whole", async () => {
     await expect(uploadMediaFile("films", sized(20))).resolves.toMatch(/^films\/.+\.mp4$/);
+    // confirmed against the bucket it was written to, not some other one
+    expect(buckets).toContain(PRIVATE_BUCKET);
   });
 
   it("checks the small-file path too, not only the resumable one", async () => {
     const small = sized(RESUMABLE_FROM_MB / 2);
-    list.mockImplementation((_f: string, o: { search: string }) =>
-      Promise.resolve({ data: [{ name: o.search, metadata: { size: 24 } }], error: null }),
-    );
+    info.mockImplementation((path: string) => Promise.resolve({ data: { name: path, size: 24 }, error: null }));
     await expect(uploadMediaFile("films", small)).rejects.toThrow(/stopped early/);
     expect(tusUploads).toHaveLength(0);
   });

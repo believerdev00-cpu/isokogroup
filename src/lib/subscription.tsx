@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { storedProblem } from "@/lib/uploadVerify";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 
@@ -278,6 +279,10 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       proofPath = `${user.id}/${Date.now()}.${ext}`;
       const upload = await supabase.storage.from("payment-proofs").upload(proofPath, screenshot, { contentType: screenshot.type, upsert: false });
       if (upload.error) return { data: null, error: upload.error };
+      // Finance approves the subscription against this screenshot. One that
+      // arrived short stalls the payment with nobody knowing why.
+      const problem = await storedProblem("payment-proofs", proofPath, screenshot.size);
+      if (problem) return { data: null, error: new Error(problem) };
     }
     const result = await (supabase as any).rpc("submit_subscription_payment", {
       p_plan: plan,

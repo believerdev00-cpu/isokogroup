@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { tooLargeMessage, uploadLimitMb, withinLimit } from "@/lib/uploadLimits";
 
 // E-Library and Entertainment files are for subscribers: the buckets are private
@@ -27,6 +28,9 @@ export async function uploadLibraryFile(bucket: LibraryBucket, prefix: string, f
     contentType: file.type || undefined,
   });
   if (error) throw error;
+  // A book that arrived short opens on nothing, the same way the 24-byte film
+  // played on nothing. Settled before the path is handed back to be stored.
+  await assertStored(bucket, path, file.size);
   return path;
 }
 

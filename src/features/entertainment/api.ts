@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as tus from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
 import { tooLargeMessage, uploadLimitMb } from "@/lib/uploadLimits";
+import { assertStored } from "@/lib/uploadVerify";
 import { db, rpc, unwrap } from "@/features/services/api";
 
 export type Status = "draft" | "published" | "scheduled" | "archived";
@@ -244,6 +245,10 @@ export async function uploadDisplayImage(folder: string, file: File) {
   const opts = { contentType: "image/webp", cacheControl: "31536000", upsert: false };
   unwrap(await store.upload(path, lg.blob, opts));
   unwrap(await store.upload(path.replace(/\.webp$/, "-sm.webp"), sm.blob, opts));
+  // Both copies, because the cards use the small one and the pages the large:
+  // a card showing a broken image is as visible as a page showing one.
+  await assertStored(PUBLIC_BUCKET, path, lg.blob.size);
+  await assertStored(PUBLIC_BUCKET, path.replace(/\.webp$/, "-sm.webp"), sm.blob.size);
   return { path, w: lg.w, h: lg.h };
 }
 
@@ -262,6 +267,9 @@ export async function uploadPublicMedia(folder: string, file: File) {
   if (file.size > limit * 1024 * 1024) throw new Error(tooLargeMessage(file, limit));
   const path = `${folder}/${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}`;
   unwrap(await supabase.storage.from(PUBLIC_BUCKET).upload(path, file, { contentType, cacheControl: "31536000", upsert: false }));
+  // The same check the private films get. A gallery video that arrives short
+  // fails in the same silent way; it just fails on a page nobody paid for.
+  await assertStored(PUBLIC_BUCKET, path, file.size);
   return { path, w: null as number | null, h: null as number | null };
 }
 
@@ -409,45 +417,14 @@ export async function uploadMediaFile(folder: string, file: File, onProgress?: (
   const path = `${folder}/${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}`;
   if (file.size > RESUMABLE_FROM_MB * 1024 * 1024) {
     await uploadInPieces(path, file, contentType, onProgress);
-    await assertStored(path, file.size);
+    await assertStored(PRIVATE_BUCKET, path, file.size);
     return path;
   }
   onProgress?.(0);
   unwrap(await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, { contentType, upsert: false }));
   onProgress?.(100);
-  await assertStored(path, file.size);
+  await assertStored(PRIVATE_BUCKET, path, file.size);
   return path;
-}
-
-/**
- * Checks that what is in storage is the whole file, before anyone is told the
- * upload worked.
- *
- * A film on the live site turned out to be 24 bytes: an upload had reported
- * success, the desk saved the path, and the item was published. Nobody found
- * out until a visitor pressed play, and even then the player blamed their
- * browser. A resumable upload has several ways to end early and still leave
- * an object behind, so the only reliable question is how many bytes arrived.
- *
- * It asks storage rather than trusting the uploader, and refuses rather than
- * guesses: a size that cannot be read is reported too, because publishing a
- * film nobody can watch is worse than one more upload.
- */
-async function assertStored(path: string, expected: number) {
-  const slash = path.lastIndexOf("/");
-  const folder = slash < 0 ? "" : path.slice(0, slash);
-  const name = path.slice(slash + 1);
-  const { data, error } = await supabase.storage.from(PRIVATE_BUCKET).list(folder, { search: name, limit: 1 });
-  if (error) throw new Error(`The upload could not be confirmed: ${error.message}. Please try again.`);
-  const stored = data?.find((o) => o.name === name);
-  const size = Number(stored?.metadata?.size);
-  if (!stored || !Number.isFinite(size)) {
-    throw new Error("The upload did not finish: nothing arrived in storage. Please try again.");
-  }
-  if (size !== expected) {
-    const mb = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
-    throw new Error(`The upload stopped early: ${mb(size)} of ${mb(expected)} arrived. Please try again.`);
-  }
 }
 
 // ============== QUERIES ==============

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, ImagePlus, RefreshCw, Trash2 } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { storedProblem } from "@/lib/uploadVerify";
 import { useToast } from "@/hooks/use-toast";
 import { MEDIA_ACCEPT, mediaKindOf } from "@/lib/mediaKind";
 import { uploadLimitMb } from "@/lib/uploadLimits";
@@ -108,9 +109,10 @@ const ProductImagesDialog = ({ product, sellerId, open, onOpenChange, onSaved }:
       }
       const path = newImagePath(sellerId, it.file!, i);
       const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, it.file!, { contentType: it.file!.type });
-      if (error) {
+      const problem = error ? error.message : await storedProblem(PRODUCT_IMAGES_BUCKET, path, it.file!.size);
+      if (problem) {
         setSaving(false);
-        toast({ title: "Upload failed", description: `${it.file!.name}: ${error.message}`, variant: "destructive" });
+        toast({ title: "Upload failed", description: `${it.file!.name}: ${problem}`, variant: "destructive" });
         return;
       }
       urls.push(supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl);

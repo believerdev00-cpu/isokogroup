@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,6 +122,7 @@ export default function ProductDialog({
         const path = `${sellerId}/${Date.now()}-${i}.${ext}`;
         const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
         if (error) throw new Error(`${file.name}: ${error.message}`);
+        await assertStored("product-images", path, file.size);
         uploaded.push(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl);
       }
       const urls = [...kept, ...uploaded];

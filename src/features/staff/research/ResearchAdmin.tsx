@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { db, errorText, formatDate, rpc, unwrap } from "@/features/services/api";
@@ -316,6 +317,9 @@ export async function uploadResearchFiles(itemId: string, files: File[], userId:
       const safe = file.name.replace(/[^\w.-]+/g, "-").slice(0, 100);
       const path = `${itemId}/${crypto.randomUUID()}-${safe}`;
       unwrap(await supabase.storage.from(RESEARCH_BUCKET).upload(path, file, { contentType: file.type, upsert: false }));
+      // Before the row is written, not after: a research_documents row pointing
+      // at half a PDF is a citation that opens on nothing.
+      await assertStored(RESEARCH_BUCKET, path, file.size);
       unwrap(await db.from("research_documents").insert({ item_id: itemId, name: file.name.slice(0, 200), path, size: file.size, mime: file.type, created_by: userId }));
     } catch (e) {
       problems.push(`${file.name}: ${errorText(e)}`);

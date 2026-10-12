@@ -10,6 +10,7 @@
 // before it counts towards anything.
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { assertStored } from "@/lib/uploadVerify";
 import { db, unwrap } from "@/features/services/api";
 import type { ProjectStatus } from "@/lib/initiative";
 
@@ -165,6 +166,9 @@ export async function submitApplication(userId: string, input: ApplicationInput,
     documentPath = `${userId}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("initiative").upload(documentPath, document, { upsert: false });
     if (error) throw new Error(error.message);
+    // Refused here, so no application is filed against a document the
+    // reviewer will not be able to open.
+    await assertStored("initiative", documentPath, document.size);
   }
   try {
     return unwrap(

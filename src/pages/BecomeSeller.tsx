@@ -14,6 +14,7 @@ import SubscriptionPayment from "@/components/SubscriptionPayment";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { storedProblem } from "@/lib/uploadVerify";
 import {
   AGREEMENT_CHECKBOX_LABEL,
   COUNTRIES,
@@ -191,9 +192,12 @@ const BecomeSeller = () => {
       .from("id-documents")
       .upload(path, idFile, { upsert: false, contentType: idFile.type });
 
-    if (uploadError) {
+    // An ID that arrived short cannot be checked, and the application would
+    // sit in the queue until somebody opened it and asked for it again.
+    const uploadProblem = uploadError ? uploadError.message : await storedProblem("id-documents", path, idFile.size);
+    if (uploadProblem) {
       setLoading(false);
-      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      toast({ title: "Upload failed", description: uploadProblem, variant: "destructive" });
       return;
     }
 

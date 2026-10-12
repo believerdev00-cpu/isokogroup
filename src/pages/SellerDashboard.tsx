@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { storedProblem } from "@/lib/uploadVerify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -151,9 +152,11 @@ const SellerDashboard = () => {
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${user.id}/${Date.now()}-${i}.${ext}`;
       const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
-      if (uploadErr) {
+      // A picture that arrived short is a broken image on the marketplace card.
+      const problem = uploadErr ? uploadErr.message : await storedProblem("product-images", path, file.size);
+      if (problem) {
         setUploading(false);
-        toast({ title: "Image upload failed", description: `${file.name}: ${uploadErr.message}`, variant: "destructive" });
+        toast({ title: "Image upload failed", description: `${file.name}: ${problem}`, variant: "destructive" });
         return;
       }
       imageUrls.push(supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl);
