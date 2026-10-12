@@ -67,6 +67,21 @@ export type EntityConfig = {
   extrasHint?: string;
   /** parts edited inside the editor once the item exists (gallery, credits, episodes) */
   extras?: (row: Row) => ReactNode;
+  /**
+   * Files chosen in the Add dialog, before the row exists.
+   *
+   * Everything in `extras` needs an id: a file is stored under the row it
+   * belongs to, so it cannot be uploaded until the row has been written. That
+   * is the right order for the database and the wrong one for the person,
+   * who has the photograph in hand while they are typing the title and is
+   * told to come back for it afterwards. So the files wait in the browser and
+   * go up the moment the row is saved, which is the same two steps with the
+   * waiting moved off the person and onto the machine.
+   */
+  staging?: {
+    render: (files: File[], set: (files: File[]) => void) => ReactNode;
+    save: (row: Row, files: File[]) => Promise<void>;
+  };
   /** buttons on each row of the list */
   rowActions?: (row: Row) => ReactNode;
   /** what to tell staff when the database refuses a delete because other rows still refer to it */
@@ -290,6 +305,7 @@ function Editor({ config, initial, scope, onClose }: { config: EntityConfig; ini
   const [draft, setDraft] = useState<Row>(initial);
   const [saving, setSaving] = useState<null | "draft" | "publish" | "save">(null);
   const [created, setCreated] = useState(false);
+  const [staged, setStaged] = useState<File[]>([]);
   const set = (patch: Record<string, unknown>) => setDraft((d) => ({ ...d, ...patch }));
   const shown = config.fields.filter((f) => !f.show || f.show(draft));
   const basic = shown.filter((f) => f.basic);
@@ -316,6 +332,17 @@ function Editor({ config, initial, scope, onClose }: { config: EntityConfig; ini
     try {
       if (!next.id) {
         const saved = unwrap(await db.from(config.table).insert(payload).select("*").single()) as Row;
+        // Anything chosen before the row existed goes up now that it does.
+        // A file that fails says so and the row still stands: losing the
+        // typing because one upload broke would be the worse trade.
+        if (config.staging && staged.length) {
+          try {
+            await config.staging.save(saved, staged);
+          } catch (e) {
+            toast.error(errorText(e));
+          }
+          setStaged([]);
+        }
         toast.success(status === "published" ? `${config.noun} published. It's on the website now.` : `${config.noun} saved as a draft.`);
         qc.invalidateQueries({ queryKey: ["media-admin", config.table] });
         qc.invalidateQueries({ queryKey: ["ent"] });
@@ -366,6 +393,7 @@ function Editor({ config, initial, scope, onClose }: { config: EntityConfig; ini
                 </div>
               </details>
             )}
+            {config.staging && config.staging.render(staged, setStaged)}
           </>
         )}
 

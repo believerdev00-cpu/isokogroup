@@ -6,7 +6,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { BookOpenCheck, ExternalLink, FileText, Image as ImageIcon, Link2, Music, Plus, Tags, Trash2, Video } from "lucide-react";
+import { BookOpenCheck, Eye, EyeOff, ExternalLink, FileText, Image as ImageIcon, Link2, Music, Plus, Tags, Trash2, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +98,13 @@ function useItemsConfig(): EntityConfig {
       }
     },
     extrasHint: "Now add its numbers, sources, documents and related items below, or press Done.",
+    staging: {
+      render: (files, set) => <StagedFiles files={files} set={set} />,
+      save: async (row, files) => {
+        const problems = await uploadResearchFiles(String(row.id), files, user?.id ?? null);
+        for (const p of problems) toast.error(p);
+      },
+    },
     extras: (r) => (
       <div className="space-y-4">
         <StatsEditor itemId={r.id} />
@@ -292,7 +299,41 @@ export function SourcesEditor({ itemId }: { itemId: string }) {
   );
 }
 
-/** Supporting files, kept in the private research bucket: staff see them, the public never does. */
+/**
+ * Puts files in the private research bucket and records them against an item.
+ *
+ * Shared by the panel below and by the Add item dialog, which collects files
+ * before the item exists and calls this the moment it does. Returns what went
+ * wrong per file rather than throwing, so one bad file does not strand the
+ * rest -- the caller decides how loudly to complain.
+ */
+export async function uploadResearchFiles(itemId: string, files: File[], userId: string | null, onEach?: () => void): Promise<string[]> {
+  const problems: string[] = [];
+  for (const file of files) {
+    try {
+      const wrong = researchFileError(file);
+      if (wrong) throw new Error(wrong);
+      const safe = file.name.replace(/[^\w.-]+/g, "-").slice(0, 100);
+      const path = `${itemId}/${crypto.randomUUID()}-${safe}`;
+      unwrap(await supabase.storage.from(RESEARCH_BUCKET).upload(path, file, { contentType: file.type, upsert: false }));
+      unwrap(await db.from("research_documents").insert({ item_id: itemId, name: file.name.slice(0, 200), path, size: file.size, mime: file.type, created_by: userId }));
+    } catch (e) {
+      problems.push(`${file.name}: ${errorText(e)}`);
+    }
+    onEach?.();
+  }
+  return problems;
+}
+
+/**
+ * Supporting files, kept in the private research bucket.
+ *
+ * Staff see all of them. A reader sees only the ones ticked as evidence, and
+ * the tick is per file because the two kinds sit side by side: the photograph
+ * of the site is what proves the finding, and the questionnaire next to it has
+ * somebody's answers in it. Nothing is ticked by default -- publishing is a
+ * decision somebody makes, not one they forget to undo.
+ */
 export function DocumentsEditor({ itemId }: { itemId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -301,24 +342,24 @@ export function DocumentsEditor({ itemId }: { itemId: string }) {
   const key = ["research-admin", "research_documents", itemId];
   const docs = useQuery({ queryKey: key, queryFn: async () => unwrap(await db.from("research_documents").select("*").eq("item_id", itemId).order("created_at")) as Row[] });
   const refresh = () => qc.invalidateQueries({ queryKey: key });
+  const shown = (docs.data ?? []).filter((d) => d.is_public).length;
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
     setBusy(files.length);
-    for (const file of [...files]) {
-      try {
-        const wrong = researchFileError(file);
-        if (wrong) throw new Error(wrong);
-        const safe = file.name.replace(/[^\w.-]+/g, "-").slice(0, 100);
-        const path = `${itemId}/${crypto.randomUUID()}-${safe}`;
-        unwrap(await supabase.storage.from(RESEARCH_BUCKET).upload(path, file, { contentType: file.type, upsert: false }));
-        unwrap(await db.from("research_documents").insert({ item_id: itemId, name: file.name.slice(0, 200), path, size: file.size, mime: file.type, created_by: user?.id ?? null }));
-      } catch (e) {
-        toast.error(`${file.name}: ${errorText(e)}`);
-      }
-      setBusy((n) => n - 1);
-    }
+    const problems = await uploadResearchFiles(itemId, [...files], user?.id ?? null, () => setBusy((n) => n - 1));
+    for (const p of problems) toast.error(p);
+    setBusy(0);
     refresh();
     if (input.current) input.current.value = "";
+  };
+  /** Ticking a file publishes it; unticking takes it off the hub at once. */
+  const patch = async (d: Row, fields: Record<string, unknown>) => {
+    try {
+      unwrap(await db.from("research_documents").update(fields).eq("id", d.id));
+      refresh();
+    } catch (e) {
+      toast.error(errorText(e));
+    }
   };
   const remove = async (d: Row) => {
     try {
@@ -340,8 +381,13 @@ export function DocumentsEditor({ itemId }: { itemId: string }) {
   };
   return (
     <div className="space-y-2 rounded-xl border p-3">
-      <p className="text-sm font-semibold">Files <span className="font-normal text-muted-foreground">({docs.data?.length ?? 0}, staff only)</span></p>
-      <p className="text-xs text-muted-foreground">The report, dataset or questionnaire behind the item, and the photographs, video or recordings it came from. Visitors never see or download these; they read the findings on the page.</p>
+      <p className="text-sm font-semibold">
+        Files <span className="font-normal text-muted-foreground">({docs.data?.length ?? 0}{shown > 0 ? `, ${shown} on the hub` : ", none on the hub"})</span>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        The report, dataset or questionnaire behind the item, and the photographs, video or recordings it came from.
+        Nothing here is on the website until you tick <span className="font-medium">Show on the hub</span> for that file.
+      </p>
       <DropZone
         busy={busy > 0}
         title="Add files, or drag them in"
@@ -354,18 +400,100 @@ export function DocumentsEditor({ itemId }: { itemId: string }) {
       {(docs.data ?? []).length > 0 && (
         <ul className="divide-y rounded-lg border text-xs">
           {(docs.data ?? []).map((d) => (
-            <li key={d.id} className="flex items-center gap-2 p-2">
-              {(() => {
-                // The name carries the extension the uploader wrote, so a
-                // photograph does not sit in the list looking like a PDF.
-                const Icon = { image: ImageIcon, video: Video, audio: Music, other: FileText }[mediaKindOf(String(d.name))];
-                return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
-              })()}
-              <button type="button" onClick={() => open(d)} className="min-w-0 flex-1 truncate text-left font-medium hover:underline">{String(d.name)}</button>
-              <span className="shrink-0 text-muted-foreground">{(Number(d.size) / 1024 / 1024).toFixed(1)} MB</span>
-              <button type="button" onClick={() => remove(d)} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label={`Remove ${String(d.name)}`}><Trash2 className="h-4 w-4" /></button>
+            <li key={d.id} className="space-y-1.5 p-2">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  // The name carries the extension the uploader wrote, so a
+                  // photograph does not sit in the list looking like a PDF.
+                  const Icon = { image: ImageIcon, video: Video, audio: Music, other: FileText }[mediaKindOf(String(d.name))];
+                  return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />;
+                })()}
+                <button type="button" onClick={() => open(d)} className="min-w-0 flex-1 truncate text-left font-medium hover:underline">{String(d.name)}</button>
+                <span className="shrink-0 text-muted-foreground">{(Number(d.size) / 1024 / 1024).toFixed(1)} MB</span>
+                <button type="button" onClick={() => remove(d)} className="rounded p-1 text-muted-foreground hover:text-destructive" aria-label={`Remove ${String(d.name)}`}><Trash2 className="h-4 w-4" /></button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pl-6">
+                <label className="flex cursor-pointer items-center gap-1.5 text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 cursor-pointer accent-primary"
+                    checked={!!d.is_public}
+                    onChange={(e) => patch(d, { is_public: e.target.checked })}
+                  />
+                  {d.is_public ? <Eye className="h-3.5 w-3.5 text-emerald-600" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  Show on the hub
+                </label>
+                {!!d.is_public && (
+                  // The caption is also the alt text for a photograph, which
+                  // is why it is offered the moment a file becomes public.
+                  <Input
+                    defaultValue={d.caption ? String(d.caption) : ""}
+                    placeholder="What the reader is looking at (optional)"
+                    maxLength={300}
+                    onBlur={(e) => {
+                      const next = e.target.value.trim();
+                      if (next !== (d.caption ?? "")) patch(d, { caption: next || null });
+                    }}
+                    className="h-7 min-w-[12rem] flex-1 text-xs"
+                  />
+                )}
+              </div>
             </li>
           ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The same file control, offered while the item is still being typed.
+ *
+ * Nothing is sent yet: there is no item to attach a file to until the title
+ * and kind are saved. The files sit here, named, until that happens, and the
+ * dialog sends them the moment it has an id. Someone holding the photograph
+ * of the site should not have to remember to come back for it.
+ */
+function StagedFiles({ files, set }: { files: File[]; set: (f: File[]) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const add = (chosen: FileList | null) => {
+    if (!chosen?.length) return;
+    const ok: File[] = [];
+    for (const file of [...chosen]) {
+      const wrong = researchFileError(file);
+      if (wrong) toast.error(`${file.name}: ${wrong}`);
+      else ok.push(file);
+    }
+    if (ok.length) set([...files, ...ok]);
+    if (input.current) input.current.value = "";
+  };
+  return (
+    <div className="space-y-2 rounded-xl border p-3">
+      <p className="text-sm font-semibold">Evidence <span className="font-normal text-muted-foreground">(optional)</span></p>
+      <p className="text-xs text-muted-foreground">
+        The photographs, video, recordings or documents behind this. They are sent when you save, and stay staff-only
+        until you tick <span className="font-medium">Show on the hub</span> for a file afterwards.
+      </p>
+      <DropZone title="Add files, or drag them in" hint={RESEARCH_FILE_HINT} onOpen={() => input.current?.click()} onFiles={add} />
+      <input ref={input} type="file" multiple accept={DOC_ACCEPT} hidden onChange={(e) => add(e.target.files)} />
+      {files.length > 0 && (
+        <ul className="divide-y rounded-lg border text-xs">
+          {files.map((f, i) => {
+            const Icon = { image: ImageIcon, video: Video, audio: Music, other: FileText }[mediaKindOf(f.name)];
+            return (
+              <li key={`${f.name}-${i}`} className="flex items-center gap-2 p-2">
+                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate font-medium">{f.name}</span>
+                <span className="shrink-0 text-muted-foreground">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                <button
+                  type="button"
+                  onClick={() => set(files.filter((_, n) => n !== i))}
+                  className="rounded p-1 text-muted-foreground hover:text-destructive"
+                  aria-label={`Remove ${f.name}`}
+                ><Trash2 className="h-4 w-4" /></button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

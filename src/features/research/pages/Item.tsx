@@ -3,6 +3,7 @@ import { ServiceLayout } from "@/features/services/ui";
 import { useSeo } from "@/lib/seo";
 import { HUB, HUB_NAME, coverUrl, formatDate, kindOne, periodLabel, searchPath, useResearchItem, type ItemDetail } from "../api";
 import { StatsBlock } from "../charts";
+import { EvidenceBlock } from "../evidence";
 import { Chip, DemoBadge, EmptyState, ErrorState, HubCrumbs, KindBadge, RowSkeletons, TextBody, VerifiedBadge } from "../ui";
 import Comments from "@/features/comments/Comments";
 
@@ -123,6 +124,7 @@ export default function HubItem() {
                 <TextBody text={d.body} className="text-base" />
               </section>
             )}
+            <EvidenceBlock evidence={d.evidence} />
             {d.methodology && (
               <section>
                 <h2 className="mb-3 font-display text-2xl font-bold">Methodology</h2>

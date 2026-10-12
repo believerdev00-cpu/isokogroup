@@ -34,13 +34,15 @@ export type Topic = { id: string; slug: string; name: string; parent_id: string 
 export type Stat = { id: string; label: string; value: number | string; unit: string | null; period_label: string | null; period_date: string | null; region_id: string | null; series: string | null; sort: number };
 export type Source = { id: string; title: string; url: string | null; publisher: string | null; source_type: string; published_on: string | null; sort: number };
 export type Related = { id: string; slug: string; kind: Kind; title: string };
+/** A file an analyst marked as evidence: the photograph, recording or paper behind a finding. */
+export type Evidence = { id: string; name: string; path: string; caption: string | null; mime: string | null; size: number | null };
 export type ItemDetail = {
   id: string; slug: string; kind: Kind; title: string; summary: string | null; body: string | null;
   period_start: string | null; period_end: string | null; published_on: string | null; author: string | null; organization: string | null;
   methodology: string | null; origin: "isoko" | "external"; source_name: string | null; source_url: string | null;
   verification: "unverified" | "verified"; verified_at: string | null; featured: boolean; is_demo: boolean; keywords: string[]; tags: string[];
   cover_path: string | null; created_at: string; updated_at: string;
-  stats: Stat[]; sources: Source[]; related: Related[];
+  stats: Stat[]; sources: Source[]; evidence: Evidence[]; related: Related[];
   country: { slug: string; name: string } | null; region: { slug: string; name: string; level: string } | null;
   topic: { slug: string; name: string } | null; subtopic: { slug: string; name: string } | null;
 };
@@ -96,6 +98,40 @@ export function useResearchItem(slug: string | undefined) {
     queryKey: ["research", "item", slug],
     enabled: !!slug,
     queryFn: () => rpc<ItemDetail | null>("research_item_detail", { p_slug: slug }),
+  });
+}
+
+/**
+ * Signed links for one item's evidence, in a single call.
+ *
+ * The research bucket is private and stays private: most of what is in it is
+ * a draft spreadsheet or a questionnaire with somebody's answers in it. What
+ * opened is narrower -- a reader may read the files an analyst marked as
+ * evidence on an item that is on the website, and nothing else, which the
+ * database decides per file (20261011120000_research_evidence.sql).
+ *
+ * So there is no public URL to build, the way there is for a cover picture:
+ * the link has to be signed. Signing is itself the permission check, so a
+ * path that is not evidence simply comes back without a link rather than
+ * yielding one that fails later.
+ *
+ * Kept well inside the hour the link lasts, so a reader still on the page
+ * never meets an image that expired while they were reading.
+ */
+const EVIDENCE_TTL = 60 * 60;
+export function useEvidenceLinks(evidence: Evidence[] | undefined) {
+  const paths = (evidence ?? []).map((e) => e.path);
+  return useQuery({
+    queryKey: ["research", "evidence", paths],
+    enabled: paths.length > 0,
+    staleTime: (EVIDENCE_TTL - 10 * 60) * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from("research").createSignedUrls(paths, EVIDENCE_TTL);
+      if (error) throw error;
+      const links = new Map<string, string>();
+      for (const row of data ?? []) if (row.path && row.signedUrl) links.set(row.path, row.signedUrl);
+      return links;
+    },
   });
 }
 
