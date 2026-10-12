@@ -34,3 +34,9 @@ supabase/functions/training/index.js
 
 # Vercel CLI link
 .vercel
+
+# Local Claude Code permissions (machine-specific; never shared)
+.claude/settings.local.json
+
+# Playwright MCP session logs
+.playwright-mcp/
