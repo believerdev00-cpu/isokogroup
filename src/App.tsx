@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { SiteSettingsProvider } from "@/lib/siteSettings";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ConsentBanner from "@/components/ConsentBanner";
+import FeedbackButton from "@/components/FeedbackButton";
 import { Analytics } from "@/lib/analytics";
 import Index from "./pages/Index";
 import Logistics from "./pages/Logistics";
@@ -87,6 +88,8 @@ const App = () => (
                 {/* Google tag: only with VITE_GOOGLE_TAG_ID and the visitor's consent */}
                 <Analytics />
                 <ConsentBanner />
+                {/* Outside Routes: an opinion occurs to somebody wherever they are */}
+                <FeedbackButton />
                 <ServiceSearchProvider>
                 <MotionConfig reducedMotion={isLiteMotion() ? "always" : "user"}>
                 <PageTransition>
