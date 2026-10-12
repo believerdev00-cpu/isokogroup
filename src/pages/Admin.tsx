@@ -28,6 +28,7 @@ import DataAnalysis from "@/components/admin/DataAnalysis";
 import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
 import MyOverview from "@/components/admin/MyOverview";
 import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
+import AddProductDialog from "@/components/admin/AddProductDialog";
 import InitiativeAdmin from "@/components/admin/InitiativeAdmin";
 import AdvertRequests from "@/components/admin/AdvertRequests";
 import ContactMessages from "@/components/admin/ContactMessages";
@@ -791,10 +792,15 @@ const Admin = () => {
             {/* Products */}
             <TabsContent value="products">
               <Card>
-                <CardHeader><CardTitle>Product Management ({products.length})</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+                  <CardTitle>Product Management ({products.length})</CardTitle>
+                  {user && (
+                    <AddProductDialog adminUserId={user.id} onAdded={fetchAll} />
+                  )}
+                </CardHeader>
                 <CardContent>
                   {products.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No products yet.</p>
+                    <p className="text-muted-foreground text-center py-8">No products yet. Sellers list their own; use “Add product” for one of Isoko's.</p>
                   ) : (
                     <Table>
                       <TableHeader>
