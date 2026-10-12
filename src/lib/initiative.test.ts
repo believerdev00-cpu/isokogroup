@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   APPLICANT_STATUS_LABEL, DONATIONS_OPEN, DONATION_GENERAL, FOCUS_AREAS, MIN_DONATION_RWF,
   PUBLISHABLE_STATUSES, donationTarget, donationTargetValue,
-  SUGGESTED_DONATIONS_RWF, STATUS_TRANSITIONS, classificationLabel, donationAmountProblem,
+  STATUS_TRANSITIONS, classificationLabel, donationAmountProblem,
   donationProblem, donationReferenceProblem, isValidClassification, rwf, type ProjectStatus,
 } from "./initiative";
 
@@ -128,9 +128,24 @@ describe("money", () => {
     expect(MIN_DONATION_RWF).toBe(1000);
     expect(rwf(1000)).toBe("1,000 RWF");
     expect(rwf(null)).toBe("0 RWF");
-    // Every suggested amount is a round figure in francs at or above the
-    // minimum. None of them is derived from a rate against another currency.
-    expect(SUGGESTED_DONATIONS_RWF.every((v) => Number.isInteger(v) && v >= MIN_DONATION_RWF)).toBe(true);
+    // The minimum is a round figure in francs, not a rate against another
+    // currency: "$1" is the campaign's name and the site never claims the
+    // two amounts are equal.
+    expect(donationAmountProblem(MIN_DONATION_RWF)).toBeNull();
+    expect(donationAmountProblem(MIN_DONATION_RWF - 1)).not.toBeNull();
+  });
+
+  /**
+   * No suggested amounts, on purpose.
+   *
+   * There were four buttons starting at a thousand francs. A campaign that
+   * asks for a dollar should not open with a row of figures that tells
+   * somebody their dollar is not what is wanted, and the largest button
+   * quietly sets the mark everyone measures against.
+   */
+  it("suggests no amounts at all", async () => {
+    const lib = await import("./initiative");
+    expect("SUGGESTED_DONATIONS_RWF" in lib).toBe(false);
   });
 
   it("is being collected", () => {

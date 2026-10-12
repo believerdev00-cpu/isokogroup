@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { errorText } from "@/features/services/api";
 import {
   BENEFIT_DAYS, DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF, PAYMENT_METHODS,
-  SUGGESTED_DONATIONS_RWF, donationAmountProblem, donationProblem, donationTarget,
+  donationAmountProblem, donationProblem, donationTarget,
   donationTargetValue, rwf, type PaymentMethod,
 } from "@/lib/initiative";
 import {
@@ -61,22 +61,9 @@ function ChooseStep({
 
       <div className="space-y-3">
         <Label>How much would you like to give?</Label>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {SUGGESTED_DONATIONS_RWF.map((v) => (
-            <Button
-              key={v}
-              type="button"
-              variant={Number(amount) === v ? "default" : "outline"}
-              onClick={() => setAmount(String(v))}
-              className="h-11"
-            >
-              {v.toLocaleString()}
-            </Button>
-          ))}
-        </div>
         <div className="space-y-1.5">
           <Label htmlFor="donate-amount" className="text-xs font-normal text-muted-foreground">
-            Or another amount, in whole Rwandan francs
+            Any amount you wish, in whole Rwandan francs
           </Label>
           <Input
             id="donate-amount"

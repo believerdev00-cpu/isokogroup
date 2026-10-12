@@ -149,7 +149,16 @@ export const MIN_DONATION_RWF = 1000;
  * so they are changed together, exactly as the focus areas are.
  */
 export const BENEFIT_DAYS = 30;
-export const SUGGESTED_DONATIONS_RWF = [1000, 5000, 10000, 25000];
+/**
+ * No suggested amounts.
+ *
+ * There were four buttons -- 1,000, 5,000, 10,000, 25,000 -- and they were
+ * the wrong idea for this campaign. "$1 One Project" asks for a dollar or
+ * whatever somebody can manage; a row of figures starting at a thousand
+ * francs tells a person their dollar is not what is wanted here, and the
+ * largest button quietly sets the mark everyone else measures against.
+ * The field takes any amount at or above the minimum.
+ */
 
 /**
  * Donations are collected. Nothing on the site moves money: a donor pays ISOKO
