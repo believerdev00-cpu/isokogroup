@@ -19,6 +19,63 @@ type Playable = {
 };
 
 /**
+ * Why playback stopped, as precisely as the browser is willing to say.
+ *
+ * There are four MediaError codes and they mean genuinely different things,
+ * but this used to be one sentence that blamed Matroska for all of them and
+ * ended "Nothing is wrong with the file." That sentence was shown for a film
+ * stored as 24 bytes by an upload that never finished -- where something was
+ * very much wrong with the file, and no browser on earth would have played
+ * it. Guessing one cause and stating it as fact costs more than saying less.
+ *
+ * `code` is null when no link could be made at all, which is a different
+ * failure again: the file is not in storage, so playback never started.
+ */
+function PlaybackProblem({ code, path, onRetry }: { code: number | null; path: string | null; onRetry: () => void }) {
+  const matroska = (path ?? "").toLowerCase().endsWith(".mkv");
+  const { title, detail, retry } =
+    code === null
+      ? {
+          title: "This video could not be loaded.",
+          detail: "The file is not in storage. It may never have finished uploading, in which case it has to be uploaded again.",
+          retry: true,
+        }
+      : code === 2 // MEDIA_ERR_NETWORK
+      ? {
+          title: "The connection to the video was lost.",
+          detail: "The link may have expired while this page was open. Try again for a fresh one.",
+          retry: true,
+        }
+      : code === 3 // MEDIA_ERR_DECODE
+      ? {
+          title: "This video is damaged.",
+          detail: "The file was reached but could not be decoded, which usually means it did not upload completely.",
+          retry: false,
+        }
+      : code === 4 // MEDIA_ERR_SRC_NOT_SUPPORTED
+      ? {
+          title: matroska ? "This browser cannot play this video." : "This video could not be read.",
+          detail: matroska
+            ? "It is a Matroska (.mkv) file, and browsers disagree about those. Google Chrome or Microsoft Edge will often play it; nothing is wrong with the file."
+            : "The browser could not read it. Either it is in a format this browser lacks, or the file is incomplete -- an upload that stopped partway leaves a file that opens nowhere.",
+          retry: false,
+        }
+      : { title: "This video stopped.", detail: "Playback was interrupted before it finished.", retry: true };
+
+  return (
+    <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-black p-6 text-center">
+      <p className="font-semibold text-white">{title}</p>
+      <p className="max-w-md text-sm text-neutral-400">{detail}</p>
+      {retry && (
+        <button type="button" onClick={onRetry} className="mt-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20">
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
  * Plays a film or episode. YouTube items play for everyone; files kept by
  * Isoko play for subscribers (the link is signed only for them), others get
  * the way in. Nothing loads until they press play.
@@ -28,11 +85,16 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
   const { isActive } = useSubscription();
   const location = useLocation();
   const [url, setUrl] = useState<string | null>(null);
-  const [state, setState] = useState<"idle" | "loading" | "denied">("idle");
-  // Browsers disagree about Matroska: Chrome and Edge play some .mkv files,
-  // Firefox and Safari generally play none. Rather than leave a black rectangle,
-  // the player says so when the file will not run.
-  const [cannotPlay, setCannotPlay] = useState(false);
+  const [state, setState] = useState<"idle" | "loading" | "denied" | "missing">("idle");
+  // Which MediaError the browser raised, or null while nothing has failed.
+  //
+  // This was a single flag that always blamed Matroska. It was wrong in the
+  // case that actually happened: a film whose upload had left 24 bytes in
+  // storage failed in every browser, and the page said the format was
+  // unsupported and "nothing is wrong with the file" -- so the next person
+  // went looking at their browser instead of at the file. The element knows
+  // more than one thing went wrong, so the page should say which.
+  const [failed, setFailed] = useState<number | null>(null);
 
   if (!item.watch_source || !item.watch_ref) {
     return <p className="rounded-xl bg-white/5 p-4 text-sm text-neutral-400">Not available to play yet.</p>;
@@ -42,8 +104,13 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
   const start = async () => {
     setState("loading");
     const link = await playbackUrl(item);
-    if (!link) return setState("denied");
-    setCannotPlay(false);
+    // Storage refuses to sign both when the person may not watch and when
+    // there is nothing at that path, and it answers "not found" either way.
+    // Only the first is about them, so only the first asks them to subscribe:
+    // telling a paying subscriber to subscribe because a file is missing
+    // sends them to the one page that cannot help.
+    if (!link) return setState(needsAccess && (!user || !isActive) ? "denied" : "missing");
+    setFailed(null);
     setUrl(link);
     setState("idle");
   };
@@ -61,17 +128,16 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
     // one-click copy of the film. It is a closed door, not a locked one: the
     // signed link is still in the page and can be fetched by hand. Only a video
     // platform with segmented, encrypted delivery changes that.
+    if (failed !== null) return <PlaybackProblem code={failed} path={item.watch_ref} onRetry={start} />;
     return audio ? (
-      <audio src={url} controls controlsList="nodownload" autoPlay className="w-full" />
-    ) : (
-      cannotPlay ? (
-      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-black p-6 text-center">
-        <p className="font-semibold text-white">This browser cannot play this video.</p>
-        <p className="max-w-md text-sm text-neutral-400">
-          It is stored in a format your browser does not support -- Matroska (.mkv) is the usual
-          reason. Google Chrome or Microsoft Edge will often play it. Nothing is wrong with the file.
-        </p>
-      </div>
+      <audio
+        src={url}
+        controls
+        controlsList="nodownload"
+        onError={(e) => setFailed(e.currentTarget.error?.code ?? 0)}
+        autoPlay
+        className="w-full"
+      />
     ) : (
       <video
         src={url}
@@ -79,14 +145,16 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
         controlsList="nodownload"
         disablePictureInPicture
         onContextMenu={(e) => e.preventDefault()}
-        onError={() => setCannotPlay(true)}
+        onError={(e) => setFailed(e.currentTarget.error?.code ?? 0)}
         autoPlay
         playsInline
         poster={poster ?? undefined}
         className="aspect-video w-full rounded-xl bg-black"
       />
-    ));
+    );
   }
+
+  if (state === "missing") return <PlaybackProblem code={null} path={item.watch_ref} onRetry={start} />;
 
   if (needsAccess && (!user || !isActive || state === "denied")) {
     return (

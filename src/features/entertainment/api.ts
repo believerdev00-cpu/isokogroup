@@ -408,12 +408,45 @@ export async function uploadMediaFile(folder: string, file: File, onProgress?: (
   const path = `${folder}/${crypto.randomUUID()}.${file.name.split(".").pop()?.toLowerCase() ?? "bin"}`;
   if (file.size > RESUMABLE_FROM_MB * 1024 * 1024) {
     await uploadInPieces(path, file, contentType, onProgress);
+    await assertStored(path, file.size);
     return path;
   }
   onProgress?.(0);
   unwrap(await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, { contentType, upsert: false }));
   onProgress?.(100);
+  await assertStored(path, file.size);
   return path;
+}
+
+/**
+ * Checks that what is in storage is the whole file, before anyone is told the
+ * upload worked.
+ *
+ * A film on the live site turned out to be 24 bytes: an upload had reported
+ * success, the desk saved the path, and the item was published. Nobody found
+ * out until a visitor pressed play, and even then the player blamed their
+ * browser. A resumable upload has several ways to end early and still leave
+ * an object behind, so the only reliable question is how many bytes arrived.
+ *
+ * It asks storage rather than trusting the uploader, and refuses rather than
+ * guesses: a size that cannot be read is reported too, because publishing a
+ * film nobody can watch is worse than one more upload.
+ */
+async function assertStored(path: string, expected: number) {
+  const slash = path.lastIndexOf("/");
+  const folder = slash < 0 ? "" : path.slice(0, slash);
+  const name = path.slice(slash + 1);
+  const { data, error } = await supabase.storage.from(PRIVATE_BUCKET).list(folder, { search: name, limit: 1 });
+  if (error) throw new Error(`The upload could not be confirmed: ${error.message}. Please try again.`);
+  const stored = data?.find((o) => o.name === name);
+  const size = Number(stored?.metadata?.size);
+  if (!stored || !Number.isFinite(size)) {
+    throw new Error("The upload did not finish: nothing arrived in storage. Please try again.");
+  }
+  if (size !== expected) {
+    const mb = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
+    throw new Error(`The upload stopped early: ${mb(size)} of ${mb(expected)} arrived. Please try again.`);
+  }
 }
 
 // ============== QUERIES ==============

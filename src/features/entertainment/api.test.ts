@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const upload = vi.hoisted(() => vi.fn());
+const list = vi.hoisted(() => vi.fn());
 const getSession = vi.hoisted(() => vi.fn());
 const tusUploads = vi.hoisted(() => [] as { file: unknown; options: Record<string, never> & Record<string, unknown>; started: boolean }[]);
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { storage: { from: () => ({ upload }) }, auth: { getSession } },
+  supabase: { storage: { from: () => ({ upload, list }) }, auth: { getSession } },
 }));
 
 // A stand-in for the resumable protocol: it records how it was set up, reports
@@ -38,10 +39,14 @@ vi.mock("tus-js-client", () => ({
 import { MATROSKA, MAX_UPLOAD_MB, MEDIA_TYPES, PRIVATE_BUCKET, RECOMMENDED_FORMAT, RESUMABLE_FROM_MB, mediaTypeOf, playbackCaution, playbackWindowSeconds, uploadMediaFile } from "./api";
 import { BUCKET_LIMIT_MB, PLATFORM_UPLOAD_MB } from "@/lib/uploadLimits";
 
+/** What the most recent `sized` file claims to weigh, for the storage stand-in. */
+let lastSize = 0;
+
 /** A File of a given size without putting the bytes in memory. */
 const sized = (mb: number, type = "video/mp4", name = "film.mp4") => {
   const f = new File([new Uint8Array(0)], name, { type });
-  Object.defineProperty(f, "size", { value: Math.round(mb * 1024 * 1024) });
+  lastSize = Math.round(mb * 1024 * 1024);
+  Object.defineProperty(f, "size", { value: lastSize });
   return f;
 };
 
@@ -50,6 +55,12 @@ describe("how large a film may be", () => {
     upload.mockReset();
     upload.mockResolvedValue({ data: { path: "films/x.mp4" }, error: null });
     getSession.mockResolvedValue({ data: { session: { access_token: "staff-token" } } });
+    // By default storage reports back exactly what was sent, so the upload is
+    // confirmed; the tests below override this to describe a short one.
+    list.mockReset();
+    list.mockImplementation((_folder: string, opts: { search: string }) =>
+      Promise.resolve({ data: [{ name: opts.search, metadata: { size: lastSize } }], error: null }),
+    );
     tusUploads.length = 0;
   });
 
@@ -112,6 +123,42 @@ describe("how large a film may be", () => {
   it("asks a signed-out visitor to sign in instead of uploading", async () => {
     getSession.mockResolvedValue({ data: { session: null } });
     await expect(uploadMediaFile("films", sized(MAX_UPLOAD_MB))).rejects.toThrow(/sign in/i);
+    expect(tusUploads).toHaveLength(0);
+  });
+
+  // A film on the live site was 24 bytes: the upload reported success, the
+  // desk saved the path, the item was published, and the first anyone knew
+  // was a visitor pressing play. What is in storage is now checked before
+  // the caller is told the upload worked.
+  it("refuses an upload that arrived short", async () => {
+    const file = sized(20);
+    list.mockImplementation((_f: string, o: { search: string }) =>
+      Promise.resolve({ data: [{ name: o.search, metadata: { size: 24 } }], error: null }),
+    );
+    await expect(uploadMediaFile("films", file)).rejects.toThrow(/stopped early/);
+  });
+
+  it("refuses an upload that left nothing behind", async () => {
+    list.mockResolvedValue({ data: [], error: null });
+    await expect(uploadMediaFile("films", sized(20))).rejects.toThrow(/did not finish/);
+  });
+
+  it("refuses when storage will not say what arrived", async () => {
+    // Publishing a film nobody can watch is worse than one more upload.
+    list.mockResolvedValue({ data: null, error: { message: "network down" } });
+    await expect(uploadMediaFile("films", sized(20))).rejects.toThrow(/could not be confirmed/);
+  });
+
+  it("accepts an upload that arrived whole", async () => {
+    await expect(uploadMediaFile("films", sized(20))).resolves.toMatch(/^films\/.+\.mp4$/);
+  });
+
+  it("checks the small-file path too, not only the resumable one", async () => {
+    const small = sized(RESUMABLE_FROM_MB / 2);
+    list.mockImplementation((_f: string, o: { search: string }) =>
+      Promise.resolve({ data: [{ name: o.search, metadata: { size: 24 } }], error: null }),
+    );
+    await expect(uploadMediaFile("films", small)).rejects.toThrow(/stopped early/);
     expect(tusUploads).toHaveLength(0);
   });
 
