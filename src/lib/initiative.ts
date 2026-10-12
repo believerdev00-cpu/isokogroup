@@ -140,6 +140,15 @@ export const APPLICANT_STATUS_LABEL: Record<string, string> = {
  * minimum as a CHECK constraint, so the two must be changed together.
  */
 export const MIN_DONATION_RWF = 1000;
+
+/**
+ * The thank-you for a confirmed donation, in days.
+ *
+ * The database decides this -- initiative_benefit_days() is what the grant
+ * actually uses -- and this is only what the pages promise. They must agree,
+ * so they are changed together, exactly as the focus areas are.
+ */
+export const BENEFIT_DAYS = 30;
 export const SUGGESTED_DONATIONS_RWF = [1000, 5000, 10000, 25000];
 
 /**

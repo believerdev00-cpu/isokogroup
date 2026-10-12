@@ -141,4 +141,25 @@ describe("the homepage promise is kept on the page itself", () => {
     const { container } = mount(ok([]), ok([]), empty());
     expect(container.textContent).toContain("No card details are ever asked for");
   });
+
+  /**
+   * The thank-you has to be on the page, not only inside the dialog.
+   *
+   * It was built the other way round first: the month of Premium was
+   * mentioned on the second step of the donate dialog, after somebody had
+   * already chosen an amount and pressed Next. A reason to give that only
+   * appears once you have decided to give is not a reason to give, and from
+   * the outside the whole feature looked as though it had never shipped.
+   */
+  it("promises the month of Premium where somebody decides, on the page itself", () => {
+    const { container } = mount(ok([]), ok([]), empty());
+    expect(container.textContent).toContain("month of Premium access");
+    expect(container.textContent).toContain("nothing renews");
+  });
+
+  it("does not promise it before the payment is checked", () => {
+    const { container } = mount(ok([]), ok([]), empty());
+    // The tense matters: a claim nobody has verified is not a donation yet.
+    expect(container.textContent).toContain("once Isoko has checked your payment");
+  });
 });

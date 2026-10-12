@@ -19,7 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { errorText } from "@/features/services/api";
 import {
-  DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF, PAYMENT_METHODS,
+  BENEFIT_DAYS, DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF, PAYMENT_METHODS,
   SUGGESTED_DONATIONS_RWF, donationAmountProblem, donationProblem, donationTarget,
   donationTargetValue, rwf, type PaymentMethod,
 } from "@/lib/initiative";
@@ -52,6 +52,13 @@ function ChooseStep({
 
   return (
     <div className="space-y-6">
+      {/* Before the amount, not after it: a thank-you nobody sees until they
+          have already decided is not a thank-you, it is a footnote. */}
+      <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm leading-relaxed">
+        <span className="font-semibold">Every confirmed donation earns a month of Premium access.</span>{" "}
+        It starts when Isoko has checked your payment and runs {BENEFIT_DAYS} days.
+      </p>
+
       <div className="space-y-3">
         <Label>How much would you like to give?</Label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -230,9 +237,9 @@ function PayStep({
 
         {/* Said before they commit, and carefully: nothing is confirmed yet. */}
         <div className="rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
-          Once Isoko has checked your payment, you get <span className="font-medium text-foreground">30 days of Premium
-          access</span> as thanks. It starts when the payment is confirmed, not now, and it simply ends after 30 days —
-          nothing renews and nothing is charged.
+          Once Isoko has checked your payment, you get <span className="font-medium text-foreground">{BENEFIT_DAYS} days
+          of Premium access</span> as thanks. It starts when the payment is confirmed, not now, and it simply ends after
+          {" "}{BENEFIT_DAYS} days — nothing renews and nothing is charged.
           {email && <> We will write to <span className="font-medium text-foreground">{email}</span>.</>}
         </div>
       </div>

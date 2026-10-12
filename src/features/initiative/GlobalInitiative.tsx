@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useSeo } from "@/lib/seo";
 import {
-  DONATIONS_OPEN, FOCUS_AREAS, MIN_DONATION_RWF, classificationLabel, rwf,
+  BENEFIT_DAYS, DONATIONS_OPEN, FOCUS_AREAS, MIN_DONATION_RWF, classificationLabel, rwf,
 } from "@/lib/initiative";
 import { INITIATIVE, INITIATIVE_NAME, TAGLINE, useImpact, usePublicProjects, type PublicProject } from "./api";
 import DonateDialog from "./DonateDialog";
@@ -282,6 +282,11 @@ export default function GlobalInitiative() {
                 Contributions are made in Rwandan Francs to ISOKO GROUP&apos;s own Mobile Money and bank
                 accounts. You pay us directly and send the transaction reference, and we match it against
                 our records before it counts towards a project.
+              </p>
+              <p className="mx-auto max-w-2xl rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed">
+                <span className="font-semibold">As thanks, every confirmed donation earns a month of Premium access.</span>{" "}
+                It begins once Isoko has checked your payment, runs {BENEFIT_DAYS} days, and then simply ends — nothing
+                renews and nothing is charged.
               </p>
             </div>
 
