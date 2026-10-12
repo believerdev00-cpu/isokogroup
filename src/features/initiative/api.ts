@@ -239,6 +239,12 @@ export type DonationInput = {
   donor_name: string | null;
   donor_email: string | null;
   anonymous: boolean;
+  /**
+   * Whatever the donor wanted to say. Kept for the office and never shown on
+   * the website, because a remark can carry a name, a grievance or a phone
+   * number and the public pages show no donor detail at all.
+   */
+  donor_note: string | null;
 };
 
 /**

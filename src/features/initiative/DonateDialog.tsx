@@ -153,11 +153,14 @@ function ChooseStep({
 
 /** Pay the company, then tell us the reference so an admin can find it. */
 function PayStep({
-  amount, method, setMethod, reference, setReference, saving, onBack, onSubmit,
+  amount, method, setMethod, reference, setReference, note, setNote, email, saving, onBack, onSubmit,
 }: {
   amount: number;
   method: PaymentMethod; setMethod: (m: PaymentMethod) => void;
   reference: string; setReference: (v: string) => void;
+  note: string; setNote: (v: string) => void;
+  /** Where the receipt goes: the address on the account, shown so it is no surprise. */
+  email: string | null;
   saving: boolean; onBack: () => void; onSubmit: () => void;
 }) {
   const problem = reference === "" ? null : donationProblem(amount, reference);
@@ -206,6 +209,31 @@ function PayStep({
           <p className="text-xs text-muted-foreground">
             Your contribution counts once we have matched it against our Mobile Money and bank records.
           </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="donate-note" className="text-xs font-normal text-muted-foreground">
+            Anything you would like to tell us (optional)
+          </Label>
+          <Textarea
+            id="donate-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="A comment, a recommendation, or what you would like this to go towards"
+            maxLength={2000}
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground">
+            Read by the Isoko office only. It is never shown on the website.
+          </p>
+        </div>
+
+        {/* Said before they commit, and carefully: nothing is confirmed yet. */}
+        <div className="rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+          Once Isoko has checked your payment, you get <span className="font-medium text-foreground">30 days of Premium
+          access</span> as thanks. It starts when the payment is confirmed, not now, and it simply ends after 30 days —
+          nothing renews and nothing is charged.
+          {email && <> We will write to <span className="font-medium text-foreground">{email}</span>.</>}
         </div>
       </div>
 
@@ -273,6 +301,7 @@ export default function DonateDialog({
   const [name, setName] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("momo");
   const [reference, setReference] = useState("");
+  const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
   // A fresh dialog each time it is opened, so a finished contribution is not
@@ -286,6 +315,7 @@ export default function DonateDialog({
     setName("");
     setMethod("momo");
     setReference("");
+    setNote("");
     setSaving(false);
   }, [open, initialProjectId]);
 
@@ -304,6 +334,7 @@ export default function DonateDialog({
         donor_name: anonymous ? null : (name.trim() || null),
         donor_email: user.email ?? null,
         anonymous,
+        donor_note: note.trim() || null,
       });
       await queryClient.invalidateQueries({ queryKey: ["initiative"] });
       setStep("done");
@@ -369,6 +400,8 @@ export default function DonateDialog({
                 amount={chosen}
                 method={method} setMethod={setMethod}
                 reference={reference} setReference={setReference}
+                note={note} setNote={setNote}
+                email={user?.email ?? null}
                 saving={saving}
                 onBack={() => setStep("choose")}
                 onSubmit={submit}

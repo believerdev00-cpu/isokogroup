@@ -31,6 +31,7 @@ import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
 import ProductDialog, { type EditableProduct } from "@/components/admin/ProductDialog";
 import PackagingPricesAdmin from "@/components/admin/PackagingPricesAdmin";
 import InitiativeAdmin from "@/components/admin/InitiativeAdmin";
+import InitiativeDonationsAdmin from "@/components/admin/InitiativeDonationsAdmin";
 import AdvertRequests from "@/components/admin/AdvertRequests";
 import ContactMessages from "@/components/admin/ContactMessages";
 import CommentModeration from "@/components/admin/CommentModeration";
@@ -529,7 +530,10 @@ const Admin = () => {
             <TabsContent value="couriers"><CouriersAdmin /></TabsContent>
             <TabsContent value="training"><TrainingCenterAdmin /></TabsContent>
             <TabsContent value="services"><ServiceStaffAdmin /></TabsContent>
-            <TabsContent value="initiative"><InitiativeAdmin /></TabsContent>
+            <TabsContent value="initiative" className="space-y-6">
+              <InitiativeAdmin />
+              <InitiativeDonationsAdmin />
+            </TabsContent>
             <TabsContent value="adverts"><AdvertRequests /></TabsContent>
             <TabsContent value="messages"><ContactMessages /></TabsContent>
             <TabsContent value="comments"><CommentModeration /></TabsContent>
