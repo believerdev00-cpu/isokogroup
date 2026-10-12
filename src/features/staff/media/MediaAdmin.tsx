@@ -41,7 +41,7 @@ const EPISODES: EntityConfig = {
   fields: [
     { key: "name", label: "Episode title", type: "text", required: true, basic: true },
     { key: "description", label: "Description", type: "textarea", basic: true },
-    { key: "watch", label: "Video or audio", type: "watch", folder: "episodes", basic: true },
+    { key: "watch", label: "Video or audio", type: "watch", folder: "episodes", hosted: "episode", basic: true },
     { key: "number", label: "Episode number", type: "number", required: true },
     { key: "season", label: "Season", type: "number", required: true },
     { key: "format", label: "Audio or video", type: "select", required: true, options: opts([["audio", "Audio"], ["video", "Video"]]) },
@@ -82,7 +82,7 @@ const titleConfig = (kind: "film" | "podcast" | "series"): EntityConfig => ({
     {
       key: "watch",
       label: kind === "film" ? "Video" : kind === "series" ? "Trailer or video" : "Trailer or audio",
-      type: "watch", folder: kind === "film" ? "films" : kind === "series" ? "series" : "podcasts", basic: true,
+      type: "watch", folder: kind === "film" ? "films" : kind === "series" ? "series" : "podcasts", hosted: "title", basic: true,
       ...(kind === "film" ? {} : { help: "Optional. The episodes below are what people come to watch; this plays on the page that introduces them." }),
     },
     { key: "tagline", label: "Short tagline", type: "text", wide: true },

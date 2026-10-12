@@ -40,7 +40,8 @@ export type Creator = Common & {
   is_free: boolean;
 };
 
-export type WatchSource = "storage" | "youtube";
+/** 'bunny' is video held by the provider; films and episodes only, for now. */
+export type WatchSource = "storage" | "youtube" | "bunny";
 
 export type TitleKind = "film" | "podcast" | "series";
 

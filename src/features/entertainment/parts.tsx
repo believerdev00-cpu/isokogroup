@@ -7,11 +7,17 @@ import { cn } from "@/lib/utils";
 import { whatsappLink } from "@/features/services/api";
 import { mediaKindOf } from "@/lib/mediaKind";
 import { isAudioRef, mediaUrl, playbackUrl, youtubeEmbed, type WatchSource } from "./api";
+import { bunnyPlayback, type BunnyKind, type PlaybackRefusal } from "./bunny";
 import { DemoBadge } from "./ui";
 
 // duration_minutes is here so the signed link can be made to last the film
 // and no longer. Every caller passes a whole title or episode, which carries it.
+//
+// id is here for Bunny-hosted video, where the browser asks the server about
+// a record rather than about a video: the server looks the video id up, so
+// there is nothing for a caller to swap.
 type Playable = {
+  id?: string;
   watch_source: WatchSource | null;
   watch_ref: string | null;
   is_free: boolean;
@@ -31,10 +37,45 @@ type Playable = {
  * `code` is null when no link could be made at all, which is a different
  * failure again: the file is not in storage, so playback never started.
  */
-function PlaybackProblem({ code, path, onRetry }: { code: number | null; path: string | null; onRetry: () => void }) {
+function PlaybackProblem({ code, path, reason, onRetry }: { code: number | null; path: string | null; reason?: PlaybackRefusal | null; onRetry: () => void }) {
   const matroska = (path ?? "").toLowerCase().endsWith(".mkv");
   const { title, detail, retry } =
-    code === null
+    // A refusal from the server is not a playback failure: the video was
+    // never handed over, and the reason is known exactly rather than guessed.
+    reason === "processing"
+      ? {
+          title: "This video is still being prepared.",
+          detail: "The host is still converting it. This usually takes a few minutes; it will play once that finishes.",
+          retry: true,
+        }
+      : reason === "failed"
+      ? {
+          // Said plainly, and without blaming the viewer's browser or
+          // calling the file corrupted: the conversion is what failed, the
+          // staff already know, and no amount of retrying helps.
+          title: "This video could not be prepared.",
+          detail: "Converting it did not succeed, so there is nothing to play yet. Isoko has to upload it again — trying again here will not help.",
+          retry: false,
+        }
+      : reason === "subscription"
+      ? {
+          title: "This video is for subscribers.",
+          detail: "Subscribe to watch the full content.",
+          retry: false,
+        }
+      : reason === "not_hosted"
+      ? {
+          title: "This video is not ready yet.",
+          detail: "No video file has been attached to this item.",
+          retry: false,
+        }
+      : reason === "missing" || reason === "unknown"
+      ? {
+          title: "This video could not be loaded.",
+          detail: "It may have been removed, or it is not on the website yet.",
+          retry: true,
+        }
+      : code === null
       ? {
           title: "This video could not be loaded.",
           detail: "The file is not in storage. It may never have finished uploading, in which case it has to be uploaded again.",
@@ -80,7 +121,7 @@ function PlaybackProblem({ code, path, onRetry }: { code: number | null; path: s
  * Isoko play for subscribers (the link is signed only for them), others get
  * the way in. Nothing loads until they press play.
  */
-export function Player({ item, audio, poster, label = "Play" }: { item: Playable; audio?: boolean; poster?: string | null; label?: string }) {
+export function Player({ item, kind, audio, poster, label = "Play" }: { item: Playable; kind?: BunnyKind; audio?: boolean; poster?: string | null; label?: string }) {
   const { user } = useAuth();
   const { isActive } = useSubscription();
   const location = useLocation();
@@ -95,14 +136,33 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
   // went looking at their browser instead of at the file. The element knows
   // more than one thing went wrong, so the page should say which.
   const [failed, setFailed] = useState<number | null>(null);
+  // Why the server would not hand the video over, when that is the answer.
+  const [refused, setRefused] = useState<PlaybackRefusal | null>(null);
 
   if (!item.watch_source || !item.watch_ref) {
     return <p className="rounded-xl bg-white/5 p-4 text-sm text-neutral-400">Not available to play yet.</p>;
   }
-  const needsAccess = item.watch_source === "storage" && !item.is_free;
+  const hosted = item.watch_source === "bunny";
+  const needsAccess = (item.watch_source === "storage" || hosted) && !item.is_free;
 
   const start = async () => {
     setState("loading");
+    setRefused(null);
+    setFailed(null);
+
+    // Provider-hosted video: the server decides and signs, so the refusal it
+    // gives back is the real reason rather than a guess made from a failure.
+    if (hosted) {
+      if (!kind || !item.id) return setRefused("not_hosted");
+      const answer = await bunnyPlayback(kind, item.id);
+      if (!answer.ok) {
+        setState("idle");
+        return setRefused(answer.reason);
+      }
+      setUrl(answer.data.url);
+      return setState("idle");
+    }
+
     const link = await playbackUrl(item);
     // Storage refuses to sign both when the person may not watch and when
     // there is nothing at that path, and it answers "not found" either way.
@@ -115,7 +175,26 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
     setState("idle");
   };
 
+  // A refusal outranks anything else: there is no video to show.
+  if (refused) return <PlaybackProblem code={null} reason={refused} path={item.watch_ref} onRetry={start} />;
+
   if (url) {
+    // Bunny plays in its own player, which is what the signed token admits
+    // the viewer to. Same box as the YouTube embed so the page is unchanged.
+    if (hosted) {
+      return (
+        <div className="aspect-video overflow-hidden rounded-xl bg-black">
+          <iframe
+            src={url}
+            title="Player"
+            loading="lazy"
+            className="h-full w-full"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
     if (item.watch_source === "youtube") {
       return (
         <div className="aspect-video overflow-hidden rounded-xl bg-black">
@@ -190,13 +269,13 @@ export function Player({ item, audio, poster, label = "Play" }: { item: Playable
  * a heading, or nothing at all when it has none. Audio is played as audio: a
  * black rectangle for a voice clip helps nobody.
  */
-export function SectorMedia({ item, poster, heading }: { item: Playable; poster?: string | null; heading?: string }) {
+export function SectorMedia({ item, kind, poster, heading }: { item: Playable; kind?: BunnyKind; poster?: string | null; heading?: string }) {
   if (!item.watch_source || !item.watch_ref) return null;
   const audio = item.watch_source === "storage" && isAudioRef(item.watch_ref);
   return (
     <section className="mx-auto w-full max-w-6xl px-4 pt-6">
       <h2 className="mb-3 font-display text-2xl font-bold">{heading ?? (audio ? "Listen" : "Watch")}</h2>
-      <Player item={item} audio={audio} poster={poster} />
+      <Player item={item} kind={kind} audio={audio} poster={poster} />
     </section>
   );
 }

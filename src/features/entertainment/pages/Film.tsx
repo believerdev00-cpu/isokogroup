@@ -313,7 +313,7 @@ export function SeriesDetail() {
 
       {/* The series' own video: a trailer, and only while no episode is
           playing -- two players on one page compete for the same attention. */}
-      {!current && <SectorMedia item={s} poster={s.poster_path} heading={t("ent.trailer")} />}
+      {!current && <SectorMedia item={s} kind="title" poster={s.poster_path} heading={t("ent.trailer")} />}
 
       <div className="grid gap-10 px-4 md:grid-cols-[1fr_320px] md:px-10">
         <div className="space-y-8">
@@ -322,7 +322,7 @@ export function SeriesDetail() {
               <StaffOnlyBanner status={current.status} />
               <p className="text-xs uppercase tracking-[0.2em] text-primary">{epLabel(current)}</p>
               <h2 className="font-display text-2xl font-bold">{current.name}</h2>
-              <Player item={current} audio={current.format === "audio"} poster={mediaUrl(current.thumb_path ?? s.backdrop_path ?? s.poster_path)} label={t("ent.watch")} />
+              <Player item={current} kind="episode" audio={current.format === "audio"} poster={mediaUrl(current.thumb_path ?? s.backdrop_path ?? s.poster_path)} label={t("ent.watch")} />
               {current.description && <p className="whitespace-pre-line text-neutral-300">{current.description}</p>}
             </section>
           )}

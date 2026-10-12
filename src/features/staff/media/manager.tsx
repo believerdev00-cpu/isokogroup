@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Check, ChevronDown, Eye, EyeOff, MoreVertical, Loader2, Music, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Archive, Check, ChevronDown, Eye, EyeOff, MoreVertical, Loader2, Music, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { db, errorText, unwrap } from "@/features/services/api";
 import { MAX_IMAGE_MB, MAX_UPLOAD_MB, RECOMMENDED_FORMAT, mediaTypeOf, mediaUrl, playbackCaution, uploadDisplayImage, uploadMediaFile, uploadPublicMedia, youtubeId, type Status } from "@/features/entertainment/api";
+import { SOURCE_ACCEPT, bunnyStatus, uploadToBunny, type BunnyKind, type BunnyStatus } from "@/features/entertainment/bunny";
 import { MEDIA_ACCEPT, fileKind, mediaKindOf } from "@/lib/mediaKind";
 import { uploadLimitMb } from "@/lib/uploadLimits";
 import { EmptyState, Pill } from "../common";
@@ -36,6 +37,12 @@ export type Field = {
   /** image: also store the width/height in these columns */
   dims?: [string, string];
   folder?: string;
+  /**
+   * watch: this record may also hold a video at the hosting provider, where
+   * a full film fits. Only films, series, podcasts and their episodes -- the
+   * things the provider's access rule knows how to answer about.
+   */
+  hosted?: BunnyKind;
   required?: boolean;
   help?: string;
   /** asked for up front; the rest waits under "More details" */
@@ -533,7 +540,7 @@ function FieldInput({ field: f, draft, set }: { field: Field; draft: Row; set: (
     case "image":
       return wrapFile(<ImageInput value={v as string | null} folder={f.folder ?? "misc"} onChange={(path, w, h) => set({ [f.key]: path, ...(f.dims ? { [f.dims[0]]: w, [f.dims[1]]: h } : {}) })} />, f.wide);
     case "watch":
-      return <WatchInput draft={draft} set={set} folder={f.folder ?? "media"} />;
+      return <WatchInput draft={draft} set={set} folder={f.folder ?? "media"} hosted={f.hosted} />;
     case "relation":
       return wrap(<RelationSelect field={f} draft={draft} value={v as string | null} onChange={(id) => set({ [f.key]: id })} />);
     default:
@@ -715,16 +722,87 @@ function ImageInput({ value, folder, onChange }: { value: string | null; folder:
  * free) or paste a YouTube link (free for everyone). The length and, for
  * episodes, audio or video are filled in from the file itself.
  */
-function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string, unknown>) => void; folder: string }) {
+export function WatchInput({ draft, set, folder, hosted }: { draft: Row; set: (p: Record<string, unknown>) => void; folder: string; hosted?: BunnyKind }) {
   const source = (draft.watch_source as string | null) ?? null;
   const input = useRef<HTMLInputElement>(null);
+  const bigInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [percent, setPercent] = useState(0);
-  const [mode, setMode] = useState<"file" | "youtube">(source === "youtube" ? "youtube" : "file");
+  const [mode, setMode] = useState<"file" | "youtube" | "hosted">(
+    source === "youtube" ? "youtube" : source === "bunny" ? "hosted" : "file",
+  );
   // A toast disappears before anyone has read it, and this is the kind of thing
   // somebody needs to see while deciding whether to upload a different file.
   const [caution, setCaution] = useState<string | null>(null);
+  // Where the provider has got to with the file, once one has been sent.
+  const [progress, setProgress] = useState<BunnyStatus | null>(null);
+  // The record has to exist before a video can be attached to it: the server
+  // looks the record up to decide whether this person may upload at all.
+  const recordId = typeof draft.id === "string" ? draft.id : null;
+  const canHost = !!hosted && !!recordId;
 
+  const checkProgress = async (quiet = false) => {
+    if (!hosted || !recordId) return null;
+    const answer = await bunnyStatus(hosted, recordId);
+    if (!answer.ok) {
+      if (!quiet) toast.error(answer.message);
+      return null;
+    }
+    setProgress(answer.data);
+    // The row carries the outcome too, so the editor does not forget it when
+    // the panel is closed and opened again.
+    if (answer.data.ready !== !!draft.watch_ready || answer.data.failed !== !!draft.watch_failed) {
+      set({ watch_ready: answer.data.ready, watch_failed: answer.data.failed });
+    }
+    if (!quiet && answer.data.ready) toast.success("The video is ready to watch.");
+    return answer.data;
+  };
+
+  // Converting a film takes minutes, and nobody should have to press a button
+  // to find out whether it finished. While the host is working, ask it every
+  // fifteen seconds and stop the moment it is ready or has given up.
+  const converting = source === "bunny" && !!draft.watch_ref && !draft.watch_ready && !draft.watch_failed;
+  useEffect(() => {
+    if (!converting || !hosted || !recordId || busy) return;
+    let live = true;
+    const timer = setInterval(async () => {
+      const answer = await checkProgress(true);
+      if (!live || !answer) return;
+      if (answer.ready || answer.failed) clearInterval(timer);
+    }, 15_000);
+    return () => { live = false; clearInterval(timer); };
+    // checkProgress closes over the current draft, which is the point: it
+    // writes back only when the answer differs from what the draft holds.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [converting, hosted, recordId, busy]);
+
+  const uploadHosted = async (file: File | undefined) => {
+    if (!file || !hosted || !recordId) return;
+    setBusy(true);
+    setPercent(0);
+    setCaution(null);
+    setProgress(null);
+    try {
+      const minutes = await mediaMinutes(file);
+      const videoId = await uploadToBunny(hosted, recordId, file, setPercent);
+      // The server chose the video id and has already written it to the row.
+      // The draft has to be told, or the next "Save changes" would write this
+      // editor's stale watch_source back over it -- clean() rebuilds both
+      // columns from the draft on every save, so a draft that still says
+      // "no video" would wipe the film that was just uploaded.
+      set({
+        watch_source: "bunny", watch_ref: videoId, watch_ready: false,
+        ...(minutes && !draft.duration_minutes ? { duration_minutes: minutes } : {}),
+      });
+      toast.success("Sent. The host is converting it now.");
+      await checkProgress(true);
+    } catch (e) {
+      toast.error(errorText(e));
+    } finally {
+      setBusy(false);
+      if (bigInput.current) bigInput.current.value = "";
+    }
+  };
   const upload = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > MAX_UPLOAD_MB * 1024 * 1024) {
@@ -761,10 +839,63 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
         <div className="flex gap-1 rounded-lg bg-muted p-1 text-xs font-semibold">
           <button type="button" onClick={() => setMode("file")} className={cn("rounded-md px-2.5 py-1", mode === "file" ? "bg-background shadow-sm" : "text-muted-foreground")}>Upload a file</button>
           <button type="button" onClick={() => setMode("youtube")} className={cn("rounded-md px-2.5 py-1", mode === "youtube" ? "bg-background shadow-sm" : "text-muted-foreground")}>YouTube link</button>
+          {canHost && (
+            <button type="button" onClick={() => setMode("hosted")} className={cn("rounded-md px-2.5 py-1", mode === "hosted" ? "bg-background shadow-sm" : "text-muted-foreground")}>Full film</button>
+          )}
         </div>
       </div>
 
-      {mode === "file" ? (
+      {mode === "hosted" ? (
+        <div className="grid gap-2">
+          {source === "bunny" && draft.watch_ref ? (
+            <div className="grid gap-2">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                {progress?.failed || (draft.watch_failed && !progress) ? (
+                  <span className="inline-flex items-center gap-1.5 font-medium text-destructive"><AlertTriangle className="h-4 w-4" /> Could not be converted</span>
+                ) : progress?.ready || (draft.watch_ready && !progress) ? (
+                  <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400"><Check className="h-4 w-4" /> Ready to watch</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-400">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Converting{progress ? ` · ${progress.progress}%` : ""}
+                  </span>
+                )}
+                {progress?.hasOriginal && <span className="text-xs text-muted-foreground">Original kept</span>}
+                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => checkProgress()}>Check now</Button>
+                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => bigInput.current?.click()}>
+                  {progress?.failed || draft.watch_failed ? "Upload again" : "Replace"}
+                </Button>
+              </div>
+              {(progress?.failed || (draft.watch_failed && !progress)) && (
+                <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs leading-relaxed text-destructive">
+                  The host could not convert this file, so nothing can play. This is final — checking again will not change
+                  it. Upload the film again, ideally as {RECOMMENDED_FORMAT}; if it fails a second time the file itself is
+                  likely damaged or only partly copied.
+                </p>
+              )}
+              {converting && (
+                <p className="text-xs text-muted-foreground">
+                  Checked automatically every few seconds. You can leave this page; converting carries on without it.
+                </p>
+              )}
+            </div>
+          ) : (
+            <DropZone
+              busy={busy}
+              percent={percent}
+              title="Choose the full film, or drag it in"
+              hint={`MP4, MKV, MOV, AVI, WebM and more · no 50 MB limit · ${RECOMMENDED_FORMAT} converts fastest`}
+              note="Keep this page open. A piece that fails is sent again by itself, and a stopped upload carries on from where it got to."
+              onOpen={() => bigInput.current?.click()}
+              onFiles={(files) => uploadHosted(files?.[0])}
+            />
+          )}
+          <p className="text-xs text-muted-foreground">
+            The film is held by the video host, which converts it into something every browser can play, and it is played
+            through Isoko. Who may watch it is still decided here: free films play for everyone, the rest only for subscribers.
+          </p>
+          <input ref={bigInput} type="file" accept={SOURCE_ACCEPT} hidden onChange={(e) => uploadHosted(e.target.files?.[0])} />
+        </div>
+      ) : mode === "file" ? (
         source === "storage" && draft.watch_ref ? (
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400"><Check className="h-4 w-4" /> File uploaded</span>
@@ -804,7 +935,7 @@ function WatchInput({ draft, set, folder }: { draft: Row; set: (p: Record<string
         </p>
       )}
 
-      {source === "storage" && (
+      {(source === "storage" || source === "bunny") && (
         <label className="flex items-center justify-between gap-3 text-sm">
           <span>Free for everyone <span className="text-muted-foreground">(otherwise subscribers only)</span></span>
           <Switch checked={!!draft.is_free} onCheckedChange={(v) => set({ is_free: v })} />

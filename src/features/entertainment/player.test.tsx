@@ -11,12 +11,17 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 const playbackUrl = vi.hoisted(() => vi.fn());
+const bunnyPlayback = vi.hoisted(() => vi.fn());
 const useAuth = vi.hoisted(() => vi.fn());
 const useSubscription = vi.hoisted(() => vi.fn());
 
 vi.mock("./api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./api")>()),
   playbackUrl,
+}));
+vi.mock("./bunny", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./bunny")>()),
+  bunnyPlayback,
 }));
 vi.mock("@/lib/auth", () => ({ useAuth }));
 vi.mock("@/lib/subscription", () => ({ useSubscription }));
@@ -42,6 +47,7 @@ const failWith = (code: number) => {
 describe("when a video will not play", () => {
   beforeEach(() => {
     playbackUrl.mockReset().mockResolvedValue("https://signed.example/film.mp4");
+    bunnyPlayback.mockReset().mockResolvedValue({ ok: true, data: { url: "https://iframe.example/embed/1/guid?token=t&expires=9", expires: 9 } });
     useAuth.mockReturnValue({ user: { id: "u1" } });
     useSubscription.mockReturnValue({ isActive: true });
   });
@@ -84,6 +90,84 @@ describe("when a video will not play", () => {
     expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
     expect(screen.getByText(/not in storage/i)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /subscribe/i })).not.toBeInTheDocument();
+  });
+
+  // ---------- video held by the hosting provider ----------
+
+  const hostedFilm = (over = {}) =>
+    film({ watch_source: "bunny" as const, watch_ref: "11111111-2222-3333-4444-555555555555", id: "rec-1", ...over });
+
+  const playHosted = async (item = hostedFilm(), kind: "title" | "episode" = "title") => {
+    render(<MemoryRouter><Player item={item} kind={kind} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: /play/i }));
+    await screen.findByText(/.+/);
+  };
+
+  it("plays a hosted film in the provider's player", async () => {
+    await playHosted();
+    const frame = document.querySelector("iframe");
+    expect(frame).toHaveAttribute("src", "https://iframe.example/embed/1/guid?token=t&expires=9");
+  });
+
+  it("asks the server about the record, never about a video id", async () => {
+    // The browser must not be able to name a video: if it could, it could
+    // name somebody else's and be handed a token for it.
+    await playHosted();
+    expect(bunnyPlayback).toHaveBeenCalledWith("title", "rec-1");
+    const sent = JSON.stringify(bunnyPlayback.mock.calls[0]);
+    expect(sent).not.toContain("11111111-2222-3333-4444-555555555555");
+  });
+
+  it("says a conversion failed, without blaming the browser or the file", async () => {
+    bunnyPlayback.mockResolvedValue({ ok: false, reason: "failed", message: "x" });
+    await playHosted();
+    expect(screen.getByText(/could not be prepared/i)).toBeInTheDocument();
+    // The three wrong explanations this thread started with.
+    expect(screen.queryByText(/Matroska/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/browser/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/corrupt/i)).not.toBeInTheDocument();
+    // And it is final, so there is nothing to retry.
+    expect(screen.queryByRole("button", { name: /try again/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps 'failed' and 'still converting' apart", async () => {
+    bunnyPlayback.mockResolvedValue({ ok: false, reason: "failed", message: "x" });
+    await playHosted();
+    expect(screen.queryByText(/still being prepared/i)).not.toBeInTheDocument();
+  });
+
+  it("says a video is still converting rather than calling it broken", async () => {
+    bunnyPlayback.mockResolvedValue({ ok: false, reason: "processing", message: "x" });
+    await playHosted();
+    expect(screen.getByText(/still being prepared/i)).toBeInTheDocument();
+    expect(screen.queryByText(/damaged|could not be read/i)).not.toBeInTheDocument();
+  });
+
+  it("asks for a subscription when the server says that is the reason", async () => {
+    bunnyPlayback.mockResolvedValue({ ok: false, reason: "subscription", message: "x" });
+    await playHosted();
+    expect(screen.getByText(/for subscribers/i)).toBeInTheDocument();
+  });
+
+  it("treats a withheld video as missing, telling a stranger nothing about drafts", async () => {
+    bunnyPlayback.mockResolvedValue({ ok: false, reason: "missing", message: "x" });
+    await playHosted();
+    expect(screen.getByText(/could not be loaded/i)).toBeInTheDocument();
+    expect(screen.queryByText(/draft|unpublished/i)).not.toBeInTheDocument();
+  });
+
+  it("refuses to play a hosted video when the caller gave no record to check", async () => {
+    // Gallery and events pass no kind; they must not silently play.
+    render(<MemoryRouter><Player item={hostedFilm()} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole("button", { name: /play/i }));
+    await screen.findByText(/not ready yet/i);
+    expect(bunnyPlayback).not.toHaveBeenCalled();
+  });
+
+  it("leaves YouTube and stored films alone", async () => {
+    await play(film({ watch_source: "youtube", watch_ref: "abc", is_free: true }));
+    expect(bunnyPlayback).not.toHaveBeenCalled();
+    expect(document.querySelector("iframe")).toBeTruthy();
   });
 
   it("still asks a stranger to subscribe, which is a different failure", async () => {

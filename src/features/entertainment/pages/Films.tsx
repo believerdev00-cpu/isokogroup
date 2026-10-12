@@ -134,7 +134,7 @@ export function FilmDetail() {
       <div className="grid gap-10 px-4 md:grid-cols-[1fr_320px] md:px-10">
         <div className="space-y-8">
           <div id="watch">
-            <Player item={t} poster={heroStill(t.backdrop_path)} label="Watch now" />
+            <Player item={t} kind="title" poster={heroStill(t.backdrop_path)} label="Watch now" />
           </div>
           {t.description && <p className="max-w-3xl whitespace-pre-line text-lg leading-relaxed text-neutral-200">{t.description}</p>}
           {cast.length > 0 && (

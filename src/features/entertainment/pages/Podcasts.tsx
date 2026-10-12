@@ -159,7 +159,7 @@ export function ShowDetail() {
         {s.description && <p className="mt-8 max-w-3xl whitespace-pre-line leading-relaxed text-neutral-300">{s.description}</p>}
       </section>
 
-      <SectorMedia item={s} poster={s.poster_path} heading="Trailer" />
+      <SectorMedia item={s} kind="title" poster={s.poster_path} heading="Trailer" />
 
       <section className="px-4 md:px-10">
         <h2 className="mb-3 font-display text-2xl font-bold">Episodes</h2>
@@ -208,7 +208,7 @@ export function EpisodeDetail() {
             <h1 className="font-display text-3xl font-bold md:text-4xl">{e.name}</h1>
           </div>
         </div>
-        <Player item={e} audio={e.format === "audio"} poster={mediaUrl(e.thumb_path ?? s.poster_path)} label={e.format === "audio" ? "Listen" : "Watch"} />
+        <Player item={e} kind="episode" audio={e.format === "audio"} poster={mediaUrl(e.thumb_path ?? s.poster_path)} label={e.format === "audio" ? "Listen" : "Watch"} />
         <div className="flex flex-wrap gap-6 text-sm">
           <Fact label="Published" value={epDate(e)} />
           <Fact label="Duration" value={e.duration_minutes ? `${e.duration_minutes} min` : null} />
