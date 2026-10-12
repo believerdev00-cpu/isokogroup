@@ -149,6 +149,12 @@ export const MIN_DONATION_RWF = 1000;
  * so they are changed together, exactly as the focus areas are.
  */
 export const BENEFIT_DAYS = 30;
+
+/**
+ * How much a donor may write. The database holds the same ceiling as a CHECK
+ * on initiative_donations.donor_note, so the two change together.
+ */
+export const DONOR_NOTE_MAX = 2000;
 /**
  * No suggested amounts.
  *

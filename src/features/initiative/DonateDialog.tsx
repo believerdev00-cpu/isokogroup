@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -19,7 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { errorText } from "@/features/services/api";
 import {
-  BENEFIT_DAYS, DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF, PAYMENT_METHODS,
+  BENEFIT_DAYS, DONOR_NOTE_MAX, DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF, PAYMENT_METHODS,
   donationAmountProblem, donationProblem, donationTarget,
   donationTargetValue, rwf, type PaymentMethod,
 } from "@/lib/initiative";
@@ -39,16 +40,18 @@ const GENERAL = DONATION_GENERAL;
 
 /** Where a contribution goes, and how much of it. */
 function ChooseStep({
-  amount, setAmount, project, setProject, anonymous, setAnonymous, name, setName, onNext,
+  amount, setAmount, project, setProject, anonymous, setAnonymous, name, setName, note, setNote, onNext,
 }: {
   amount: string; setAmount: (v: string) => void;
   project: string; setProject: (v: string) => void;
   anonymous: boolean; setAnonymous: (v: boolean) => void;
   name: string; setName: (v: string) => void;
+  note: string; setNote: (v: string) => void;
   onNext: () => void;
 }) {
   const open = useSupportableProjects();
   const amountProblem = amount === "" ? null : donationAmountProblem(Number(amount));
+  const blocked = amount === "" || !!amountProblem;
 
   return (
     <div className="space-y-6">
@@ -138,7 +141,38 @@ function ChooseStep({
         )}
       </div>
 
-      <Button type="button" size="lg" className="w-full gap-2" disabled={!!amountProblem || amount === ""} onClick={onNext}>
+      {/* Say why it is disabled.
+          While there were four suggested amounts, one click filled the field
+          and this button lit up at once, so nobody met it greyed out.
+          Removing them made an empty field the first thing a donor sees --
+          and a dead button that explains nothing reads as a broken page, not
+          as a form waiting for an answer. A bad amount is already reported
+          under the field, so only the empty case is spelled out here. */}
+      {amount === "" && (
+        <p className="text-center text-xs text-muted-foreground">
+          Enter how much you would like to give to continue.
+        </p>
+      )}
+      <div className="space-y-1.5">
+        <Label htmlFor="donate-note">Your message to the Isoko Global Initiative</Label>
+        <p className="text-xs text-muted-foreground">
+          Comments, opinions, remarks, suggestions or recommendations — whatever would help us do this better.
+        </p>
+        <Textarea
+          id="donate-note"
+          value={note}
+          onChange={(e) => setNote(e.target.value.slice(0, DONOR_NOTE_MAX))}
+          placeholder="Write your message here (optional)…"
+          maxLength={DONOR_NOTE_MAX}
+          rows={4}
+        />
+        <div className="flex items-start justify-between gap-3 text-xs text-muted-foreground">
+          <span>Shared with the Isoko Global Initiative team. It is never published on the website.</span>
+          <span className="shrink-0 tabular-nums">{note.length}/{DONOR_NOTE_MAX}</span>
+        </div>
+      </div>
+
+      <Button type="button" size="lg" className="w-full gap-2" disabled={blocked} onClick={onNext}>
         Continue <ArrowRight className="h-4 w-4" />
       </Button>
     </div>
@@ -147,12 +181,11 @@ function ChooseStep({
 
 /** Pay the company, then tell us the reference so an admin can find it. */
 function PayStep({
-  amount, method, setMethod, reference, setReference, note, setNote, email, saving, onBack, onSubmit,
+  amount, method, setMethod, reference, setReference, email, saving, onBack, onSubmit,
 }: {
   amount: number;
   method: PaymentMethod; setMethod: (m: PaymentMethod) => void;
   reference: string; setReference: (v: string) => void;
-  note: string; setNote: (v: string) => void;
   /** Where the receipt goes: the address on the account, shown so it is no surprise. */
   email: string | null;
   saving: boolean; onBack: () => void; onSubmit: () => void;
@@ -205,22 +238,6 @@ function PayStep({
           </p>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="donate-note" className="text-xs font-normal text-muted-foreground">
-            Anything you would like to tell us (optional)
-          </Label>
-          <Textarea
-            id="donate-note"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="A comment, a recommendation, or what you would like this to go towards"
-            maxLength={2000}
-            rows={3}
-          />
-          <p className="text-xs text-muted-foreground">
-            Read by the Isoko office only. It is never shown on the website.
-          </p>
-        </div>
 
         {/* Said before they commit, and carefully: nothing is confirmed yet. */}
         <div className="rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
@@ -385,6 +402,7 @@ export default function DonateDialog({
                   project={project} setProject={setProject}
                   anonymous={anonymous} setAnonymous={setAnonymous}
                   name={name} setName={setName}
+                  note={note} setNote={setNote}
                   onNext={() => setStep("pay")}
                 />
                 <MyDonations userId={user.id} />
@@ -394,7 +412,6 @@ export default function DonateDialog({
                 amount={chosen}
                 method={method} setMethod={setMethod}
                 reference={reference} setReference={setReference}
-                note={note} setNote={setNote}
                 email={user?.email ?? null}
                 saving={saving}
                 onBack={() => setStep("choose")}
