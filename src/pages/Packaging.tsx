@@ -15,123 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PackagingSteps, PHOTO_CREDITS } from "@/components/packaging/PackagingSteps";
 import { ArrowRight, Check, Minus, Phone, Plus, Search, X } from "lucide-react";
 
-type Product = { code: string; name: string; price: number; unit: string };
-type Category = { id: string; title: string; note?: string; products: Product[] };
-
-const categories: Category[] = [
-  {
-    id: "reuse-pp-sakes",
-    title: "Reuse PP Woven Bags (Sakes)",
-    note: "Sold per piece (Pcs)",
-    products: [
-      { code: "USAK-100", name: "Used sakes — 100 kg", price: 130, unit: "pc" },
-      { code: "USAK-50", name: "Used sakes — 50 kg", price: 110, unit: "pc" },
-      { code: "USAK-25", name: "Used sakes — 25 kg", price: 90, unit: "pc" },
-    ],
-  },
-  {
-    id: "reuse-corrboxes",
-    title: "Reuse CorrBoxes (Paper Cartons)",
-    note: "Price per kg",
-    products: [
-      { code: "RCB-STR-BIG", name: "Strong CorrBoxes — Big", price: 350, unit: "kg" },
-      { code: "RCB-STR-SML", name: "Strong CorrBoxes — Small", price: 350, unit: "kg" },
-      { code: "RCB-SFT-BIG", name: "Soft CorrBoxes — Big", price: 350, unit: "kg" },
-      { code: "RCB-SFT-SML", name: "Soft CorrBoxes — Small", price: 350, unit: "kg" },
-    ],
-  },
-  {
-    id: "plastic-waste",
-    title: "Plastic Waste",
-    note: "Price per kg",
-    products: [
-      { code: "PW-G1", name: "Plastic Waste — Grade 1", price: 250, unit: "kg" },
-      { code: "PW-G2", name: "Plastic Waste — Grade 2", price: 120, unit: "kg" },
-    ],
-  },
-  {
-    id: "paper-egg",
-    title: "Paper Roll & Egg Trays",
-    products: [
-      { code: "PAPR", name: "Paper roll", price: 800, unit: "kg" },
-      { code: "EGGT", name: "Egg trays", price: 200, unit: "pc" },
-    ],
-  },
-  {
-    id: "corrugated-boxes",
-    title: "Corrugated Boxes",
-    note: "Sold per piece",
-    products: [
-      { code: "COR-BX-01", name: "COR-BX-01", price: 3000, unit: "pc" },
-      { code: "COR-BX-02", name: "COR-BX-02", price: 3400, unit: "pc" },
-      { code: "COR-BX-03", name: "COR-BX-03", price: 3800, unit: "pc" },
-      { code: "COR-BX-04", name: "COR-BX-04", price: 4300, unit: "pc" },
-    ],
-  },
-  {
-    id: "paper-bags",
-    title: "Paper Bags (Envelopes)",
-    note: "Price per kg",
-    products: [
-      { code: "ENV-01", name: "ENV-01", price: 2400, unit: "kg" },
-      { code: "ENV-02", name: "ENV-02", price: 2300, unit: "kg" },
-      { code: "ENV-03", name: "ENV-03", price: 2200, unit: "kg" },
-      { code: "ENV-05", name: "ENV-05", price: 2100, unit: "kg" },
-      { code: "ENV-08", name: "ENV-08", price: 2000, unit: "kg" },
-      { code: "ENV-10", name: "ENV-10", price: 1900, unit: "kg" },
-      { code: "ENV-12", name: "ENV-12", price: 1800, unit: "kg" },
-      { code: "ENV-14", name: "ENV-14", price: 1800, unit: "kg" },
-      { code: "ENV-16", name: "ENV-16", price: 1800, unit: "kg" },
-      { code: "ENV-25", name: "ENV-25", price: 1800, unit: "kg" },
-      { code: "ENV-50", name: "ENV-50", price: 3800, unit: "kg" },
-    ],
-  },
-  {
-    id: "pp-woven-pcs",
-    title: "PP Woven Bags (Sakes)",
-    note: "Sold per piece",
-    products: [
-      { code: "PP-WVN-BG-100", name: "PP-WVN-BG-100", price: 280, unit: "pc" },
-      { code: "PP-WVN-BG-50", name: "PP-WVN-BG-50", price: 220, unit: "pc" },
-      { code: "PP-WVN-BG-25", name: "PP-WVN-BG-25", price: 230, unit: "pc" },
-      { code: "PP-WVN-BG-10", name: "PP-WVN-BG-10", price: 115, unit: "pc" },
-      { code: "PP-WVN-BG-05", name: "PP-WVN-BG-05", price: 70, unit: "pc" },
-      { code: "PP-WVN-BG-2.5", name: "PP-WVN-BG-2.5", price: 65, unit: "pc" },
-    ],
-  },
-  {
-    id: "biodeg-polybags",
-    title: "Biodegradable Poly Bags (Food grade)",
-    note: "Price per kg",
-    products: [
-      { code: "BD-PLY-BG-50", name: "BD-PLY-BG-50", price: 3600, unit: "kg" },
-      { code: "BD-PLY-BG-25", name: "BD-PLY-BG-25", price: 3200, unit: "kg" },
-      { code: "BD-PLY-BG-2", name: "BD-PLY-BG-2", price: 2500, unit: "kg" },
-      { code: "BD-PLY-BG-1", name: "BD-PLY-BG-1", price: 2200, unit: "kg" },
-    ],
-  },
-  {
-    id: "biodeg-seedling",
-    title: "Biodegradable Seedling PolyPots",
-    note: "Price per kg",
-    products: [
-      { code: "BP-SD-PPT-1", name: "BP-SD-PPT-1", price: 2200, unit: "kg" },
-      { code: "BP-SD-PPT-2", name: "BP-SD-PPT-2", price: 2100, unit: "kg" },
-      { code: "BP-SD-PPT-3", name: "BP-SD-PPT-3", price: 2000, unit: "kg" },
-      { code: "BP-SD-PPT-4", name: "BP-SD-PPT-4", price: 1900, unit: "kg" },
-      { code: "BP-SD-PPT-5", name: "BP-SD-PPT-5", price: 1800, unit: "kg" },
-    ],
-  },
-  {
-    id: "biodeg-grafting",
-    title: "Biodegradable Grafting Polythene",
-    note: "Single Layer • per kg",
-    products: [
-      { code: "BD-GP-1", name: "BD-GP-1 (Single Layer)", price: 1000, unit: "kg" },
-      { code: "BD-GP-2", name: "BD-GP-2 (Single Layer)", price: 7500, unit: "kg" },
-    ],
-  },
-];
+import { usePackagingCatalogue } from "@/lib/packagingCatalogue";
 
 const fmt = (n: number) => `${n.toLocaleString()} RWF`;
 
@@ -153,6 +37,9 @@ const Packaging = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [formInView, setFormInView] = useState(false);
+  // The price list now comes from the database, where an admin can change it.
+  const catalogue = usePackagingCatalogue();
+  const categories = catalogue.data ?? [];
   const formRef = useRef<HTMLDivElement>(null);
 
   // The bottom bar is only needed while the request form is off screen
@@ -171,7 +58,7 @@ const Packaging = () => {
       if (p) return { ...p, category: c.title };
     }
     return null;
-  }, [selectedCode]);
+  }, [selectedCode, categories]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -182,7 +69,7 @@ const Packaging = () => {
         products: q ? c.products.filter((p) => `${p.code} ${p.name} ${c.title}`.toLowerCase().includes(q)) : c.products,
       }))
       .filter((c) => c.products.length > 0);
-  }, [activeCategory, search]);
+  }, [activeCategory, search, categories]);
 
   const quantity = parseInt(qty) || 0;
   const itemsTotal = selected ? selected.price * quantity : 0;
@@ -310,7 +197,28 @@ const Packaging = () => {
             </div>
           </div>
 
-          {visible.length === 0 ? (
+          {catalogue.isLoading ? (
+            <div className="space-y-8">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-3">
+                  <div className="h-5 w-56 animate-pulse rounded bg-muted" />
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {[0, 1, 2].map((j) => <div key={j} className="h-24 animate-pulse rounded-2xl bg-muted" />)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : catalogue.isError ? (
+            /* No stale prices: a figure nobody agreed to is worse than none. */
+            <div className="rounded-2xl border border-dashed border-border py-12 text-center">
+              <p className="font-semibold">The price list could not be loaded.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Please reload the page, or call us and we will quote you directly.</p>
+              <div className="mt-4 flex justify-center gap-2">
+                <Button variant="outline" onClick={() => catalogue.refetch()}>Try again</Button>
+                <Button onClick={() => customRequest()}>Custom request</Button>
+              </div>
+            </div>
+          ) : visible.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border py-12 text-center">
               <p className="font-semibold">Nothing matches "{search}".</p>
               <p className="mt-1 text-sm text-muted-foreground">Try another word, or send a custom request.</p>

@@ -28,7 +28,8 @@ import DataAnalysis from "@/components/admin/DataAnalysis";
 import InsightsWorkspace from "@/components/admin/insights/InsightsWorkspace";
 import MyOverview from "@/components/admin/MyOverview";
 import AuditLogAdmin from "@/components/admin/AuditLogAdmin";
-import AddProductDialog from "@/components/admin/AddProductDialog";
+import ProductDialog, { type EditableProduct } from "@/components/admin/ProductDialog";
+import PackagingPricesAdmin from "@/components/admin/PackagingPricesAdmin";
 import InitiativeAdmin from "@/components/admin/InitiativeAdmin";
 import AdvertRequests from "@/components/admin/AdvertRequests";
 import ContactMessages from "@/components/admin/ContactMessages";
@@ -57,6 +58,8 @@ const Admin = () => {
   const [payouts, setPayouts] = useState<any[]>([]);
   const [softwareBookings, setSoftwareBookings] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
+  /** The product open in the editor, or null when none is. */
+  const [editingProduct, setEditingProduct] = useState<EditableProduct | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Book form
@@ -795,7 +798,7 @@ const Admin = () => {
                 <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
                   <CardTitle>Product Management ({products.length})</CardTitle>
                   {user && (
-                    <AddProductDialog adminUserId={user.id} onAdded={fetchAll} />
+                    <ProductDialog adminUserId={user.id} onSaved={fetchAll} />
                   )}
                 </CardHeader>
                 <CardContent>
@@ -833,7 +836,8 @@ const Admin = () => {
                                 <option value="pending">Pending</option>
                               </select>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="space-x-2 whitespace-nowrap">
+                              <Button size="sm" variant="outline" onClick={() => setEditingProduct(p as EditableProduct)}>Edit</Button>
                               <Button size="sm" variant="destructive" onClick={() => handleDeleteProduct(p.id)}>Delete</Button>
                             </TableCell>
                           </TableRow>
@@ -1032,7 +1036,8 @@ const Admin = () => {
             </TabsContent>
 
             {/* Packaging */}
-            <TabsContent value="packaging">
+            <TabsContent value="packaging" className="space-y-6">
+              <PackagingPricesAdmin />
               <Card>
                 <CardHeader><CardTitle>Packaging Requests ({packagingRequests.length})</CardTitle></CardHeader>
                 <CardContent>
@@ -1348,6 +1353,16 @@ const Admin = () => {
       <Footer />
 
       {/* Reject application dialog with optional reason */}
+      {user && (
+        <ProductDialog
+          adminUserId={user.id}
+          product={editingProduct}
+          open={!!editingProduct}
+          onOpenChange={(o) => { if (!o) setEditingProduct(null); }}
+          onSaved={fetchAll}
+        />
+      )}
+
       <Dialog open={!!paymentsFor} onOpenChange={(open) => { if (!open) { setPaymentsFor(null); fetchAll(); } }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
