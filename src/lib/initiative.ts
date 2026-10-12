@@ -194,9 +194,14 @@ export const DONATION_STATUS_LABEL: Record<string, string> = {
  * fine. The two halves are separate because the form asks for the amount on one
  * step and the transaction reference on the next.
  */
-export function donationAmountProblem(amount: number): string | null {
+/**
+ * @param minimum the smallest acceptable amount in francs. It is a dollar at
+ *   today's rate when one is known, and MIN_DONATION_RWF when none is, which
+ *   is the same rule public.usd_minimum_rwf() applies in the database.
+ */
+export function donationAmountProblem(amount: number, minimum: number = MIN_DONATION_RWF): string | null {
   if (!Number.isInteger(amount)) return "Enter the amount in whole Rwandan francs.";
-  if (amount < MIN_DONATION_RWF) return `The smallest contribution is ${rwf(MIN_DONATION_RWF)}.`;
+  if (amount < minimum) return `The smallest contribution is ${rwf(minimum)}, which is about one US dollar.`;
   return null;
 }
 

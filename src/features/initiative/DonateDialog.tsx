@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { inUsd, useUsdRate } from "@/lib/usdRate";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -50,8 +51,11 @@ function ChooseStep({
   onNext: () => void;
 }) {
   const open = useSupportableProjects();
-  const amountProblem = amount === "" ? null : donationAmountProblem(Number(amount));
+  const usd = useUsdRate();
+  const minimum = usd.data?.minimumRwf ?? MIN_DONATION_RWF;
+  const amountProblem = amount === "" ? null : donationAmountProblem(Number(amount), minimum);
   const blocked = amount === "" || !!amountProblem;
+  const asDollars = inUsd(Number(amount), usd.data?.rate ?? null);
 
   return (
     <div className="space-y-6">
@@ -64,6 +68,11 @@ function ChooseStep({
 
       <div className="space-y-3">
         <Label>How much would you like to give?</Label>
+        <p className="text-xs text-muted-foreground">
+          {usd.data?.rate
+            ? <>Minimum: <span className="font-medium text-foreground">US$1</span>, which is {rwf(minimum)} at today&apos;s rate.</>
+            : <>Minimum: <span className="font-medium text-foreground">{rwf(minimum)}</span>.</>}
+        </p>
         <div className="space-y-1.5">
           <Label htmlFor="donate-amount" className="text-xs font-normal text-muted-foreground">
             Any amount you wish, in whole Rwandan francs
@@ -148,6 +157,17 @@ function ChooseStep({
           and a dead button that explains nothing reads as a broken page, not
           as a form waiting for an answer. A bad amount is already reported
           under the field, so only the empty case is spelled out here. */}
+      {asDollars && !amountProblem && (
+        <p className="-mt-3 text-xs text-muted-foreground">
+          {/* Named honestly. The rate is a published daily reference, not a
+              quote from the bank that will actually process the payment, and
+              the figure somebody is charged is whatever their own bank
+              applies. */}
+          That is roughly <span className="font-medium text-foreground">{asDollars}</span> at the reference rate of{" "}
+          {usd.data?.fetchedAt?.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. You pay in francs.
+        </p>
+      )}
+
       {amount === "" && (
         <p className="text-center text-xs text-muted-foreground">
           Enter how much you would like to give to continue.
