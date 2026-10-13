@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PRODUCT_CATEGORIES } from "./productCategories";
+import { PRODUCT_CATEGORIES, displayCategory } from "./productCategories";
 
 // Products are inserted straight from the browser under RLS, so the list the UI
 // offers is only as good as the CHECK constraint behind it. If the two drift, a
@@ -64,5 +64,38 @@ describe("product categories", () => {
 
   it("leaves pre-existing rows alone instead of failing the migration", () => {
     expect(migration).toMatch(/\) NOT VALID;/);
+  });
+});
+
+// The site must read correctly whether or not the migration has run, so the two
+// can ship in either order.
+describe("displayCategory", () => {
+  it("shows a product listed before the rename under its new tab", () => {
+    expect(displayCategory("Fashion", "Kitenge Fabric")).toBe("Fashion Hub");
+    expect(displayCategory("Food & Drink", "Bottled Water 1L")).toBe("Beverages");
+    expect(displayCategory("Food & Drink", "Organic Coffee Beans")).toBe("Beverages");
+    expect(displayCategory("Food & Drink", "Akabanga Chilli Oil")).toBe("Food");
+    expect(displayCategory("Food & Drink", "Dried Beans 5kg")).toBe("Food");
+  });
+
+  it("splits the old bucket the same way the migration does", () => {
+    // Both read the same word list, so a row renamed by SQL and a row mapped in
+    // the browser land in the same tab.
+    const sql = migration.match(/AND name ~\* '\(([^)]+)\)'/);
+    if (!sql) throw new Error("drinkable pattern not found in the migration");
+    for (const word of sql[1].split("|")) {
+      expect(displayCategory("Food & Drink", `Some ${word} product`)).toBe("Beverages");
+    }
+  });
+
+  it("leaves a current category untouched, so nothing changes after the migration", () => {
+    for (const c of PRODUCT_CATEGORIES) expect(displayCategory(c, "anything")).toBe(c);
+  });
+
+  it("does not invent a category for an unknown or missing one", () => {
+    expect(displayCategory("Vintage Vinyl", "A record")).toBe("Vintage Vinyl");
+    expect(displayCategory(null)).toBe("");
+    expect(displayCategory(undefined)).toBe("");
+    expect(displayCategory("")).toBe("");
   });
 });

@@ -23,7 +23,7 @@ import ProductImagesDialog from "@/components/ProductImagesDialog";
 import { productImages as imagesOf } from "@/lib/productImages";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Truck } from "lucide-react";
-import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
+import { PRODUCT_CATEGORIES, displayCategory } from "@/lib/productCategories";
 import { AGREEMENT_CHECKBOX_LABEL, COUNTRIES, MAX_PRODUCT_IMAGES, PAYMENT_PROVIDERS, SELLER_AGREEMENT_VERSION } from "@/lib/sellerAgreement";
 
 const categories = PRODUCT_CATEGORIES;
@@ -483,7 +483,7 @@ const SellerDashboard = () => {
                                 )}
                               </TableCell>
                               <TableCell className="font-medium">{p.name}</TableCell>
-                              <TableCell>{p.category}</TableCell>
+                              <TableCell>{displayCategory(p.category, p.name)}</TableCell>
                               <TableCell>
                                 {editing ? (
                                   <Input type="number" min={0} className="h-8 w-28" value={editingProduct.price}

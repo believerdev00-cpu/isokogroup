@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
+import { PRODUCT_CATEGORIES, displayCategory } from "@/lib/productCategories";
 import { isProductInStock, productImages } from "@/lib/productImages";
 
 // "All" plus the one list the database accepts, so every product is reachable
@@ -36,7 +36,7 @@ const Marketplace = () => {
 
   // up to four images per product (Seller Agreement, section 2); the first is the main one
   const allProducts = dbProducts.map(p => ({
-    name: p.name, price: p.price, rating: 4.5, category: p.category, image: p.image_url, id: p.id, isDefault: false,
+    name: p.name, price: p.price, rating: 4.5, category: displayCategory(p.category, p.name), image: p.image_url, id: p.id, isDefault: false,
     images: productImages(p),
     inStock: isProductInStock(p),
   }));

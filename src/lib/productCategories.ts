@@ -22,3 +22,23 @@ export const PRODUCT_CATEGORIES = [
   "Crafts",
   "Accessories",
 ];
+
+/** Drinkable goods, by name — the same test the migration uses to split the old bucket. */
+const DRINKABLE =
+  /beverage|drink|juice|water|soda|beer|wine|spirit|liquor|whisk|vodka|gin|rum|tea|coffee|milk|smoothie|cola|cider|lemonade/i;
+
+/**
+ * The category to show a product under, whatever is stored on the row.
+ *
+ * A product listed before the rename still says "Fashion" or "Food & Drink", and
+ * since buyers filter on an exact match it would otherwise appear under no tab
+ * but "All". Mapping at read time means the site is right before the migration
+ * renames the rows and unchanged after it, so the two can ship in either order.
+ * Anything already current, or genuinely unknown, is returned untouched.
+ */
+export const displayCategory = (category: string | null | undefined, name = ""): string => {
+  if (!category) return "";
+  if (category === "Fashion") return "Fashion Hub";
+  if (category === "Food & Drink") return DRINKABLE.test(name) ? "Beverages" : "Food";
+  return category;
+};

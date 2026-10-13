@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MEDIA_ACCEPT, mediaKindOf } from "@/lib/mediaKind";
-import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
+import { PRODUCT_CATEGORIES, displayCategory } from "@/lib/productCategories";
 import { MAX_PRODUCT_IMAGES } from "@/lib/sellerAgreement";
 import { tooLargeMessage, uploadLimitMb, withinLimit } from "@/lib/uploadLimits";
 
@@ -77,7 +77,8 @@ export default function ProductDialog({
     setDescription(product?.description ?? "");
     setPrice(product ? String(product.price) : "");
     setStock(product ? String(product.stock) : "");
-    setCategory(product?.category && CATEGORIES.includes(product.category) ? product.category : CATEGORIES[0]);
+    const mapped = displayCategory(product?.category, product?.name);
+    setCategory(CATEGORIES.includes(mapped) ? mapped : CATEGORIES[0]);
     setStatus(product?.status ?? "active");
     setKept(product?.image_urls ?? (product?.image_url ? [product.image_url] : []));
     setFiles([]);
