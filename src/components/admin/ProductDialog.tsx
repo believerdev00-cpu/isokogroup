@@ -22,10 +22,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MEDIA_ACCEPT, mediaKindOf } from "@/lib/mediaKind";
+import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import { MAX_PRODUCT_IMAGES } from "@/lib/sellerAgreement";
 import { tooLargeMessage, uploadLimitMb, withinLimit } from "@/lib/uploadLimits";
 
-const CATEGORIES = ["Electronics", "Fashion", "Food & Drink", "Crafts", "Home", "Accessories"];
+const CATEGORIES = PRODUCT_CATEGORIES;
 const STATUSES = ["active", "inactive", "pending"] as const;
 
 export type EditableProduct = {

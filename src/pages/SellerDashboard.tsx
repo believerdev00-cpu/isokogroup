@@ -23,9 +23,10 @@ import ProductImagesDialog from "@/components/ProductImagesDialog";
 import { productImages as imagesOf } from "@/lib/productImages";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Truck } from "lucide-react";
+import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import { AGREEMENT_CHECKBOX_LABEL, COUNTRIES, MAX_PRODUCT_IMAGES, PAYMENT_PROVIDERS, SELLER_AGREEMENT_VERSION } from "@/lib/sellerAgreement";
 
-const categories = ["Electronics", "Fashion", "Food & Drink", "Crafts", "Home", "Accessories"];
+const categories = PRODUCT_CATEGORIES;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB each
 const selectClass = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
 // a MoMo provider pays out by MoMo, anything else by bank

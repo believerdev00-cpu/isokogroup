@@ -10,9 +10,12 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { PRODUCT_CATEGORIES } from "@/lib/productCategories";
 import { isProductInStock, productImages } from "@/lib/productImages";
 
-const categories = ["All", "Electronics", "Fashion", "Food & Drink", "Crafts", "Home", "Accessories"];
+// "All" plus the one list the database accepts, so every product is reachable
+// from exactly one tab.
+const categories = ["All", ...PRODUCT_CATEGORIES];
 
 const Marketplace = () => {
   const [active, setActive] = useState("All");
