@@ -111,7 +111,7 @@ $$;
 
 -- A product and a seller for the member-table checks
 INSERT INTO public.products (id, seller_id, name, price, category, stock)
-VALUES ('00000000-0000-4000-8000-00000000c5a1', :seller, 'SA widget', 1000, 'x', 50);
+VALUES ('00000000-0000-4000-8000-00000000c5a1', :seller, 'SA widget', 1000, 'Electronics', 50);
 
 -- ================= TRIAL =================
 SELECT pg_temp.expect((pg_temp.as_(NULL, 'SELECT 1') IS NULL OR true)
@@ -366,10 +366,10 @@ SELECT pg_temp.expect(pg_temp.refused(:finance, format($$SELECT public.subscript
 
 -- the seller whose access ended can't list products; applying needs access
 SELECT pg_temp.as_(:seller, 'SELECT to_jsonb(public.start_trial())');
-SELECT pg_temp.expect(NOT pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'SA new', 500, 'x', 1)$$),
+SELECT pg_temp.expect(NOT pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'SA new', 500, 'Electronics', 1)$$),
   'an approved seller in their trial lists a product');
 SELECT pg_temp.set_dates(:seller, now() - interval '1 second', NULL);
-SELECT pg_temp.expect(pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'SA new 2', 500, 'x', 1)$$),
+SELECT pg_temp.expect(pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'SA new 2', 500, 'Electronics', 1)$$),
   'a seller whose access ended can''t list products');
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$UPDATE public.products SET price = 1 WHERE id = '00000000-0000-4000-8000-00000000c5a1'$$),
   'nor edit them');

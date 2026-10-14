@@ -48,7 +48,7 @@ END $$;
 
 -- ---------- A's records ----------
 INSERT INTO public.products (id, seller_id, name, price, category)
-VALUES ('00000000-0000-4000-8000-00000000a1a1', :seller, 'Isolation test basket', 5000, 'test');
+VALUES ('00000000-0000-4000-8000-00000000a1a1', :seller, 'Isolation test basket', 5000, 'Home');
 INSERT INTO public.orders (id, buyer_id, seller_id, total_amount)
 VALUES ('00000000-0000-4000-8000-00000000a1a2', :a, :seller, 5000);
 INSERT INTO public.order_items (order_id, product_id, unit_price)

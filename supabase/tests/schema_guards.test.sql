@@ -76,8 +76,10 @@ $$, 'trigger functions can''t be called from the website');
 
 -- What visitors without an account can run with elevated rights: the private-link
 -- portals (the link's token is the key, rate-limited), shipment tracking by
--- number, and role checks used by policies. Sending a request needs an account
--- (20261002120000_requests_require_account.sql), so the submit functions are not here.
+-- number, role checks used by policies, and the few things somebody must be able
+-- to do or see without an account. Ordering and the service requests still need
+-- one (20261002120000_requests_require_account.sql), so those submit functions
+-- are not here.
 CALL pg_temp.none($$
   SELECT p.oid::regprocedure::text FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE n.nspname = 'public' AND p.prosecdef AND has_function_privilege('anon', p.oid, 'EXECUTE')
@@ -101,7 +103,22 @@ CALL pg_temp.none($$
     -- a Training Center applicant's fee, by the application's private payment link (rate-limited)
     'training_application_payment(text)',
     -- the Information Hub's most-asked questions (the questions table itself stays private)
-    'research_trending_questions(integer)'])
+    'research_trending_questions(integer)',
+    -- writing to the company and leaving a comment: the two things somebody must be
+    -- able to do without an account (20261009200000_revoke_public_execute.sql says so
+    -- in as many words, and re-grants them deliberately)
+    'contact_submit_message(jsonb)', 'comment_submit(jsonb)',
+    -- asking to advertise, which a business does before it has any reason to register
+    -- (granted to anon in 20261009150000_advert_requests.sql)
+    'advert_submit_request(jsonb)',
+    -- read by the storage policies "Anyone reads free published films" and "Anyone
+    -- reads published research evidence". A policy is evaluated as the querying
+    -- user, so a signed-out reader needs EXECUTE on the function their policy calls
+    -- -- the same reason in_conversation stays granted
+    'ent_file_is_free_public(text)', 'research_evidence_is_public(text)',
+    -- whether this visitor may play this film: called by the bunny-video function as
+    -- the caller, so a signed-out visitor watching a free film is the normal case
+    'ent_playback_check(text,uuid)'])
 $$, 'anonymous visitors can run only the intended elevated functions');
 
 -- Internals of the engines: never callable from the website
@@ -126,15 +143,23 @@ $$, 'engine internals exist and aren''t callable from the website');
 CALL pg_temp.none($$
   SELECT id FROM storage.buckets WHERE public AND id NOT IN (
     'product-images',
-    -- Entertainment posters, thumbnails and display images (images only, 5 MB,
-    -- staff-written); films, episodes and originals stay in private buckets
+    -- Entertainment posters, thumbnails and display media (staff-written);
+    -- films, episodes and originals stay in private buckets
     'media-public')
 $$, 'only product images and entertainment display images are served publicly');
+-- Images, and since 20261009240000_video_audio_in_every_bucket.sql the video and
+-- audio every bucket takes, at the 50 MB ceiling the Supabase project itself
+-- imposes. What this still refuses is the thing that matters in a bucket served
+-- publicly: anything document- or page-shaped, where text/html is served from
+-- the project's own origin and a PDF is somebody's file nobody reviewed.
 CALL pg_temp.none($$
   SELECT id FROM storage.buckets WHERE id = 'media-public'
-    AND (file_size_limit IS NULL OR file_size_limit > 5242880
-         OR allowed_mime_types IS NULL OR NOT allowed_mime_types <@ ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
-$$, 'the public media bucket takes only web-sized images');
+    AND (file_size_limit IS NULL OR file_size_limit > 52428800
+         OR allowed_mime_types IS NULL
+         OR NOT allowed_mime_types <@ ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/avif',
+                                            'video/mp4', 'video/webm', 'video/x-matroska',
+                                            'audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/wav', 'audio/x-wav'])
+$$, 'the public media bucket takes only images, video and audio, within the project limit');
 
 -- ---------- Training Center ----------
 CALL pg_temp.none($$

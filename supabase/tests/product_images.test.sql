@@ -87,8 +87,13 @@ SELECT pg_temp.expect(NOT pg_temp.refused(:a, format($$INSERT INTO public.produc
 SELECT pg_temp.expect(NOT pg_temp.set_images(:a, :p, ARRAY[pg_temp.img(:a, '1.jpg'), pg_temp.img(:a, '2.jpg'), pg_temp.img(:a, '3.jpg'), pg_temp.img(:a, '4.jpg')])
   AND cardinality((pg_temp.prod(:p)).image_urls) = 4, 'and adds images up to four');
 SELECT pg_temp.expect((pg_temp.prod(:p)).image_url = pg_temp.img(:a, '1.jpg'), 'image_url is the first of them');
+-- Two constraints now say four: products_max_four_images from the seller
+-- agreement, and products_at_most_four_images from the migration that let an
+-- admin list products too (the same rule, stated once where neither interface
+-- can get past it). Either refusal is the right answer, so the name is matched
+-- loosely rather than pinned to whichever Postgres reports first.
 SELECT pg_temp.expect(pg_temp.set_images(:a, :p, ARRAY[pg_temp.img(:a, '1.jpg'), pg_temp.img(:a, '2.jpg'), pg_temp.img(:a, '3.jpg'), pg_temp.img(:a, '4.jpg'), pg_temp.img(:a, '5.jpg')])
-  AND pg_temp.last_error() ~ 'products_max_four_images' AND cardinality((pg_temp.prod(:p)).image_urls) = 4,
+  AND pg_temp.last_error() ~ 'four_images' AND cardinality((pg_temp.prod(:p)).image_urls) = 4,
   'a fifth image is refused by the database and nothing changes');
 SELECT pg_temp.expect(NOT pg_temp.set_images(:a, :p, ARRAY[pg_temp.img(:a, '1.jpg'), pg_temp.img(:a, '1.jpg'), pg_temp.img(:a, '2.jpg')])
   AND (pg_temp.prod(:p)).image_urls = ARRAY[pg_temp.img(:a, '1.jpg'), pg_temp.img(:a, '2.jpg')], 'the same image is kept once');

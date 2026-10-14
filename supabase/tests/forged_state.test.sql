@@ -63,7 +63,7 @@ SELECT pg_temp.expect(NOT pg_temp.refused(:seller, $$
     'Rwanda', '123456789', 'Kigali', 'MTN MoMo', '0788000000', 'S Seller', public.seller_agreement_version()) $$),
   'user can apply to become a seller');
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$
-  INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'W', 1000, 'x', 5) $$),
+  INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'W', 1000, 'Electronics', 5) $$),
   'pending applicant cannot list products');
 SELECT pg_temp.expect(pg_temp.refused(:seller, $$
   SELECT public.approve_seller_application((SELECT id FROM public.seller_applications WHERE user_id = auth.uid())) $$),
@@ -82,7 +82,7 @@ SELECT pg_temp.expect((SELECT role FROM public.profiles WHERE user_id = :seller)
   AND EXISTS (SELECT 1 FROM public.notifications WHERE user_id = :seller AND title = 'Seller account approved'),
   'approval sets the application, the seller role and notifies the seller');
 SELECT pg_temp.expect(NOT pg_temp.refused(:seller, $$
-  INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'Widget-fs', 1000, 'x', 5) $$),
+  INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'Widget-fs', 1000, 'Electronics', 5) $$),
   'approved seller lists a product');
 
 -- ---------- Orders and payouts ----------

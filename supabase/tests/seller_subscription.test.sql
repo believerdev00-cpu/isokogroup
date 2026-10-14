@@ -115,7 +115,7 @@ SELECT pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE user_id =
   AND EXISTS (SELECT 1 FROM public.notifications WHERE user_id = :newseller AND event_type = 'SELLER_APPROVED'),
   'the new seller is told: payment confirmed, seller account approved');
 SELECT pg_temp.expect(pg_temp.as_(:newseller, $$INSERT INTO public.products (seller_id, name, price, category, stock)
-  VALUES (auth.uid(), 'SS2 product', 1000, 'x', 1) RETURNING 1$$) IS NOT NULL, 'the seller lists a product in the existing seller system');
+  VALUES (auth.uid(), 'SS2 product', 1000, 'Electronics', 1) RETURNING 1$$) IS NOT NULL, 'the seller lists a product in the existing seller system');
 SELECT pg_temp.expect(pg_temp.as_(:newseller, $$INSERT INTO public.logistics_requests (user_id, pickup, dropoff) VALUES (auth.uid(), 'A', 'B') RETURNING 1$$) IS NOT NULL,
   'and uses normal member services, without a 50 or 200 RWF subscription');
 
@@ -138,7 +138,7 @@ SELECT pg_temp.expect(NOT public.has_active_access(:newseller::uuid)
   AND EXISTS (SELECT 1 FROM public.notifications WHERE user_id = :newseller AND event_type = 'SUBSCRIPTION_SELLER_EXPIRED'),
   'expired: no access, and the seller is told');
 SELECT pg_temp.expect(pg_temp.as_(:newseller, $$INSERT INTO public.products (seller_id, name, price, category, stock)
-  VALUES (auth.uid(), 'SS2 product 2', 1000, 'x', 1) RETURNING 1$$) IS NULL, 'an expired seller can''t list products');
+  VALUES (auth.uid(), 'SS2 product 2', 1000, 'Electronics', 1) RETURNING 1$$) IS NULL, 'an expired seller can''t list products');
 SELECT pg_temp.expect(public.has_role(:newseller::uuid, 'seller') AND pg_temp.state(:newseller) ->> 'next_plan' = 'seller'
   AND (pg_temp.state(:newseller) ->> 'next_price')::numeric = 1500, 'the seller account stays; renewing is 1,500 RWF');
 SELECT set_config('ss.s2', pg_temp.pay(:newseller, 'seller', 1500, 'SS2-S-2')::text, true);

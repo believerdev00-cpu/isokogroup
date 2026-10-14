@@ -83,7 +83,7 @@ SELECT pg_temp.expect(pg_temp.refused(:buyer, $$
   'nor to someone else');
 
 -- ---------- Marketplace: one order, one message each ----------
-SELECT pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'NT-W', 1500, 'x', 5)$$);
+SELECT pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'NT-W', 1500, 'Electronics', 5)$$);
 SELECT pg_temp.expect(NOT pg_temp.refused(:buyer, $$SELECT public.place_order(jsonb_build_array(jsonb_build_object(
   'product_id', (SELECT id FROM public.products WHERE name = 'NT-W'), 'quantity', 2)), 'Kigali', 'momo', 'MP-NT-1')$$),
   'buyer places an order');

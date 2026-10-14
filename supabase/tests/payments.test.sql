@@ -302,7 +302,7 @@ SELECT pg_temp.expect((SELECT outcome FROM public.finance_provider_events WHERE 
 
 -- ---------- Marketplace ----------
 SELECT pg_temp.refused('00000000-0000-4000-8000-0000000000f7',
-  $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'PAY-W', 2500, 'x', 10)$$);
+  $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'PAY-W', 2500, 'Electronics', 10)$$);
 SELECT pg_temp.expect(NOT pg_temp.refused('00000000-0000-4000-8000-0000000000f1',
   $$SELECT public.place_order(jsonb_build_array(jsonb_build_object('product_id', (SELECT id FROM public.products WHERE name = 'PAY-W'),
     'quantity', 2)), 'Kigali', 'momo', 'MP-ORDER-1')$$), 'buyer places an order with a mobile-money reference');

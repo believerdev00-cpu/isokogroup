@@ -73,7 +73,7 @@ END $$;
 \set staff '''00000000-0000-4000-8000-0000000000c6'''
 
 -- ---------- Marketplace stock ----------
-SELECT pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'MD-Lamp', 1000, 'x', 3)$$);
+SELECT pg_temp.refused(:seller, $$INSERT INTO public.products (seller_id, name, price, category, stock) VALUES (auth.uid(), 'MD-Lamp', 1000, 'Electronics', 3)$$);
 CREATE TEMP TABLE p AS SELECT id FROM public.products WHERE name = 'MD-Lamp';
 GRANT SELECT ON p TO authenticated;
 SELECT pg_temp.expect(pg_temp.refused(:buyer, $$SELECT public.place_order(jsonb_build_array(jsonb_build_object('product_id', (SELECT id FROM p), 'quantity', 50)),

@@ -85,7 +85,7 @@ SELECT pg_temp.refused(:user, $$
   VALUES (auth.uid(), 'U', 'Shop', '1', '1',
     'Rwanda', '123456789', 'Kigali', 'MTN MoMo', '0788000000', 'U Seller', public.seller_agreement_version()) $$);
 SELECT pg_temp.expect(pg_temp.refused(:user, $$
-  INSERT INTO public.products (seller_id, name, price, category) VALUES (auth.uid(), 'RA-1', 100, 'x') $$),
+  INSERT INTO public.products (seller_id, name, price, category) VALUES (auth.uid(), 'RA-1', 100, 'Electronics') $$),
   'no seller role, no product listing');
 -- (a seller is approved with a confirmed 1,500 RWF seller subscription payment: 20260930130000)
 SELECT set_config('isoko.subscription_internal', 'on', true);
@@ -99,7 +99,7 @@ SELECT pg_temp.expect(NOT pg_temp.refused(:admin, $$
 SELECT pg_temp.expect(public.has_role(:user, 'seller'), 'approval grants the seller role');
 SELECT pg_temp.expect((SELECT role FROM public.profiles WHERE user_id = :user) = 'seller', 'profiles.role mirrors it');
 SELECT pg_temp.expect(NOT pg_temp.refused(:user, $$
-  INSERT INTO public.products (seller_id, name, price, category) VALUES (auth.uid(), 'RA-1', 100, 'x') $$),
+  INSERT INTO public.products (seller_id, name, price, category) VALUES (auth.uid(), 'RA-1', 100, 'Electronics') $$),
   'seller lists a product');
 SELECT pg_temp.refused(:user, $$UPDATE public.profiles SET role = 'buyer' WHERE user_id = auth.uid()$$);
 SELECT pg_temp.expect((SELECT role FROM public.profiles WHERE user_id = :user) = 'seller',
@@ -110,7 +110,7 @@ SELECT pg_temp.refused(:admin, $$
 SELECT pg_temp.expect(NOT public.has_role(:user, 'seller'), 'rejecting the application removes the seller role');
 SELECT pg_temp.expect((SELECT role FROM public.profiles WHERE user_id = :user) = 'buyer', 'and the profile shows buyer');
 SELECT pg_temp.expect(pg_temp.refused(:user, $$
-  INSERT INTO public.products (seller_id, name, price, category) VALUES (auth.uid(), 'RA-2', 100, 'x') $$),
+  INSERT INTO public.products (seller_id, name, price, category) VALUES (auth.uid(), 'RA-2', 100, 'Electronics') $$),
   'a removed seller cannot list products');
 
 -- ---------- Audit log ----------

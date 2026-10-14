@@ -84,7 +84,7 @@ SELECT pg_temp.expect(public.site_settings() -> 'company_phones' = '["0788 000 1
 
 -- ---------- Checkout charges the commission set here ----------
 INSERT INTO public.products (id, seller_id, name, price, category, stock)
-VALUES ('00000000-0000-4000-8000-00000000d5a1', '00000000-0000-4000-8000-00000000d503', 'SS widget', 1000, 'x', 5);
+VALUES ('00000000-0000-4000-8000-00000000d5a1', '00000000-0000-4000-8000-00000000d503', 'SS widget', 1000, 'Electronics', 5);
 SELECT pg_temp.expect(NOT pg_temp.refused(:user, $$SELECT public.place_order('[{"product_id":"00000000-0000-4000-8000-00000000d5a1","quantity":2}]'::jsonb, 'Kigali', 'momo', 'SS-ORDER-1')$$),
   'a customer places an order');
 SELECT pg_temp.expect((SELECT commission_rate = 10 AND commission_amount = 200 FROM public.commissions c JOIN public.orders o ON o.id = c.order_id
