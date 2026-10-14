@@ -16,7 +16,7 @@ import leadershipEssentials from "@/assets/books/leadership-essentials.jpg";
 const products = [
   { name: "Wireless Earbuds Pro", price: "12,500 RWF", rating: 4.8, category: "Electronics", image: wirelessEarbuds },
   { name: "Organic Coffee Beans", price: "8,000 RWF", rating: 4.9, category: "Beverages", image: coffeeBeans },
-  { name: "Handwoven Basket", price: "15,000 RWF", rating: 4.7, category: "Crafts", image: handwovenBasket },
+  { name: "Handwoven Basket", price: "15,000 RWF", rating: 4.7, category: "Home", image: handwovenBasket },
   { name: "Smart Watch Band", price: "22,000 RWF", rating: 4.6, category: "Accessories", image: smartWatch },
 ];
 

@@ -25,7 +25,7 @@ SELECT set_config('isoko.subscription_internal', '', true);
 INSERT INTO public.seller_applications (id, user_id, full_name, business_name, phone, id_number, status)
 VALUES ('00000000-0000-4000-8000-00000000a9a4', '00000000-0000-4000-8000-00000000a904', 'Old Seller', 'Old Shop', '0788000004', '1199', 'approved');
 INSERT INTO public.products (id, seller_id, name, price, category, stock, image_url)
-VALUES ('00000000-0000-4000-8000-00000000a9b1', '00000000-0000-4000-8000-00000000a904', 'Basket', 5000, 'Crafts', 3, 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/old.jpg');
+VALUES ('00000000-0000-4000-8000-00000000a9b1', '00000000-0000-4000-8000-00000000a904', 'Basket', 5000, 'Home', 3, 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/old.jpg');
 
 \set applicant '''00000000-0000-4000-8000-00000000a901'''
 \set other '''00000000-0000-4000-8000-00000000a902'''
@@ -157,9 +157,9 @@ SELECT pg_temp.expect(pg_temp.refused(NULL, 'SELECT public.accept_seller_agreeme
 SELECT pg_temp.expect((pg_temp.prod('00000000-0000-4000-8000-00000000a9b1')).image_urls = ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/old.jpg'],
   'an existing product''s single image became its image list');
 SELECT pg_temp.expect(pg_temp.refused(:oldseller, $$INSERT INTO public.products (seller_id, name, price, category, stock, image_urls)
-  VALUES (auth.uid(), 'Too many', 100, 'Crafts', 1, ARRAY['a','b','c','d','e'])$$), 'five images are refused');
+  VALUES (auth.uid(), 'Too many', 100, 'Home', 1, ARRAY['a','b','c','d','e'])$$), 'five images are refused');
 SELECT pg_temp.expect(NOT pg_temp.refused(:oldseller, $$INSERT INTO public.products (id, seller_id, name, price, category, stock, image_urls)
-  VALUES ('00000000-0000-4000-8000-00000000a9b2', auth.uid(), 'Mat', 2000, 'Crafts', 10, ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg', '', 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/2.jpg'])$$),
+  VALUES ('00000000-0000-4000-8000-00000000a9b2', auth.uid(), 'Mat', 2000, 'Home', 10, ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg', '', 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/2.jpg'])$$),
   'up to four images are accepted');
 SELECT pg_temp.expect(((pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_url, (pg_temp.prod('00000000-0000-4000-8000-00000000a9b2')).image_urls)
   = ('https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg'::text, ARRAY['https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/1.jpg', 'https://xyz.supabase.co/storage/v1/object/public/product-images/00000000-0000-4000-8000-00000000a904/2.jpg']::text[]), 'image_url is the first image; blanks are dropped');

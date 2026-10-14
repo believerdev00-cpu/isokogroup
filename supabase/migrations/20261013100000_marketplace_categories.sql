@@ -2,6 +2,7 @@
 --
 --   "Fashion"      -> "Fashion Hub"
 --   "Food & Drink" -> "Food" (edible) and "Beverages" (drinkable)
+--   "Crafts"       -> "Packaging and branding"
 --   new: "Beauty & Cosmetics", "Health & Pharmaceuticals", "Construction Materials"
 --
 -- Buyers filter on an exact category match, so a product in an unknown category
@@ -22,6 +23,11 @@ WHERE category = 'Food & Drink'
 
 UPDATE public.products SET category = 'Food' WHERE category = 'Food & Drink';
 
+-- "Crafts" is renamed as well. A handicraft is not packaging, and nothing can
+-- tell which of these rows is really which, so they all take the new name and a
+-- seller can re-pick the category on any listing.
+UPDATE public.products SET category = 'Packaging and branding' WHERE category = 'Crafts';
+
 ALTER TABLE public.products DROP CONSTRAINT IF EXISTS products_known_category;
 
 -- NOT VALID on purpose: every insert and update from now on must use a known
@@ -31,7 +37,7 @@ ALTER TABLE public.products DROP CONSTRAINT IF EXISTS products_known_category;
 ALTER TABLE public.products ADD CONSTRAINT products_known_category CHECK (
   category IN (
     'Electronics', 'Fashion Hub', 'Food', 'Beverages', 'Beauty & Cosmetics',
-    'Health & Pharmaceuticals', 'Home', 'Construction Materials', 'Crafts', 'Accessories'
+    'Health & Pharmaceuticals', 'Home', 'Construction Materials', 'Packaging and branding', 'Accessories'
   )
 ) NOT VALID;
 

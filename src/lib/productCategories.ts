@@ -19,7 +19,7 @@ export const PRODUCT_CATEGORIES = [
   "Health & Pharmaceuticals",
   "Home",
   "Construction Materials",
-  "Crafts",
+  "Packaging and branding",
   "Accessories",
 ];
 
@@ -39,6 +39,7 @@ const DRINKABLE =
 export const displayCategory = (category: string | null | undefined, name = ""): string => {
   if (!category) return "";
   if (category === "Fashion") return "Fashion Hub";
+  if (category === "Crafts") return "Packaging and branding";
   if (category === "Food & Drink") return DRINKABLE.test(name) ? "Beverages" : "Food";
   return category;
 };

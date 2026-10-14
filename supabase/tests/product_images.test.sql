@@ -23,7 +23,7 @@ INSERT INTO public.subscriptions (user_id, status, plan, trial_started_at, trial
 SELECT set_config('isoko.subscription_internal', '', true);
 -- A's older product, listed before image editing, with a picture from elsewhere
 INSERT INTO public.products (id, seller_id, name, price, category, stock, image_url)
-VALUES ('00000000-0000-4000-8000-00000000b1a1', '00000000-0000-4000-8000-00000000b101', 'Old basket', 5000, 'Crafts', 3, 'https://cdn.example.com/basket.jpg');
+VALUES ('00000000-0000-4000-8000-00000000b1a1', '00000000-0000-4000-8000-00000000b101', 'Old basket', 5000, 'Home', 3, 'https://cdn.example.com/basket.jpg');
 
 \set a '''00000000-0000-4000-8000-00000000b101'''
 \set b '''00000000-0000-4000-8000-00000000b102'''
@@ -82,7 +82,7 @@ $$;
 
 -- ---------- Adding images, up to four ----------
 SELECT pg_temp.expect(NOT pg_temp.refused(:a, format($$INSERT INTO public.products (id, seller_id, name, price, category, stock, image_urls)
-  VALUES (%L, auth.uid(), 'Mat', 2000, 'Crafts', 10, ARRAY[%L])$$, :p, pg_temp.img(:a, '1.jpg'))),
+  VALUES (%L, auth.uid(), 'Mat', 2000, 'Home', 10, ARRAY[%L])$$, :p, pg_temp.img(:a, '1.jpg'))),
   'a seller lists a product with one uploaded image');
 SELECT pg_temp.expect(NOT pg_temp.set_images(:a, :p, ARRAY[pg_temp.img(:a, '1.jpg'), pg_temp.img(:a, '2.jpg'), pg_temp.img(:a, '3.jpg'), pg_temp.img(:a, '4.jpg')])
   AND cardinality((pg_temp.prod(:p)).image_urls) = 4, 'and adds images up to four');
@@ -115,7 +115,7 @@ SELECT pg_temp.expect(pg_temp.set_images(:a, :p, ARRAY['data:image/png;base64,AA
 SELECT pg_temp.expect(pg_temp.set_images(:a, :p, ARRAY[pg_temp.img(:b, 'theirs.jpg')]), 'and another seller''s upload');
 SELECT pg_temp.expect(pg_temp.set_images(:a, :p, ARRAY[pg_temp.img(:a, 'x.jpg') || '?x=../../' || :b]), 'and a query string');
 SELECT pg_temp.expect(pg_temp.refused(:a, format($$INSERT INTO public.products (seller_id, name, price, category, stock, image_url)
-  VALUES (auth.uid(), 'Hotlinked', 100, 'Crafts', 1, %L)$$, 'https://cdn.example.com/x.jpg')), 'a new product can''t hotlink either');
+  VALUES (auth.uid(), 'Hotlinked', 100, 'Home', 1, %L)$$, 'https://cdn.example.com/x.jpg')), 'a new product can''t hotlink either');
 SELECT pg_temp.expect((pg_temp.prod(:p)).image_urls = '{}', 'none of that was saved');
 
 -- ---------- Other people ----------

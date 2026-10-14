@@ -29,7 +29,7 @@ describe("product categories", () => {
       "Health & Pharmaceuticals",
       "Home",
       "Construction Materials",
-      "Crafts",
+      "Packaging and branding",
       "Accessories",
     ]);
   });
@@ -45,6 +45,9 @@ describe("product categories", () => {
     // "Fashion" was renamed, not kept alongside
     expect(PRODUCT_CATEGORIES).toContain("Fashion Hub");
     expect(PRODUCT_CATEGORIES).not.toContain("Fashion");
+    // and so was "Crafts"
+    expect(PRODUCT_CATEGORIES).toContain("Packaging and branding");
+    expect(PRODUCT_CATEGORIES).not.toContain("Crafts");
   });
 
   it("has no duplicates and nothing blank", () => {
@@ -72,6 +75,7 @@ describe("product categories", () => {
 describe("displayCategory", () => {
   it("shows a product listed before the rename under its new tab", () => {
     expect(displayCategory("Fashion", "Kitenge Fabric")).toBe("Fashion Hub");
+    expect(displayCategory("Crafts", "Handwoven Basket")).toBe("Packaging and branding");
     expect(displayCategory("Food & Drink", "Bottled Water 1L")).toBe("Beverages");
     expect(displayCategory("Food & Drink", "Organic Coffee Beans")).toBe("Beverages");
     expect(displayCategory("Food & Drink", "Akabanga Chilli Oil")).toBe("Food");
