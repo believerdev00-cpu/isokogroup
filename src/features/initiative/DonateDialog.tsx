@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { inUsd, useUsdRate } from "@/lib/usdRate";
+import { useUsdRate } from "@/lib/usdRate";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -21,8 +21,9 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { errorText } from "@/features/services/api";
 import {
-  BENEFIT_DAYS, DONOR_NOTE_MAX, DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF, PAYMENT_METHODS,
-  donationAmountProblem, donationProblem, donationTarget,
+  BENEFIT_DAYS, DONOR_NOTE_MAX, DONATION_GENERAL, DONATION_STATUS_LABEL, FOCUS_AREAS, MIN_DONATION_RWF,
+  MIN_DONATION_USD, PAYMENT_METHODS,
+  dollarsToRwf, donationAmountProblem, donationDollarsProblem, donationProblem, donationTarget,
   donationTargetValue, rwf, type PaymentMethod,
 } from "@/lib/initiative";
 import {
@@ -53,9 +54,17 @@ function ChooseStep({
   const open = useSupportableProjects();
   const usd = useUsdRate();
   const minimum = usd.data?.minimumRwf ?? MIN_DONATION_RWF;
-  const amountProblem = amount === "" ? null : donationAmountProblem(Number(amount), minimum);
+  // The field asks for dollars, because the campaign asks for a dollar. That
+  // needs a rate to turn them into the francs Mobile Money will actually take,
+  // so without one the field falls back to francs rather than refusing to take
+  // a donation at all.
+  const rate = usd.data?.rate ?? null;
+  const typed = Number(amount);
+  const francs = rate ? dollarsToRwf(typed, rate) : typed;
+  const amountProblem = amount === ""
+    ? null
+    : rate ? donationDollarsProblem(typed) : donationAmountProblem(typed, minimum);
   const blocked = amount === "" || !!amountProblem;
-  const asDollars = inUsd(Number(amount), usd.data?.rate ?? null);
 
   return (
     <div className="space-y-6">
@@ -69,23 +78,25 @@ function ChooseStep({
       <div className="space-y-3">
         <Label>How much would you like to give?</Label>
         <p className="text-xs text-muted-foreground">
-          {usd.data?.rate
-            ? <>Minimum: <span className="font-medium text-foreground">US$1</span>, which is {rwf(minimum)} at today&apos;s rate.</>
+          {rate
+            ? <>Minimum: <span className="font-medium text-foreground">US${MIN_DONATION_USD}</span>, which is {rwf(minimum)} at today&apos;s rate.</>
             : <>Minimum: <span className="font-medium text-foreground">{rwf(minimum)}</span>.</>}
         </p>
         <div className="space-y-1.5">
           <Label htmlFor="donate-amount" className="text-xs font-normal text-muted-foreground">
-            Any amount you wish, in whole Rwandan francs
+            {rate
+              ? "Any amount you wish, in whole US dollars"
+              : "Any amount you wish, in whole Rwandan francs"}
           </Label>
           <Input
             id="donate-amount"
             type="number"
             inputMode="numeric"
-            min={MIN_DONATION_RWF}
+            min={rate ? MIN_DONATION_USD : MIN_DONATION_RWF}
             step={1}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={String(MIN_DONATION_RWF)}
+            placeholder={rate ? String(MIN_DONATION_USD) : String(MIN_DONATION_RWF)}
           />
           {amountProblem && <p className="text-xs text-destructive">{amountProblem}</p>}
         </div>
@@ -157,14 +168,17 @@ function ChooseStep({
           and a dead button that explains nothing reads as a broken page, not
           as a form waiting for an answer. A bad amount is already reported
           under the field, so only the empty case is spelled out here. */}
-      {asDollars && !amountProblem && (
+      {rate && amount !== "" && !amountProblem && (
         <p className="-mt-3 text-xs text-muted-foreground">
-          {/* Named honestly. The rate is a published daily reference, not a
-              quote from the bank that will actually process the payment, and
-              the figure somebody is charged is whatever their own bank
-              applies. */}
-          That is roughly <span className="font-medium text-foreground">{asDollars}</span> at the reference rate of{" "}
-          {usd.data?.fetchedAt?.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. You pay in francs.
+          {/* Named honestly, and the other way round from how it used to read.
+              The donor now says how many dollars; what they have to send is
+              francs, so that is the figure they are shown. The rate is a
+              published daily reference, not a quote from the bank that will
+              process the payment, and what somebody is charged is whatever
+              their own bank applies. */}
+          You will send <span className="font-medium text-foreground">{rwf(francs)}</span>, at the
+          reference rate of{" "}
+          {usd.data?.fetchedAt?.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.
         </p>
       )}
 
@@ -350,7 +364,15 @@ export default function DonateDialog({
     setSaving(false);
   }, [open, initialProjectId]);
 
-  const chosen = useMemo(() => Number(amount), [amount]);
+  // What the donor typed is dollars when there is a rate to convert them with,
+  // and francs when there is not -- the same rule the amount field follows,
+  // read from the same query. Everything past this point is francs: what is
+  // paid, what the payment instructions say, and what is recorded.
+  const usd = useUsdRate();
+  const chosen = useMemo(() => {
+    const typed = Number(amount);
+    return usd.data?.rate ? dollarsToRwf(typed, usd.data.rate) : typed;
+  }, [amount, usd.data?.rate]);
 
   const submit = async () => {
     if (!user) return;

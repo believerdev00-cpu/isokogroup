@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useSeo } from "@/lib/seo";
 import {
-  BENEFIT_DAYS, DONATIONS_OPEN, FOCUS_AREAS, MIN_DONATION_RWF, classificationLabel, rwf,
+  BENEFIT_DAYS, DONATIONS_OPEN, FOCUS_AREAS, MIN_DONATION_USD, classificationLabel,
 } from "@/lib/initiative";
 import { INITIATIVE, INITIATIVE_NAME, TAGLINE, useImpact, usePublicProjects, type PublicProject } from "./api";
 import DonateDialog from "./DonateDialog";
@@ -25,7 +25,7 @@ const STEPS = [
   {
     step: "01",
     title: "You contribute",
-    desc: `Contributions start at ${rwf(MIN_DONATION_RWF)} and are made to ISOKO GROUP's own Mobile Money or bank account. You then send us the transaction reference.`,
+    desc: `Contributions start at US$${MIN_DONATION_USD} and are made to ISOKO GROUP's own Mobile Money or bank account, in francs at the day's rate. You then send us the transaction reference.`,
   },
   {
     step: "02",
@@ -276,12 +276,13 @@ export default function GlobalInitiative() {
             <div className="mb-10 space-y-3 text-center">
               <span className="text-sm font-semibold uppercase tracking-wider text-primary">Donate</span>
               <h2 className="font-display text-3xl font-bold md:text-4xl">
-                Contribute from {rwf(MIN_DONATION_RWF)}
+                Contribute from US${MIN_DONATION_USD}
               </h2>
               <p className="mx-auto max-w-2xl text-muted-foreground">
-                Contributions are made in Rwandan Francs to ISOKO GROUP&apos;s own Mobile Money and bank
-                accounts. You pay us directly and send the transaction reference, and we match it against
-                our records before it counts towards a project.
+                Contributions are counted in US dollars and paid in Rwandan Francs — the form works out
+                what a dollar costs today — to ISOKO GROUP&apos;s own Mobile Money and bank accounts. You
+                pay us directly and send the transaction reference, and we match it against our records
+                before it counts towards a project.
               </p>
               <p className="mx-auto max-w-2xl rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm leading-relaxed">
                 <span className="font-semibold">As thanks, every confirmed donation earns a month of Premium access.</span>{" "}

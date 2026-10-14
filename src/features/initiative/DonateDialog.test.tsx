@@ -18,6 +18,19 @@ vi.mock("./api", async (orig) => ({
 }));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: "u1", email: "donor@example.test" }, loading: false }) }));
 
+// The field asks for dollars when a rate is known and francs when it is not,
+// so the rate is the switch between the two and both are worth testing.
+const useUsdRate = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/usdRate", async (orig) => ({
+  ...(await orig<typeof import("@/lib/usdRate")>()),
+  useUsdRate,
+}));
+const RATE = 1450;
+const withRate = () =>
+  useUsdRate.mockReturnValue({ data: { rate: RATE, fetchedAt: new Date("2026-10-13T06:00:00Z"), minimumRwf: RATE } });
+/** What the page falls back to when the provider has never answered. */
+const withoutRate = () => useUsdRate.mockReturnValue({ data: undefined });
+
 const { default: DonateDialog } = await import("./DonateDialog");
 const { MIN_DONATION_RWF, DONOR_NOTE_MAX } = await import("@/lib/initiative");
 
@@ -33,6 +46,7 @@ const continueButton = () => screen.getByRole("button", { name: /continue/i });
 describe("choosing what to give", () => {
   beforeEach(() => {
     useSupportableProjects.mockReturnValue({ isLoading: false, isError: false, data: [] });
+    withoutRate();
   });
 
   it("offers no suggested amounts", () => {
@@ -86,5 +100,62 @@ describe("choosing what to give", () => {
   it("says the message stays private", () => {
     open();
     expect(screen.getByText(/never published on the website/i)).toBeInTheDocument();
+  });
+});
+
+// The campaign is called "$1 One Project", so the field asks for dollars and
+// works out the francs. The francs are what Mobile Money takes, what the
+// payment instructions have to say, and what is recorded -- so the conversion
+// is the part worth pinning down.
+describe("giving in dollars", () => {
+  beforeEach(() => {
+    useSupportableProjects.mockReturnValue({ isLoading: false, isError: false, data: [] });
+    withRate();
+  });
+
+  it("asks for dollars, and says what a dollar costs today", () => {
+    open();
+    expect(screen.getByLabelText(/in whole US dollars/i)).toBeInTheDocument();
+    expect(screen.getByText(/Minimum:/)).toHaveTextContent(`US$1, which is ${RATE.toLocaleString()} RWF`);
+  });
+
+  it("takes one dollar -- the whole point of the campaign", () => {
+    open();
+    fireEvent.change(amountBox(), { target: { value: "1" } });
+    expect(continueButton()).toBeEnabled();
+  });
+
+  it("refuses less than a dollar, in dollars", () => {
+    open();
+    fireEvent.change(amountBox(), { target: { value: "0" } });
+    expect(continueButton()).toBeDisabled();
+    expect(screen.getByText("The smallest contribution is US$1.")).toBeInTheDocument();
+  });
+
+  it("shows the francs the donor will actually send", () => {
+    open();
+    fireEvent.change(amountBox(), { target: { value: "5" } });
+    expect(screen.getByText(/You will send/)).toHaveTextContent(`${(5 * RATE).toLocaleString()} RWF`);
+  });
+
+  it("carries the francs, not the dollars, to the payment step", () => {
+    open();
+    fireEvent.change(amountBox(), { target: { value: "2" } });
+    fireEvent.click(continueButton());
+    // 2 dollars is 2,900 francs: what the instructions must say, and what is
+    // recorded. "2" reaching the database would be rejected by its own
+    // minimum, and a donor told to send 2 francs would be nonsense.
+    expect(screen.getByRole("button", { name: /Record my contribution of 2,900 RWF/i })).toBeInTheDocument();
+  });
+
+  it("rounds a fractional conversion up, never under the minimum", () => {
+    // A rate with a fraction is the normal case, and the database refuses
+    // anything below ceil(rate): rounding down would refuse the donation at
+    // the last step.
+    useUsdRate.mockReturnValue({ data: { rate: 1450.4, fetchedAt: new Date("2026-10-13T06:00:00Z"), minimumRwf: 1451 } });
+    open();
+    fireEvent.change(amountBox(), { target: { value: "1" } });
+    fireEvent.click(continueButton());
+    expect(screen.getByRole("button", { name: /Record my contribution of 1,451 RWF/i })).toBeInTheDocument();
   });
 });

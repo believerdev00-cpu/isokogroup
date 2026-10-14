@@ -205,6 +205,32 @@ export function donationAmountProblem(amount: number, minimum: number = MIN_DONA
   return null;
 }
 
+/**
+ * The smallest contribution in the unit the campaign is named after.
+ *
+ * "$1 One Project" asks for a dollar, so the form asks for dollars: the donor
+ * says how many, and the francs they actually send are worked out from today's
+ * rate. The database still records francs -- that is what arrives through
+ * Mobile Money -- so nothing here changes what is stored.
+ */
+export const MIN_DONATION_USD = 1;
+
+/** What is wrong with an amount in dollars, or null when it is fine. */
+export function donationDollarsProblem(dollars: number): string | null {
+  if (!Number.isInteger(dollars)) return "Enter the amount in whole US dollars.";
+  if (dollars < MIN_DONATION_USD) return `The smallest contribution is US$${MIN_DONATION_USD}.`;
+  return null;
+}
+
+/**
+ * The francs to send for an amount in dollars.
+ *
+ * Rounded up, and that matters: the database refuses anything under
+ * usd_minimum_rwf(), which is ceil(rate). Rounding down would land a donation
+ * a franc below its own minimum and have it refused at the last step.
+ */
+export const dollarsToRwf = (dollars: number, rate: number) => Math.ceil(dollars * rate);
+
 export function donationReferenceProblem(reference: string): string | null {
   const given = reference.trim();
   if (given.length < 4) return "Enter the transaction reference from your payment confirmation.";

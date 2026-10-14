@@ -96,8 +96,8 @@ describe("the public page when a section loads", () => {
     // Nothing about a project's money reaches a visitor: not what it has
     // collected, and not what it wants. A target would read as a ceiling on
     // giving, and a project shown as fully funded would tell people to stop.
-    // The 1,000 RWF minimum is a different thing -- a floor, not a limit --
-    // and stays.
+    // The US$1 minimum is a different thing -- a floor, not a limit -- and
+    // stays.
     const card = screen.getByText("Coding bootcamp").closest("div");
     expect(card).not.toBeNull();
     expect(card.textContent ?? "").not.toMatch(/RWF/);
@@ -120,7 +120,7 @@ describe("the homepage promise is kept on the page itself", () => {
 
   it("invites a contribution, with the minimum stated", () => {
     mount(ok([]), ok([]), empty());
-    expect(screen.getByText("Contribute from 1,000 RWF")).toBeTruthy();
+    expect(screen.getByText("Contribute from US$1")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: /Donate with ISOKO Groups Company/i }).length).toBeGreaterThan(0);
   });
 

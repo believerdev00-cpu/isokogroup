@@ -6,8 +6,8 @@
 import { describe, expect, it } from "vitest";
 import {
   APPLICANT_STATUS_LABEL, DONATIONS_OPEN, DONATION_GENERAL, FOCUS_AREAS, MIN_DONATION_RWF,
-  PUBLISHABLE_STATUSES, donationTarget, donationTargetValue,
-  STATUS_TRANSITIONS, classificationLabel, donationAmountProblem,
+  MIN_DONATION_USD, PUBLISHABLE_STATUSES, dollarsToRwf, donationTarget, donationTargetValue,
+  STATUS_TRANSITIONS, classificationLabel, donationAmountProblem, donationDollarsProblem,
   donationProblem, donationReferenceProblem, isValidClassification, rwf, type ProjectStatus,
 } from "./initiative";
 
@@ -133,6 +133,27 @@ describe("money", () => {
     // two amounts are equal.
     expect(donationAmountProblem(MIN_DONATION_RWF)).toBeNull();
     expect(donationAmountProblem(MIN_DONATION_RWF - 1)).not.toBeNull();
+  });
+
+  it("asks the donor for dollars, because that is what the campaign asks for", () => {
+    expect(MIN_DONATION_USD).toBe(1);
+    expect(donationDollarsProblem(1)).toBeNull();
+    expect(donationDollarsProblem(25)).toBeNull();
+    expect(donationDollarsProblem(0)).toBe("The smallest contribution is US$1.");
+    expect(donationDollarsProblem(0.5)).toBe("Enter the amount in whole US dollars.");
+    expect(donationDollarsProblem(-3)).not.toBeNull();
+  });
+
+  it("turns dollars into francs by rounding up, never a franc under the minimum", () => {
+    // The database refuses anything below usd_minimum_rwf(), which is
+    // ceil(rate). Rounding down would have a donation refused at the last
+    // step for being a franc short of its own minimum.
+    expect(dollarsToRwf(1, 1450)).toBe(1450);
+    expect(dollarsToRwf(1, 1450.4)).toBe(1451);
+    expect(dollarsToRwf(1, 1450.5)).toBe(1451);
+    expect(dollarsToRwf(3, 1433.34)).toBe(4301);
+    // A whole number of dollars at a whole rate is exact: no stray franc.
+    expect(dollarsToRwf(10, 1450)).toBe(14_500);
   });
 
   /**
