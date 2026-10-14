@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode, type Ref } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowRight, BadgeCheck, Search, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { coverUrl, formatDate, HUB, kindOne, rememberSearch, searchPath, type Se
 // Shared pieces of the Information Hub: the search box, cards, chips,
 // loading skeletons and the empty and error states.
 
-export function HubSearchBox({ initial = "", size = "md", autoFocus, placeholder, className }: { initial?: string; size?: "md" | "lg"; autoFocus?: boolean; placeholder?: string; className?: string }) {
+export function HubSearchBox({ initial = "", size = "md", autoFocus, placeholder, className, inputRef }: { initial?: string; size?: "md" | "lg"; autoFocus?: boolean; placeholder?: string; className?: string; inputRef?: Ref<HTMLInputElement> }) {
   const [q, setQ] = useState(initial);
   const navigate = useNavigate();
   const submit = (e: FormEvent) => {
@@ -26,6 +26,7 @@ export function HubSearchBox({ initial = "", size = "md", autoFocus, placeholder
         <span className="sr-only">Search</span>
         <Search className={cn("pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground", big ? "h-5 w-5" : "h-4 w-4")} aria-hidden />
         <input
+          ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           autoFocus={autoFocus}

@@ -1,22 +1,34 @@
 // The ISOKO Information Hub's answer engine: POST /functions/v1/research-ask
 //
 // A visitor asks a question in plain words. The engine looks in ISOKO's own
-// knowledge base first; when that is not enough it looks outside (a search
-// provider configured as a secret), then has the model write one short answer
-// from the material it was given, never from memory. The answer is cached for
-// a day, every answer keeps its sources and any conflicting figures internally,
-// and the question (never who asked) feeds the "trending questions" list.
+// knowledge base first; when what it holds does not cover the question it looks
+// outside (the providers configured as secrets, tried in turn), reads the pages
+// behind the best results, weighs them by who published them and how current
+// they are, then has the model write one short answer from that material and
+// never from memory. ISOKO need not hold anything for this to work.
 //
-// Without ANTHROPIC_API_KEY the matching items are returned and the answer is
-// null (ai: false). With RESEARCH_MOCK=1, locally only, fake outside results
-// and a deterministic answer let the e2e script run without any key.
+// Every answer keeps its sources and any conflicting figures, the question
+// (never who asked) feeds the "trending questions" list, and an answer written
+// from outside material is queued as a draft for an analyst - never published.
+//
+// Only an answer is cached, for a day, or an hour when the question is about
+// the present: a provider outage or a missing key is never stored as though it
+// were an answer, so the next visitor is researched afresh.
+//
+// Without ANTHROPIC_API_KEY the matching ISOKO items are returned and the
+// answer is null (ai: false); when nothing could be researched at all the reply
+// says so (status "unavailable") rather than claiming there is nothing to find.
+// With RESEARCH_MOCK=1, locally only, fake outside results and a deterministic
+// answer let the e2e script run without any key.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { mocksAllowed } from "../_shared/environment.ts";
 import {
-  buildPrompt, CACHE_HOURS, decideMode, draftFromAnswer, isNotFound, isSufficient, KB_TOP, mockAnswer, parseModelReply, questionHash,
-  RATE_LIMIT_PER_HOUR, sanitizeAnswer, sha256Hex, validateInput, type Conflict, type ExternalResult, type Figure, type KbItem, type KbMaterial, type Mode,
+  buildPrompt, cacheHours, checkCitations, decideMode, draftFromAnswer, isNotFound, isSufficient, KB_TOP, mockAnswer, parseModelReply, questionHash,
+  rankExternal, RATE_LIMIT_PER_HOUR, sanitizeAnswer, sha256Hex, validateInput,
+  type Conflict, type ExternalResult, type Figure, type KbItem, type KbMaterial, type Mode,
 } from "./engine.ts";
-import { searchExternal } from "./external.ts";
+import { searchExternal, type SearchStatus } from "./external.ts";
+import { fetchPages } from "./pages.ts";
 import { askModel, hasModelKey } from "./llm.ts";
 
 const env = Deno.env;
@@ -71,7 +83,7 @@ const publicItem = (i: KbItem): PublicItem => ({
   published_on: i.published_on, verification: i.verification,
 });
 
-type Source = { title: string; url: string | null; publisher: string | null; origin: "isoko" | "external" };
+type Source = { title: string; url: string | null; publisher: string | null; published_on: string | null; origin: "isoko" | "external" };
 
 /** The bodies and references of the top items, for the model and the sufficiency check */
 async function material(items: KbItem[]): Promise<KbMaterial[]> {
@@ -79,12 +91,12 @@ async function material(items: KbItem[]): Promise<KbMaterial[]> {
   const ids = items.map((i) => i.id);
   const [bodies, sources] = await Promise.all([
     admin.from("research_items").select("id, body").in("id", ids),
-    admin.from("research_sources").select("item_id, title, url, publisher").in("item_id", ids).order("sort"),
+    admin.from("research_sources").select("item_id, title, url, publisher, published_on").in("item_id", ids).order("sort"),
   ]);
   const bodyOf = new Map((bodies.data ?? []).map((b: { id: string; body: string | null }) => [b.id, b.body]));
   const sourcesOf = new Map<string, KbMaterial["sources"]>();
-  for (const s of (sources.data ?? []) as { item_id: string; title: string; url: string | null; publisher: string | null }[]) {
-    sourcesOf.set(s.item_id, [...(sourcesOf.get(s.item_id) ?? []), { title: s.title, url: s.url, publisher: s.publisher }]);
+  for (const s of (sources.data ?? []) as { item_id: string; title: string; url: string | null; publisher: string | null; published_on: string | null }[]) {
+    sourcesOf.set(s.item_id, [...(sourcesOf.get(s.item_id) ?? []), { title: s.title, url: s.url, publisher: s.publisher, published_on: s.published_on }]);
   }
   return items.map((i) => ({ ...i, body: bodyOf.get(i.id) ?? null, sources: sourcesOf.get(i.id) ?? [] }));
 }
@@ -128,6 +140,8 @@ async function queueForReview(input: { question: string; answer: string; country
     ...input,
     sources: input.sources.filter((s) => s.origin === "external").map(({ title, url, publisher }) => ({ title, url, publisher })),
   });
+  // the draft is unpublished and unverified: an analyst decides whether it ever
+  // becomes ISOKO's own knowledge (draftFromAnswer sets status and verification)
   const { data, error } = await admin.from("research_items").upsert(draft.item, { onConflict: "review_hash", ignoreDuplicates: true }).select("id");
   if (error) {
     console.error(`research-ask: could not queue the answer for review: ${error.message}`);
@@ -157,20 +171,23 @@ Deno.serve(async (req) => {
   }
   const input = validateInput(body);
   if ("error" in input) return reply(req, 400, { error: input.error });
-  const { question, country } = input;
+  const { question, country, lang } = input;
 
   const key = await callerKey(req);
   if (await rateLimited(key)) return reply(req, 429, { error: "Too many questions. Try again in a few minutes." }, { "Retry-After": "600" });
 
   // ---- the cache: the same question in the same country within a day ----
-  const hash = await questionHash(question, country);
+  const hash = await questionHash(question, country, lang);
+  // only a written answer is worth reusing: a row with no answer is the trace of
+  // a question nothing could be found for, and must never stand in the way of
+  // researching it again now that more may be reachable.
   const { data: cached } = await admin.from("research_answers").select("answer, mode, item_ids, sources, conflicts")
-    .eq("question_hash", hash).gt("expires_at", new Date().toISOString()).maybeSingle();
+    .eq("question_hash", hash).not("answer", "is", null).gt("expires_at", new Date().toISOString()).maybeSingle();
   if (cached) {
     const items = await itemsByIds((cached.item_ids as string[]) ?? []);
-    const sources = ((cached.sources as Source[]) ?? []).map(({ title, url, publisher }) => ({ title, url, publisher }));
+    const sources = ((cached.sources as Source[]) ?? []).map(({ title, url, publisher, published_on }) => ({ title, url, publisher, published_on: published_on ?? null }));
     const conflicts = ((cached.conflicts as Conflict[]) ?? []).map(({ topic, note }) => ({ topic, note }));
-    return reply(req, 200, { answer: cached.answer, mode: cached.mode as Mode, items, sources, conflicts, cached: true, ai: cached.answer != null });
+    return reply(req, 200, { answer: cached.answer, mode: cached.mode as Mode, items, sources, conflicts, cached: true, ai: true, status: "ok" });
   }
 
   // ---- 1. ISOKO's own knowledge base ----
@@ -185,10 +202,17 @@ Deno.serve(async (req) => {
 
   // ---- 2. outside, only when needed ----
   let external: ExternalResult[] = [];
+  let outside: SearchStatus = "ok";
   if (!enough) {
     const found = await searchExternal(env, question, MOCK);
-    external = found.results;
-    if (found.reason && !MOCK) console.log(`research-ask: no outside results: ${found.reason}`);
+    outside = found.status;
+    // Order on what the provider showed, read the pages that look best, then
+    // order again now that each page's own words and date are known. The
+    // answer rests on the sources themselves, never on a provider's ordering.
+    const preferred = env.get("EXTERNAL_SEARCH_PREFERRED_DOMAINS");
+    const ordered = rankExternal(found.results, question, preferred);
+    external = rankExternal(await fetchPages(ordered), question, preferred);
+    if (found.reason && !MOCK) console.log(`research-ask: looking outside (${found.status}): ${found.reason}`);
   }
 
   // ---- 3. one written answer, from the material only ----
@@ -205,7 +229,7 @@ Deno.serve(async (req) => {
       const m = mockAnswer(question, kb, external);
       answer = m.answer; usedItems = m.used_item_ids; usedUrls = m.used_source_urls; conflicts = m.conflicts; figures = m.figures; model = "mock"; ai = true;
     } else if (hasModelKey(env)) {
-      const prompt = buildPrompt(question, kb, external, name);
+      const prompt = buildPrompt(question, kb, external, name, { lang });
       const result = await askModel(env, prompt.system, prompt.user);
       model = result.model;
       if (result.error) console.error(`research-ask: model: ${result.error}`);
@@ -213,12 +237,12 @@ Deno.serve(async (req) => {
       if (parsed) {
         ai = true;
         answer = isNotFound(parsed.answer) ? null : sanitizeAnswer(parsed.answer);
-        usedItems = parsed.used_item_ids.filter((id) => kb.some((k) => k.id === id));
-        usedUrls = parsed.used_source_urls.filter((u) => external.some((e) => e.url === u));
+        // nothing it named reaches the visitor unless it was really given to it
+        const checked = checkCitations(parsed, kb, external);
+        usedItems = checked.items;
+        usedUrls = checked.urls;
+        figures = checked.figures;
         conflicts = parsed.conflicts;
-        // a figure's address must be one of the notes the model was given
-        const known = new Set([...external.map((e) => e.url), ...kb.flatMap((k) => k.sources.map((s) => s.url)).filter((u): u is string => !!u)]);
-        figures = parsed.figures.map((f) => ({ ...f, source_url: f.source_url && known.has(f.source_url) ? f.source_url : null }));
       }
     }
   }
@@ -231,18 +255,33 @@ Deno.serve(async (req) => {
   const kbUsed = usedItems.length > 0 || (answer !== null && kb.length > 0 && usedItems.length === 0);
   const externalUsed = answer !== null && usedUrls.length > 0;
   const mode = decideMode(kbUsed || (answer === null && kb.length > 0), externalUsed);
+  // every citation is one of the notes the model was actually given: the ids
+  // and addresses were filtered against them above, so nothing it invented can
+  // reach the visitor as a source.
   const sources: Source[] = [
     ...kb.filter((k) => usedItems.includes(k.id)).flatMap((k) =>
-      k.sources.length ? k.sources.map((s) => ({ title: s.title, url: s.url, publisher: s.publisher, origin: "isoko" as const })) : [{ title: k.title, url: null, publisher: "ISOKO", origin: "isoko" as const }]),
-    ...external.filter((e) => usedUrls.includes(e.url)).map((e) => ({ title: e.title, url: e.url, publisher: e.publisher, origin: "external" as const })),
+      k.sources.length
+        ? k.sources.map((s) => ({ title: s.title, url: s.url, publisher: s.publisher, published_on: s.published_on ?? null, origin: "isoko" as const }))
+        : [{ title: k.title, url: null, publisher: "ISOKO", published_on: k.published_on, origin: "isoko" as const }]),
+    ...external.filter((e) => usedUrls.includes(e.url)).map((e) => ({ title: e.title, url: e.url, publisher: e.publisher, published_on: e.published_on ?? null, origin: "external" as const })),
   ];
 
+  // Nothing could be researched: the providers were asked and none of them
+  // worked, or there was material but no answer could be written from it. Say
+  // so plainly instead of telling the visitor there is nothing to find.
+  const nothingShown = answer === null && kbItems.length === 0;
+  const status = nothingShown && (outside === "failed" || external.length > 0) ? "unavailable" : "ok";
+
   // ---- provenance kept, question counted (never who asked) ----
-  const expires = new Date(Date.now() + CACHE_HOURS * 3600_000).toISOString();
-  const { error: cacheError } = await admin.from("research_answers").upsert({
-    question_hash: hash, question, country_id: await countryId(country), answer, mode, item_ids: usedItems, sources, conflicts, model, expires_at: expires,
-  }, { onConflict: "question_hash" });
-  if (cacheError) console.error(`research-ask: could not store the answer: ${cacheError.message}`);
+  // Only an answer is stored. A failure is never cached: the same question
+  // asked a minute after the keys are in place is researched afresh.
+  if (answer !== null) {
+    const expires = new Date(Date.now() + cacheHours(question) * 3600_000).toISOString();
+    const { error: cacheError } = await admin.from("research_answers").upsert({
+      question_hash: hash, question, country_id: await countryId(country), answer, mode, item_ids: usedItems, sources, conflicts, model, expires_at: expires,
+    }, { onConflict: "question_hash" });
+    if (cacheError) console.error(`research-ask: could not store the answer: ${cacheError.message}`);
+  }
   if (answer !== null || kbItems.length > 0) {
     const { error: qError } = await admin.rpc("research_record_question", { p_question: question, p_country: country });
     if (qError) console.error(`research-ask: could not record the question: ${qError.message}`);
@@ -253,7 +292,7 @@ Deno.serve(async (req) => {
 
   return reply(req, 200, {
     answer, mode, items: kbItems.map(publicItem),
-    sources: sources.map(({ title, url, publisher }) => ({ title, url, publisher })),
-    conflicts, cached: false, ai,
+    sources: sources.map(({ title, url, publisher, published_on }) => ({ title, url, publisher, published_on })),
+    conflicts, cached: false, ai, status,
   });
 });

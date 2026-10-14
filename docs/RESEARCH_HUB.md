@@ -27,58 +27,100 @@ or the service-role key.
 ## How an answer is produced
 
 1. **The question is checked.** Between 3 and 300 characters, optionally with a
-   country slug. Anything else is a `400`.
+   country slug and the language being read (`en`, `rw`, `sw`, `fr`, `zh`; any
+   other value is read as `en`). Anything else is a `400`.
 2. **The caller is rate-limited.** A hash of the signed-in user id, or of the
    address, is counted in `research_ask_log`: 30 questions an hour, then `429`.
    The raw address is never stored.
 3. **The cache is read.** The same question (lower-cased, spaces collapsed,
-   trailing question marks dropped) in the same country within 24 hours comes
-   back from `research_answers` with `cached: true`. A cached repeat does not
+   trailing question marks dropped) in the same country and the same language
+   comes back from `research_answers` with `cached: true`. An answer keeps for
+   24 hours, or one hour when the question is about the present ("latest",
+   "current", "today", a price or a rate, a named recent year). A row with no
+   answer is never reused: a question nothing could be found for is researched
+   afresh rather than answered from its own failure. A cached repeat does not
    count as a new question.
 4. **The knowledge base is searched first** with `research_search` (public
    items only, never drafts): the best 8 matches, their bodies and their sources.
-5. **Is that enough?** Yes when at least one item clearly matches (a ranked
-   full-text hit, or a title sharing a word with the question) and the matching
-   text is at least 200 characters. Then nothing outside is read.
-6. **Otherwise, outside.** The configured search provider (Tavily or Serper)
-   returns up to 5 results: blocked domains are dropped, preferred domains
-   (official statistics, government, universities) come first, 8 second timeout.
-7. **The model writes one answer** from that material only. It is told to say
+5. **Is that enough?** Yes when an item ranks strongly on its own (a full-text
+   rank of 0.3 or more), or when at least 60% of the words of the question
+   appear in the titles and bodies that came back — and, either way, there are
+   at least 200 characters to answer from. One shared keyword is not evidence:
+   an item titled "Coffee exports" does not answer a question about population
+   merely because both mention Rwanda.
+6. **Otherwise, outside.** Every provider named in `EXTERNAL_SEARCH_PROVIDER`
+   (one name, or several separated by commas) is tried in that order until one
+   answers: up to 5 results, blocked domains dropped, 8 second timeout. One
+   provider's outage is not an outage of the hub.
+7. **The pages behind the best results are read,** so the answer rests on what
+   a source actually says rather than on the sentence a provider chose to show.
+   The top 3 are fetched and reduced to their readable text: public `https`
+   pages only, never an address inside a private network, never anything but
+   text, never more than 400 KB, never longer than 6 seconds, and at most 6,000
+   characters carried into the prompt. A page that cannot be read keeps its
+   snippet, so one blocked or slow site never costs the answer.
+8. **What was found is weighed, never taken in the provider's order.** Each
+   note scores on how much of the question it speaks to, how close its
+   publisher is to being the record itself (a government body, a statistics
+   office or a treaty organization above a university, a journal or a standard,
+   above a non-profit), how current its own stated date is, and whether it is
+   on a preferred domain. An undated page is not treated as fresh, and where a
+   page came in the results counts for nothing.
+9. **The model writes one answer** from that material only, in the language the
+   question was read in, and is told today's date. It is told to say
    "I could not find enough reliable information about this yet." when the
-   material does not cover the question, never to invent a figure, and to give
-   both figures with their dates and methods when sources disagree. It replies
-   as JSON: the answer, which items and which addresses it used, and any
-   conflicts it noticed. The words "internal", "external", "database" and
-   "search" never appear in what it is asked, so they cannot appear in answers.
-8. **Provenance is kept.** The answer, mode, item ids, sources and conflicts
-   are stored in `research_answers`; the question (only the text) is counted in
-   `research_questions` for the trending list. A rate-limited request records
-   nothing.
+   material does not cover the question, never to invent a figure, to give both
+   figures with their dates and methods when sources disagree, to answer the
+   part the notes settle and say plainly what could not be established, to
+   weigh a note by its publisher rather than its position, and to say when an
+   important claim rests on a single note. The notes are fenced as quoted
+   material and the model is told to treat every word of them as information to
+   read and never as instructions, so a page that says "ignore your
+   instructions" is read as text. The words "internal", "external", "database"
+   and "search" never appear in what it is asked, so they cannot appear in
+   answers. It replies as JSON: the answer, which items and which addresses it
+   used, any conflicts it noticed, and any figures.
+10. **Every citation is checked back against the notes.** An item id or an
+    address the model names that was not in the material it was given is
+    dropped, and a figure keeps its `source_url` only when that address was one
+    it was shown. A source on the page is always a source that was really read.
+11. **Provenance is kept.** The answer, mode, item ids, sources and conflicts
+    are stored in `research_answers`; the question (only the text) is counted in
+    `research_questions` for the trending list. A rate-limited request records
+    nothing. An answer written from outside material is also queued as an
+    unpublished, unverified draft: an analyst decides whether it ever becomes
+    ISOKO's own knowledge.
 
 If the model is not configured, declines, times out or fails, the matching
-items are still returned, `answer` is `null` and `ai` is `false`. If the
-search provider fails, the engine answers from what it has. Failures are logged
-without secrets.
+items are still returned, `answer` is `null` and `ai` is `false`, and nothing
+is stored. If every configured provider fails, or there was material but no
+answer could be written from it and ISOKO holds nothing on the subject, the
+reply carries `status: "unavailable"` and the page says the question could not
+be researched just now rather than that there is nothing to find. Failures are
+logged without secrets.
 
 ## Request and response
 
 ```
 POST /functions/v1/research-ask
 Content-Type: application/json
-{ "question": "What is the population of Rwanda?", "country": "rwanda" }
+{ "question": "What is the population of Rwanda?", "country": "rwanda", "lang": "en" }
 ```
 
-`country` is optional (a country slug).
+`country` is optional (a country slug). `lang` is optional (`en`, `rw`, `sw`,
+`fr`, `zh`; default `en`) and decides the language the answer is written in;
+each language is cached on its own.
 
 ```json
 {
   "answer": "…one short plain-text answer, or null…",
   "mode": "kb | kb_external | external | none",
   "items": [{ "id", "slug", "kind", "title", "summary", "country_name", "topic_name", "published_on", "verification" }],
-  "sources": [{ "title", "url", "publisher" }],
+  "sources": [{ "title", "url", "publisher", "published_on" }],
   "conflicts": [{ "topic", "note" }],
   "cached": false,
-  "ai": true
+  "ai": true,
+  "status": "ok | unavailable"
 }
 ```
 
@@ -104,9 +146,10 @@ Set on the Supabase project with `supabase secrets set NAME=value` (or Dashboard
 | --- | --- |
 | `ANTHROPIC_API_KEY` | the model that writes answers; without it, items only and `ai: false` |
 | `RESEARCH_MODEL` | model id; empty = `claude-sonnet-5-5` |
-| `EXTERNAL_SEARCH_PROVIDER` | `tavily` or `serper`; empty = knowledge base only |
-| `TAVILY_API_KEY` / `SERPER_API_KEY` | that provider's key |
-| `EXTERNAL_SEARCH_PREFERRED_DOMAINS` | comma-separated domains read first |
+| `ANTHROPIC_WORKSPACE_ID` | only for a key that belongs to a person or a service account rather than to one workspace; a workspace key needs no header |
+| `EXTERNAL_SEARCH_PROVIDER` | `tavily` or `serper`, or several separated by commas and tried in that order; empty = knowledge base only |
+| `TAVILY_API_KEY` / `SERPER_API_KEY` | the key of each provider named; one named without its key is skipped |
+| `EXTERNAL_SEARCH_PREFERRED_DOMAINS` | comma-separated domains weighed up when results are ranked |
 | `EXTERNAL_SEARCH_BLOCKED_DOMAINS` | comma-separated domains never read |
 | `SITE_ORIGINS` | website origins allowed to call `research-ask` from a browser |
 | `PUBLIC_SITE_URL` | public address used in the sitemap (default `https://www.isokogroups.com`) |
@@ -116,8 +159,10 @@ Set on the Supabase project with `supabase secrets set NAME=value` (or Dashboard
 
 ## Testing
 
-Pure logic (normalization, hashing, sufficiency, domain filtering, the prompt,
-reading the model's reply, both providers against a stubbed `fetch`), no
+Pure logic (normalization, hashing, the cache window, sufficiency, domain
+filtering, ranking by publisher and date, a page's readable text and its stated
+date, which addresses may be opened at all, the prompt, reading the model's
+reply, checking what it cited, every provider against a stubbed `fetch`), no
 network:
 
 ```

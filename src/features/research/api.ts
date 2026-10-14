@@ -49,9 +49,11 @@ export type ItemDetail = {
 export type AskResponse = {
   answer: string | null; mode: "kb" | "kb_external" | "external" | "none";
   items: { id: string; slug: string; kind: Kind; title: string; summary: string | null; country_name: string | null; topic_name: string | null; published_on: string | null; verification: string }[];
-  sources: { title: string; url: string | null; publisher: string | null }[];
+  sources: { title: string; url: string | null; publisher: string | null; published_on?: string | null }[];
   conflicts: { topic: string; note: string }[];
   cached: boolean; ai: boolean;
+  /** "unavailable": nothing could be researched just now, and the visitor may try again */
+  status?: "ok" | "unavailable";
 };
 
 export type SearchParams = { q?: string; country?: string | null; kind?: string | null; topic?: string | null; page?: number; limit?: number };
@@ -164,9 +166,11 @@ export class AskError extends Error {
   constructor(message: string, public status: number) { super(message); }
 }
 
-/** One natural answer to a question, from the information engine. */
-export async function askResearch(question: string, country?: string | null): Promise<AskResponse> {
-  const { data, error } = await supabase.functions.invoke("research-ask", { body: { question: question.trim().slice(0, 300), country: country || undefined } });
+/** One natural answer to a question, from the information engine, in the language being read. */
+export async function askResearch(question: string, country?: string | null, lang?: string): Promise<AskResponse> {
+  const { data, error } = await supabase.functions.invoke("research-ask", {
+    body: { question: question.trim().slice(0, 300), country: country || undefined, lang: lang || undefined },
+  });
   if (error) {
     let status = 500;
     let message = "The information engine is not available right now. Please try again.";
