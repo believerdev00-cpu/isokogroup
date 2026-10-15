@@ -8,7 +8,8 @@ import { join } from "node:path";
 import { uploadLimitMb } from "@/lib/uploadLimits";
 import {
   ARTWORK_TYPES, DURATIONS, MAX_ARTWORK_BYTES, PLACEMENTS,
-  advertProblem, artworkProblem, STATUS_LABEL, type AdvertInput,
+  advertProblem, advertMailto, artworkProblem, dialDigits, statusTone, telHref, whatsappHref,
+  STATUS_LABEL, STATUS_TONE, type AdvertInput,
 } from "./api";
 
 const complete: AdvertInput = {
@@ -137,5 +138,71 @@ describe("what an advertiser is shown of their own requests", () => {
   it("names every status the table may hold, so none shows as a raw word", () => {
     const allowed = ["new", "contacted", "quoted", "accepted", "declined", "closed"];
     for (const status of allowed) expect(STATUS_LABEL[status]).toBeTruthy();
+  });
+});
+
+// The desk is a call-back list, so reaching the person has to be one click.
+// A number is written both ways in Rwanda and WhatsApp takes only one of them.
+describe("reaching an advertiser", () => {
+  it("reads a local Rwandan number as the international one", () => {
+    expect(dialDigits("0788 481 648")).toBe("250788481648");
+    expect(dialDigits("0788481648")).toBe("250788481648");
+  });
+
+  it("leaves a number that already carries its country alone", () => {
+    expect(dialDigits("+250788481648")).toBe("250788481648");
+    expect(dialDigits("250 788 481 648")).toBe("250788481648");
+  });
+
+  it("does not invent a country for a foreign advertiser", () => {
+    // Guessing Rwanda for a number that is plainly not one would dial a
+    // stranger; passing it through at least fails visibly.
+    expect(dialDigits("+44 20 7946 0958")).toBe("442079460958");
+  });
+
+  it("builds a dialable and a WhatsApp link from the same number", () => {
+    expect(telHref("0788 481 648")).toBe("tel:+250788481648");
+    expect(whatsappHref("0788 481 648")).toBe("https://wa.me/250788481648");
+  });
+
+  it("puts the reference in the subject so a reply can be filed", () => {
+    const href = advertMailto({ email: "jane@example.com", reference: "ISO-ADV-00007" });
+    expect(href.startsWith("mailto:jane@example.com?subject=")).toBe(true);
+    expect(decodeURIComponent(href)).toContain("[ISO-ADV-00007]");
+  });
+
+  it("gives every status a colour, so none renders unstyled", () => {
+    for (const status of Object.keys(STATUS_LABEL)) {
+      expect(statusTone(status)).toBeTruthy();
+    }
+    expect(statusTone("something new")).toBe(STATUS_TONE.new);
+  });
+});
+
+describe("the advertising desk", () => {
+  const desk = readFileSync(join(process.cwd(), "src/components/admin/AdvertRequests.tsx"), "utf8");
+
+  it("makes the address and the number links rather than text to copy out", () => {
+    expect(desk).toContain("advertMailto");
+    expect(desk).toContain("telHref");
+    expect(desk).toContain("whatsappHref");
+  });
+
+  it("says how long somebody has been waiting, not only the date", () => {
+    expect(desk).toMatch(/waited\(r\.created_at\)/);
+  });
+
+  it("can mark a request contacted without opening anything", () => {
+    expect(desk).toContain("markContacted");
+    expect(desk).toMatch(/setAdvertStatus\(r\.id, "contacted"\)/);
+  });
+
+  it("warns before throwing away typed notes", () => {
+    expect(desk).toContain("closeReview");
+    expect(desk).toMatch(/notes !== editing\.staff_notes/);
+  });
+
+  it("colours a status with the same map the advertiser's card uses", () => {
+    expect(desk).toContain("statusTone");
   });
 });

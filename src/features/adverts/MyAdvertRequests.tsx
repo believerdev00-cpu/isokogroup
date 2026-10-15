@@ -2,7 +2,7 @@ import { Megaphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
-import { PLACEMENTS, STATUS_LABEL, useMyAdvertRequests } from "./api";
+import { PLACEMENTS, STATUS_LABEL, statusTone, useMyAdvertRequests } from "./api";
 
 /**
  * "Your advertising requests", on the customer dashboard.
@@ -17,16 +17,6 @@ import { PLACEMENTS, STATUS_LABEL, useMyAdvertRequests } from "./api";
  * at all. Staff notes are deliberately not here: they are written for the
  * office, not for the advertiser.
  */
-
-/** The office's own words for a status, coloured by what it means for the sender. */
-const TONE: Record<string, string> = {
-  accepted: "bg-green-500/15 text-green-500",
-  contacted: "bg-blue-500/15 text-blue-500",
-  quoted: "bg-blue-500/15 text-blue-500",
-  declined: "bg-destructive/15 text-destructive",
-  closed: "bg-muted text-muted-foreground",
-};
-const tone = (status: string) => TONE[status] ?? "bg-yellow-500/15 text-yellow-500";
 
 const placementLabel = (key: string) => PLACEMENTS.find((p) => p.key === key)?.label ?? key;
 
@@ -59,7 +49,7 @@ export default function MyAdvertRequests() {
                 <span className="font-mono">{r.reference}</span> · {placementLabel(r.placement)} · {r.duration}
               </p>
             </div>
-            <Badge className={tone(r.status)} variant="outline">
+            <Badge className={statusTone(r.status)} variant="outline">
               {STATUS_LABEL[r.status] ?? r.status}
             </Badge>
           </div>

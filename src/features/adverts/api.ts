@@ -214,3 +214,39 @@ export function useMyAdvertRequests(userId: string | undefined) {
     },
   });
 }
+
+/**
+ * How a status reads at a glance.
+ *
+ * Shared by the office's desk and the advertiser's own card so the two cannot
+ * drift into saying the same word in different colours.
+ */
+export const STATUS_TONE: Record<string, string> = {
+  new: "bg-yellow-500/15 text-yellow-500",
+  contacted: "bg-blue-500/15 text-blue-500",
+  quoted: "bg-blue-500/15 text-blue-500",
+  accepted: "bg-green-500/15 text-green-500",
+  declined: "bg-destructive/15 text-destructive",
+  closed: "bg-muted text-muted-foreground",
+};
+export const statusTone = (status: string) => STATUS_TONE[status] ?? STATUS_TONE.new;
+
+/**
+ * The number as a dialer and as WhatsApp each want it.
+ *
+ * People write a Rwandan number both ways -- "0788 481 648" and
+ * "+250788481648" -- and WhatsApp accepts only the international form with no
+ * punctuation. A ten-digit number beginning 0 is read as Rwandan, which is
+ * what the office is given; anything else is passed through as typed, because
+ * guessing a country for a foreign advertiser would be worse than leaving it.
+ */
+export const dialDigits = (phone: string) => {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  return digits.length === 10 && digits.startsWith("0") ? `250${digits.slice(1)}` : digits;
+};
+export const telHref = (phone: string) => `tel:+${dialDigits(phone)}`;
+export const whatsappHref = (phone: string) => `https://wa.me/${dialDigits(phone)}`;
+
+/** An email to an advertiser, with the reference already in the subject. */
+export const advertMailto = (r: Pick<AdvertRequest, "email" | "reference">) =>
+  `mailto:${r.email}?subject=${encodeURIComponent(`Advertising with ISOKO GROUP [${r.reference}]`)}`;
