@@ -118,7 +118,12 @@ CALL pg_temp.none($$
     'ent_file_is_free_public(text)', 'research_evidence_is_public(text)',
     -- whether this visitor may play this film: called by the bunny-video function as
     -- the caller, so a signed-out visitor watching a free film is the normal case
-    'ent_playback_check(text,uuid)'])
+    'ent_playback_check(text,uuid)',
+    -- the listings sliding in the advertising band on the homepage, which a
+    -- signed-out visitor is the main audience for. It reads the agreements to
+    -- decide what is on air, which nobody may read directly, and returns only
+    -- the product -- never a budget, a fee or who is paying
+    'advert_live_products()'])
 $$, 'anonymous visitors can run only the intended elevated functions');
 
 -- Internals of the engines: never callable from the website

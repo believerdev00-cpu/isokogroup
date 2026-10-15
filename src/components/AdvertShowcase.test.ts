@@ -51,6 +51,41 @@ describe("the advertising showcase", () => {
   });
 });
 
+// A seller presses "Advertise Here", picks some of their own products, and
+// agrees a price. Those listings are then what the band carries. The rule
+// worth a test is the one that stops it being free: nothing a seller does on
+// the form alone can put them on the stage.
+describe("what the band actually carries", () => {
+  const source = read("src/components/AdvertShowcase.tsx");
+
+  it("asks the database what is on air rather than deciding here", () => {
+    // advert_live_products() is where "accepted agreement, inside its run"
+    // lives. A filter written in the browser could be edited by anybody.
+    expect(source).toContain("advert_live_products");
+  });
+
+  it("does not try to work out itself whether an advert is paid for", () => {
+    // It must not read the agreements or their dates: a date comparison in
+    // the browser is one anybody can edit, and the whole gate would be the
+    // honour system. Identifiers only -- the file's comments are free to
+    // explain what the database checks.
+    for (const leak of ["advert_agreements", "starts_on", "ends_on", "status = 'accepted'"]) {
+      expect(source).not.toContain(leak);
+    }
+  });
+
+  it("gives paid placements the stage and keeps the catalogue as a fallback", () => {
+    expect(source).toMatch(/paid\.data\?\.length \?\? 0\) > 0 \? paid\.data!/);
+    expect(source).toContain("useCatalogue");
+  });
+
+  it("still shows only a listing somebody could actually buy", () => {
+    // Both sources go through the same filter: a placeholder square is not a
+    // product shot, and the paid path is filtered in the database for stock.
+    expect(source).toMatch(/productImages\(p\)\.length > 0/);
+  });
+});
+
 describe("where the showcase is mounted", () => {
   const strip = read("src/components/AdvertiseStrip.tsx");
 

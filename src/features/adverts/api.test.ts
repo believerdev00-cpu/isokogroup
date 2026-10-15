@@ -6,11 +6,17 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { uploadLimitMb } from "@/lib/uploadLimits";
+import { RWF, type Currency } from "@/lib/money";
 import {
   ARTWORK_TYPES, DURATIONS, MAX_ARTWORK_BYTES, PLACEMENTS,
   advertProblem, advertMailto, artworkProblem, dialDigits, statusTone, telHref, whatsappHref,
   STATUS_LABEL, STATUS_TONE, type AdvertInput,
 } from "./api";
+
+const USD: Currency = {
+  code: "USD", name: "US Dollar", symbol: "$",
+  minor_units: 2, rounding_step: "0.01", is_active: true, sort: 1,
+};
 
 const complete: AdvertInput = {
   full_name: "Jane Advertiser",
@@ -21,7 +27,9 @@ const complete: AdvertInput = {
   what_to_advertise: "Our new roastery",
   placement: "homepage",
   duration: "3 months",
-  budget_rwf: "450000",
+  country: "RW",
+  budget_amount: "450000",
+  budget_currency: "RWF",
   message: "",
 };
 
@@ -30,7 +38,7 @@ const file = (type: string, mb: number, name = "art") =>
 
 describe("what the advertising form accepts", () => {
   it("accepts a complete enquiry", () => {
-    expect(advertProblem(complete)).toBeNull();
+    expect(advertProblem(complete, RWF)).toBeNull();
   });
 
   it("names the field that is missing, one at a time", () => {
@@ -45,29 +53,58 @@ describe("what the advertising form accepts", () => {
       ["duration", /how long/i],
     ];
     for (const [key, says] of required) {
-      expect(advertProblem({ ...complete, [key]: "" })).toMatch(says);
-      expect(advertProblem({ ...complete, [key]: "   " })).toMatch(says);
+      expect(advertProblem({ ...complete, [key]: "" }, RWF)).toMatch(says);
+      expect(advertProblem({ ...complete, [key]: "   " }, RWF)).toMatch(says);
     }
   });
 
   it("checks the email looks like one", () => {
     for (const bad of ["jane", "jane@", "@example.com", "jane example.com"]) {
-      expect(advertProblem({ ...complete, email: bad })).toMatch(/email/i);
+      expect(advertProblem({ ...complete, email: bad }, RWF)).toMatch(/email/i);
     }
   });
 
-  it("takes the budget only as whole francs, and only when given", () => {
-    expect(advertProblem({ ...complete, budget_rwf: "" })).toBeNull();       // optional
-    expect(advertProblem({ ...complete, budget_rwf: undefined })).toBeNull();
-    expect(advertProblem({ ...complete, budget_rwf: "450000" })).toBeNull();
+  it("takes the budget only as the chosen currency can be paid in", () => {
+    expect(advertProblem({ ...complete, budget_amount: "" }, RWF)).toBeNull();       // optional
+    expect(advertProblem({ ...complete, budget_amount: undefined }, RWF)).toBeNull();
+    expect(advertProblem({ ...complete, budget_amount: "450000" }, RWF)).toBeNull();
+    // A franc has no smaller unit, so cents in a franc budget are a typo.
     for (const bad of ["450,000", "450000.50", "lots", "-5"]) {
-      expect(advertProblem({ ...complete, budget_rwf: bad })).toMatch(/whole number/i);
+      const problem = advertProblem({ ...complete, budget_amount: bad }, RWF);
+      expect(problem).toMatch(/whole number/i);
+      // and says why, so somebody who typed cents knows what to do instead
+      expect(problem).toMatch(/Rwandan Franc has no smaller unit/);
     }
+    // The same figure is a perfectly good dollar amount.
+    expect(advertProblem({ ...complete, budget_amount: "1250.45", budget_currency: "USD" }, USD)).toBeNull();
+    expect(advertProblem({ ...complete, budget_amount: "1250.455", budget_currency: "USD" }, USD))
+      .toMatch(/number, with no commas/i);
+  });
+
+  it("refuses an amount with no currency beside it", () => {
+    // An amount alone is not money: the office cannot quote against it, and
+    // the database will not store one.
+    expect(advertProblem({ ...complete, budget_amount: "450000", budget_currency: "" }, RWF))
+      .toMatch(/currency your budget is in/i);
+  });
+
+  it("asks for a country only as a code, and does not insist on one", () => {
+    // Somebody whose country is not on our list still has a currency to
+    // choose; what is refused is a half-written code.
+    expect(advertProblem({ ...complete, country: "" }, RWF)).toBeNull();
+    expect(advertProblem({ ...complete, country: "KE" }, RWF)).toBeNull();
+    expect(advertProblem({ ...complete, country: "Rwanda" }, RWF)).toMatch(/country you are advertising from/i);
+  });
+
+  it("takes an exact number of days as a whole number", () => {
+    expect(advertProblem({ ...complete, preferred_days: "45" }, RWF)).toBeNull();
+    expect(advertProblem({ ...complete, preferred_days: "" }, RWF)).toBeNull();
+    expect(advertProblem({ ...complete, preferred_days: "6 weeks" }, RWF)).toMatch(/whole number/i);
   });
 
   it("offers placements and durations the form can actually submit", () => {
-    for (const p of PLACEMENTS) expect(advertProblem({ ...complete, placement: p.key })).toBeNull();
-    for (const d of DURATIONS) expect(advertProblem({ ...complete, duration: d })).toBeNull();
+    for (const p of PLACEMENTS) expect(advertProblem({ ...complete, placement: p.key }, RWF)).toBeNull();
+    for (const d of DURATIONS) expect(advertProblem({ ...complete, duration: d }, RWF)).toBeNull();
   });
 });
 
@@ -194,15 +231,75 @@ describe("the advertising desk", () => {
 
   it("can mark a request contacted without opening anything", () => {
     expect(desk).toContain("markContacted");
-    expect(desk).toMatch(/setAdvertStatus\(r\.id, "contacted"\)/);
+    expect(desk).toMatch(/setAdvertStatus\(row\.request\.id, "contacted"\)/);
   });
 
   it("warns before throwing away typed notes", () => {
     expect(desk).toContain("closeReview");
-    expect(desk).toMatch(/notes !== editing\.staff_notes/);
+    expect(desk).toMatch(/notes !== editing\.request\.staff_notes/);
   });
 
   it("colours a status with the same map the advertiser's card uses", () => {
     expect(desk).toContain("statusTone");
+  });
+
+  it("never writes an amount without its currency beside it", () => {
+    // Every amount on the desk goes through formatAmount(.., { code: true })
+    // or a figure that already carries its code. A bare toLocaleString on an
+    // amount is how a franc total ends up read as dollars.
+    const quote = readFileSync(join(process.cwd(), "src/components/admin/AdvertQuoteDialog.tsx"), "utf8");
+    for (const source of [desk, quote]) {
+      expect(source).toContain("formatAmount");
+      expect(source).not.toMatch(/budget_rwf/);
+    }
+  });
+
+  it("refuses to compare a quote with a budget in another currency", () => {
+    const quote = readFileSync(join(process.cwd(), "src/components/admin/AdvertQuoteDialog.tsx"), "utf8");
+    // The screen says so before the database does, and blocks the button.
+    expect(quote).toContain("currencyClash");
+    expect(quote).toMatch(/blocked =.*currencyClash/s);
+  });
+
+  it("has no rate card to quote from, so the budget is the anchor", () => {
+    const quote = readFileSync(join(process.cwd(), "src/components/admin/AdvertQuoteDialog.tsx"), "utf8");
+    // Identifiers, not prose: the file's own comments explain that there is
+    // no rate card, and a test that forbade the words would forbid saying so.
+    for (const gone of ["useCardRate", "confirmRate", "advert_daily_rate"]) {
+      expect(quote).not.toContain(gone);
+    }
+    expect(quote).toContain("their maximum");
+  });
+});
+
+// A seller picks their own listings on the form; what that means is decided in
+// the database, not here.
+describe("choosing products to advertise", () => {
+  const dialog = readFileSync(join(process.cwd(), "src/features/adverts/AdvertiseDialog.tsx"), "utf8");
+
+  it("takes several listings, not one", () => {
+    expect(dialog).toContain("product_ids");
+    expect(dialog).toContain("toggleProduct");
+  });
+
+  it("stops at the number the database will accept, rather than being refused", () => {
+    expect(dialog).toMatch(/MAX_PRODUCTS = 12/);
+    expect(dialog).toMatch(/chosenIds\.length >= MAX_PRODUCTS/);
+  });
+
+  it("offers only the seller's own listings", () => {
+    const source = readFileSync(join(process.cwd(), "src/features/adverts/api.ts"), "utf8");
+    const mine = source.slice(source.indexOf("useMyProducts"));
+    expect(mine).toMatch(/\.eq\(\s*["']seller_id["']\s*,\s*userId\s*\)/);
+  });
+
+  it("says the listings go on air only once a price is agreed", () => {
+    // Nobody should submit the form expecting the homepage.
+    expect(dialog).toMatch(/once .*price is agreed|once you and our team have agreed a price/);
+  });
+
+  it("sends the chosen ids and nothing when none were chosen", () => {
+    expect(advertProblem({ ...complete, product_ids: ["a", "b"] }, RWF)).toBeNull();
+    expect(advertProblem({ ...complete, product_ids: [] }, RWF)).toBeNull();
   });
 });

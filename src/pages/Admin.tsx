@@ -35,6 +35,7 @@ import PackagingPricesAdmin from "@/components/admin/PackagingPricesAdmin";
 import InitiativeAdmin from "@/components/admin/InitiativeAdmin";
 import InitiativeDonationsAdmin from "@/components/admin/InitiativeDonationsAdmin";
 import AdvertRequests from "@/components/admin/AdvertRequests";
+import CurrencyAdmin from "@/components/admin/CurrencyAdmin";
 import ContactMessages from "@/components/admin/ContactMessages";
 import CommentModeration from "@/components/admin/CommentModeration";
 import { PaymentsPanel } from "@/features/finance/PaymentsPanel";
@@ -531,6 +532,7 @@ const Admin = () => {
               <TabsTrigger value="software">Software</TabsTrigger>
               <TabsTrigger value="initiative">Global Initiative</TabsTrigger>
               <TabsTrigger value="adverts">Advertising</TabsTrigger>
+              <TabsTrigger value="currencies">Currencies</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
               <TabsTrigger value="comments">Comments</TabsTrigger>
               <TabsTrigger value="audit">Audit log</TabsTrigger>
@@ -547,6 +549,7 @@ const Admin = () => {
               <InitiativeDonationsAdmin />
             </TabsContent>
             <TabsContent value="adverts"><AdvertRequests /></TabsContent>
+            <TabsContent value="currencies"><CurrencyAdmin /></TabsContent>
             <TabsContent value="messages"><ContactMessages /></TabsContent>
             <TabsContent value="comments"><CommentModeration /></TabsContent>
             <TabsContent value="audit"><AuditLogAdmin /></TabsContent>

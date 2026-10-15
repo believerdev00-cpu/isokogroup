@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { isLiteMotion } from "@/lib/motion";
 import { displayCategory } from "@/lib/productCategories";
+import { rpc } from "@/features/services/api";
+import type { LiveAdvertProduct } from "@/features/adverts/api";
 import { isProductInStock, productImages } from "@/lib/productImages";
 
 /**
@@ -46,9 +48,49 @@ type ShowProduct = {
 const francs = (price: number | null) =>
   typeof price === "number" ? `${price.toLocaleString()} RWF` : "Ask for a price";
 
-function useOnAirProducts() {
+/** One shape, whether a listing was paid for or picked from the catalogue. */
+const asShown = (p: {
+  id: string; name: string; price: number | null; category: string;
+  description: string | null; image_url?: string | null; image_urls?: string[] | null;
+}): ShowProduct => ({
+  id: p.id,
+  name: p.name,
+  price: p.price,
+  category: displayCategory(p.category, p.name),
+  image: productImages(p)[0],
+  description: p.description ?? null,
+});
+
+/**
+ * The listings actually being advertised: a seller pressed "Advertise Here",
+ * picked some of their products, and agreed a price with the office. The
+ * database decides what that means -- an accepted agreement, inside the run
+ * it covers -- so nothing here can put a product on the stage for free.
+ */
+function usePaidPlacements() {
   return useQuery({
-    queryKey: ["advert-showcase", "on-air"],
+    queryKey: ["advert-showcase", "paid"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<ShowProduct[]> => {
+      const live = await rpc<LiveAdvertProduct[]>("advert_live_products");
+      return (live ?? [])
+        .filter((p) => productImages(p).length > 0)
+        .map((p) => asShown({ ...p, id: p.product_id }));
+    },
+  });
+}
+
+/**
+ * The catalogue, for when nothing is on air.
+ *
+ * The band's argument has always been that the best case for advertising here
+ * is the stock itself, and an empty band on the homepage would look broken
+ * rather than available. So paid placements take the stage when there are
+ * any, and the shop window falls back to this when there are not.
+ */
+function useCatalogue() {
+  return useQuery({
+    queryKey: ["advert-showcase", "catalogue"],
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<ShowProduct[]> => {
       const { data, error } = await supabase
@@ -60,23 +102,21 @@ function useOnAirProducts() {
       if (error) throw new Error(error.message);
       return (data ?? [])
         .filter((p) => isProductInStock(p) && productImages(p).length > 0)
-        .slice(0, ON_AIR_MAX)
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-          category: displayCategory(p.category, p.name),
-          image: productImages(p)[0],
-          description: p.description ?? null,
-        }));
+        .map(asShown);
     },
   });
 }
 
 export default function AdvertShowcase() {
   const { t } = useI18n();
-  const onAir = useOnAirProducts();
-  const products = useMemo(() => onAir.data ?? [], [onAir.data]);
+  const paid = usePaidPlacements();
+  const catalogue = useCatalogue();
+  // What somebody paid for comes first. The catalogue only fills the stage
+  // when nobody has.
+  const products = useMemo(
+    () => ((paid.data?.length ?? 0) > 0 ? paid.data! : catalogue.data ?? []).slice(0, ON_AIR_MAX),
+    [paid.data, catalogue.data],
+  );
   const lite = isLiteMotion();
   const [at, setAt] = useState(0);
   const [held, setHeld] = useState(false);
