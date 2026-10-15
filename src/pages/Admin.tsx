@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { tooLargeMessage, uploadLimitMb, withinLimit } from "@/lib/uploadLimits";
 import { assertStored } from "@/lib/uploadVerify";
+import { displayCategory } from "@/lib/productCategories";
 import { Link, Navigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Users, ShoppingCart, DollarSign, TrendingUp, Package, BookOpen, Truck, Box, Bell, Settings, FileText, Eye, Download, Film, Mic, Upload, Wallet, CheckCircle } from "lucide-react";
@@ -147,7 +148,7 @@ const Admin = () => {
   const totalCommissions = commissions.reduce((sum, c) => sum + (c.commission_amount || 0), 0);
 
   const categoryMap: Record<string, number> = {};
-  products.forEach(p => { categoryMap[p.category] = (categoryMap[p.category] || 0) + 1; });
+  products.forEach(p => { const c = displayCategory(p.category, p.name); categoryMap[c] = (categoryMap[c] || 0) + 1; });
   const categoryData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
 
   const monthlyMap: Record<string, { revenue: number; orders: number }> = {};
@@ -840,7 +841,7 @@ const Admin = () => {
                                 <div className="h-10 w-10 rounded bg-muted flex items-center justify-center"><Package className="h-5 w-5 text-muted-foreground" /></div>}
                             </TableCell>
                             <TableCell className="font-medium">{p.name}</TableCell>
-                            <TableCell>{p.category}</TableCell>
+                            <TableCell>{displayCategory(p.category, p.name)}</TableCell>
                             <TableCell>{p.price?.toLocaleString()} RWF</TableCell>
                             <TableCell>{p.stock}</TableCell>
                             <TableCell>

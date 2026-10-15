@@ -103,3 +103,26 @@ describe("displayCategory", () => {
     expect(displayCategory("")).toBe("");
   });
 });
+
+// A product row on production may still hold a retired category, and will keep
+// holding one after the migration: the CHECK goes on NOT VALID, so old rows
+// stand. Every screen that shows a stored category therefore has to map it. One
+// that reads the column straight prints a name the site has stopped using, and
+// the admin breakdown counts "Food & Drink" and "Food" as two different things.
+//
+// The two shapes below are the mistake itself rather than a near miss --
+// rendering the stored column, and bucketing by it. Comparing an already-mapped
+// row against the active tab is correct, which is why this does not simply ban
+// the property.
+describe("the screens that read products.category", () => {
+  const SURFACES = ["src/pages/Marketplace.tsx", "src/pages/SellerDashboard.tsx", "src/pages/Admin.tsx"];
+
+  for (const file of SURFACES) {
+    it(`${file} maps the stored category instead of reading it raw`, () => {
+      const source = readFileSync(join(process.cwd(), file), "utf8");
+      expect(source).toContain("displayCategory");
+      expect(source).not.toMatch(/>\s*\{\s*p\.category\s*\}/);
+      expect(source).not.toMatch(/\[\s*p\.category\s*\]/);
+    });
+  }
+});
