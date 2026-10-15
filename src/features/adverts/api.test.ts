@@ -3,10 +3,12 @@
 // database still checks everything itself -- these only decide what the person
 // sees first.
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { uploadLimitMb } from "@/lib/uploadLimits";
 import {
   ARTWORK_TYPES, DURATIONS, MAX_ARTWORK_BYTES, PLACEMENTS,
-  advertProblem, artworkProblem, type AdvertInput,
+  advertProblem, artworkProblem, STATUS_LABEL, type AdvertInput,
 } from "./api";
 
 const complete: AdvertInput = {
@@ -102,5 +104,38 @@ describe("what the artwork upload accepts", () => {
     expect(problem).toContain("banner.png");
     expect(problem).toContain(`${over} MB`);
     expect(problem).toContain(`${uploadLimitMb("adverts")} MB`);
+  });
+});
+
+// An advertiser can see what became of their own enquiry. The row policy for
+// it ("Advertisers read their own requests") shipped with the table and then
+// went unused by any screen, so a reference number was the last the sender
+// ever heard of it unless they wrote in.
+describe("what an advertiser is shown of their own requests", () => {
+  const source = readFileSync(join(process.cwd(), "src/features/adverts/api.ts"), "utf8");
+  const dashboard = readFileSync(join(process.cwd(), "src/features/adverts/MyAdvertRequests.tsx"), "utf8");
+
+  it("asks only for the sender's own rows", () => {
+    // Not redundant with the policy: "Admins manage advert requests" grants an
+    // admin every row, so without this an administrator's own dashboard would
+    // list the whole office's leads under the heading "your requests".
+    const mine = source.slice(source.indexOf("useMyAdvertRequests"));
+    expect(mine).toMatch(/\.eq\(\s*["']user_id["']\s*,\s*userId\s*\)/);
+  });
+
+  it("does not run before it knows who is asking", () => {
+    const mine = source.slice(source.indexOf("useMyAdvertRequests"));
+    expect(mine).toMatch(/enabled:\s*Boolean\(userId\)/);
+  });
+
+  it("keeps the office's notes out of the advertiser's view", () => {
+    const mine = source.slice(source.indexOf("useMyAdvertRequests"), source.indexOf("useMyAdvertRequests") + 900);
+    expect(mine).not.toContain("staff_notes");
+    expect(dashboard).not.toContain("staff_notes");
+  });
+
+  it("names every status the table may hold, so none shows as a raw word", () => {
+    const allowed = ["new", "contacted", "quoted", "accepted", "declined", "closed"];
+    for (const status of allowed) expect(STATUS_LABEL[status]).toBeTruthy();
   });
 });

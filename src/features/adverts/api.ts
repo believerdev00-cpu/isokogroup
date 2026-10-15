@@ -180,3 +180,37 @@ export async function artworkUrl(path: string) {
   if (error) throw new Error(error.message);
   return data.signedUrl;
 }
+
+/** The part of a request its own sender is shown. */
+export type MyAdvertRequest = Pick<
+  AdvertRequest,
+  "id" | "reference" | "company" | "what_to_advertise" | "placement" | "duration" | "status" | "created_at"
+>;
+
+/**
+ * What this advertiser sent, for their own dashboard.
+ *
+ * The `user_id` filter is not redundant with the row policy. "Admins manage
+ * advert requests" grants an admin every row, so without it an administrator
+ * opening their own dashboard would be shown the whole office's leads under
+ * the heading "your requests". The policy still does the real enforcing: it is
+ * what stops anyone else's request being returned to an ordinary advertiser.
+ *
+ * Someone who asked while signed out has no account on the row and so has
+ * nothing to show here -- they have their reference and a reply by email.
+ */
+export function useMyAdvertRequests(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["adverts", "mine", userId],
+    enabled: Boolean(userId),
+    queryFn: async () => {
+      return (unwrap(
+        await db
+          .from("advert_requests")
+          .select("id, reference, company, what_to_advertise, placement, duration, status, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
+      ) ?? []) as MyAdvertRequest[];
+    },
+  });
+}

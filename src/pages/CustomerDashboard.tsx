@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import NotificationPreferences from "@/components/NotificationPreferences";
 import SubscriptionStatusCard from "@/components/SubscriptionStatusCard";
+import MyAdvertRequests from "@/features/adverts/MyAdvertRequests";
 
 const statusColor = (s: string) => {
   if (["delivered", "completed"].includes(s)) return "bg-green-500/15 text-green-500";
@@ -132,6 +133,8 @@ const CustomerDashboard = () => {
                 ))}
               </CardContent>
             </Card>
+
+            <MyAdvertRequests />
           </div>
         )}
 

@@ -3,6 +3,7 @@ import { Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import AdvertiseDialog from "@/features/adverts/AdvertiseDialog";
+import AdvertShowcase from "@/components/AdvertShowcase";
 
 /**
  * "Advertise here", directly under the partners.
@@ -50,6 +51,11 @@ export default function AdvertiseStrip({ className }: { className?: string }) {
           </p>
         </div>
       </div>
+
+      {/* What is being sold here, before the invitation to advertise beside it.
+          It draws nothing when the catalogue has nothing photographed and in
+          stock, which leaves this section exactly as it was. */}
+      <AdvertShowcase />
 
       {/* The band, cut the same way as the partners band above it */}
       <div className="bg-[#0b1530] px-3 py-6 sm:px-6 [clip-path:polygon(0_0,100%_0,98.5%_50%,100%_100%,0_100%,1.5%_50%)] sm:[clip-path:polygon(0_0,100%_0,99%_50%,100%_100%,0_100%,1%_50%)]">
