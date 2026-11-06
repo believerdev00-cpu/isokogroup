@@ -34,6 +34,16 @@ type Row = {
   period_ends_at: string | null;
 };
 
+export type WaitingApplication = {
+  id: string;
+  full_name: string | null;
+  business_name: string | null;
+  email: string | null;
+  created_at: string;
+  /** they have reported a payment that is waiting in this list */
+  paymentReported: boolean;
+};
+
 const FILTERS = [
   { key: "pending", label: "Awaiting confirmation" },
   { key: "confirmed", label: "Confirmed" },
@@ -53,7 +63,12 @@ const when = (v: string | null) => (v ? new Date(v).toLocaleString(undefined, { 
 // automatically: before confirming, check the company Mobile Money account for
 // this amount, from this number, with this transaction ID. Confirming starts
 // the 7 days or the month; the database records who confirmed and when.
-const SubscriptionPaymentsAdmin = () => {
+const SubscriptionPaymentsAdmin = ({ onChanged, waitingApplications = [], onOpenApplications }: {
+  onChanged?: () => void;
+  /** Seller applications nobody has decided on: they wait for the admin too, but have their own table */
+  waitingApplications?: WaitingApplication[];
+  onOpenApplications?: () => void;
+}) => {
   const { toast } = useToast();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("pending");
   const [rows, setRows] = useState<Row[]>([]);
@@ -90,6 +105,7 @@ const SubscriptionPaymentsAdmin = () => {
     toast({ title: "Payment confirmed", description: `${planName(confirming.plan)} started for ${confirming.customer_name || confirming.customer_email}.` });
     setConfirming(null);
     load();
+    onChanged?.();
   };
 
   const reject = async () => {
@@ -109,9 +125,11 @@ const SubscriptionPaymentsAdmin = () => {
     setRejecting(null);
     setReason("");
     load();
+    onChanged?.();
   };
 
   const pendingCount = filter === "pending" ? rows.length : null;
+  const showApplications = filter === "pending" && waitingApplications.length > 0;
 
   return (
     <Card>
@@ -199,6 +217,31 @@ const SubscriptionPaymentsAdmin = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {showApplications && (
+          <div className="mt-4 space-y-3 border-t pt-4">
+            <h3 className="font-semibold">Seller applications waiting ({waitingApplications.length})</h3>
+            <ul className="space-y-2">
+              {waitingApplications.map((a) => (
+                <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="min-w-0 text-sm">
+                    <p className="font-medium">{a.full_name || "—"}{a.business_name ? ` · ${a.business_name}` : ""}</p>
+                    {a.email && <p className="text-xs text-muted-foreground">{a.email}</p>}
+                    <p className="text-xs text-muted-foreground">Applied {when(a.created_at)}</p>
+                    <p className="mt-1 text-xs">
+                      {a.paymentReported
+                        ? "Their payment is waiting above. Confirming it approves them as a seller."
+                        : "No seller payment reported yet. They are approved once their payment is reported and you confirm it."}
+                    </p>
+                  </div>
+                  {onOpenApplications && (
+                    <Button size="sm" variant="outline" onClick={onOpenApplications}>Open application</Button>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </CardContent>

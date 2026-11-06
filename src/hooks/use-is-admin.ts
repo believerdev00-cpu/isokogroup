@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { refreshIfTokenExpired } from "@/lib/authRecovery";
 
 /**
  * Is the person signed in an admin?
@@ -17,13 +18,15 @@ import { useAuth } from "@/lib/auth";
  *
  * So: do not ask until there is a token to ask with, and treat an error as "ask
  * again", not as "no". `loading` stays true through both, so a caller that
- * redirects on !isAdmin waits for a real answer instead of racing one.
+ * redirects on !isAdmin waits for a real answer instead of racing one. If the
+ * retries run out, `failed` is true: a caller that redirects on !isAdmin must
+ * check it first, because there is still no answer. It never grants anything.
  */
 export const useIsAdmin = () => {
   const { user, session, loading: authLoading } = useAuth();
   const token = session?.access_token;
 
-  const { data, isPending } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["is-admin", user?.id],
     enabled: !!user && !!token,
     staleTime: 5 * 60 * 1000,
@@ -37,7 +40,10 @@ export const useIsAdmin = () => {
         .eq("role", "admin")
         .maybeSingle();
       // Thrown, not swallowed: a failed question is not a "no".
-      if (error) throw error;
+      if (error) {
+        await refreshIfTokenExpired(error);
+        throw error;
+      }
       return !!data;
     },
   });
@@ -47,5 +53,8 @@ export const useIsAdmin = () => {
     // Signed out is a settled answer. Signed in without a token yet, or still
     // asking, is not.
     loading: authLoading || (!!user && (!token || isPending)),
+    // Every attempt failed and there is no earlier answer to go on
+    failed: !!user && isError && data === undefined,
+    retry: refetch,
   };
 };

@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { formatPrice, planName, useSubscription } from "@/lib/subscription";
 import { cn } from "@/lib/utils";
 
-type State = "trial" | "active" | "expiring" | "pending" | "expired" | "none";
+type State = "exempt" | "trial" | "active" | "expiring" | "pending" | "expired" | "none";
 
 /**
  * One clear line on where this account stands: free trial (with the countdown),
@@ -18,10 +18,12 @@ type State = "trial" | "active" | "expiring" | "pending" | "expired" | "none";
  */
 const SubscriptionStatusCard = ({ className }: { className?: string }) => {
   const { t, lang } = useI18n();
-  const { loading, status, isActive, renewalStatus, accessUntil, paymentPending, pricing } = useSubscription();
-  if (loading) return null;
+  const { loading, checkFailed, status, isActive, isExempt, renewalStatus, accessUntil, paymentPending, pricing } = useSubscription();
+  // A failed check isn't "no subscription": show no status rather than a wrong one
+  if (loading || checkFailed) return null;
 
-  const state: State = paymentPending && !isActive ? "pending"
+  const state: State = isExempt ? "exempt"
+    : paymentPending && !isActive ? "pending"
     : isActive && status === "trial" ? "trial"
     : isActive && renewalStatus === "due_soon" ? "expiring"
     : isActive ? "active"
@@ -34,6 +36,7 @@ const SubscriptionStatusCard = ({ className }: { className?: string }) => {
   const price = formatPrice(pricing.nextPrice, pricing.currency);
 
   const look: Record<State, { icon: typeof Clock; tone: string; title: string; text: string | null; action: string | null }> = {
+    exempt: { icon: CheckCircle, tone: "border-green-500/40 bg-green-500/5", title: "Admin account", text: "Full access, free of charge. No subscription needed.", action: null },
     trial: { icon: Hourglass, tone: "border-primary/40 bg-primary/5", title: t("sub.status.trial"), text: t("sub.trialEndsWarning"), action: t("sub.subscribe") },
     active: { icon: CheckCircle, tone: "border-green-500/40 bg-green-500/5", title: t("sub.status.active"), text: until ? t("sub.until", { date: until }) : null, action: t("sub.manage") },
     expiring: { icon: AlertTriangle, tone: "border-amber-500/40 bg-amber-500/5", title: t("sub.status.expiring"), text: until ? t("sub.until", { date: until }) : null, action: t("sub.renew") },
