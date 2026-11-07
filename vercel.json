@@ -1,24 +1,261 @@
 {
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/packaging",
+      "destination": "/logistics/packaging",
+      "permanent": true
+    },
+    {
+      "source": "/software/academy",
+      "destination": "/training-center",
+      "permanent": true
+    }
+  ],
   "rewrites": [
-    { "source": "/sitemap-research.xml", "destination": "https://oswetaksxcepublsjyrt.supabase.co/functions/v1/research-sitemap" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/sitemap-research.xml",
+      "destination": "https://oswetaksxcepublsjyrt.supabase.co/functions/v1/research-sitemap"
+    },
+    {
+      "source": "/about",
+      "destination": "/seo/about.html"
+    },
+    {
+      "source": "/services",
+      "destination": "/seo/services.html"
+    },
+    {
+      "source": "/software",
+      "destination": "/seo/software.html"
+    },
+    {
+      "source": "/software/booking",
+      "destination": "/seo/software-booking.html"
+    },
+    {
+      "source": "/become-seller",
+      "destination": "/seo/become-seller.html"
+    },
+    {
+      "source": "/track",
+      "destination": "/seo/track.html"
+    },
+    {
+      "source": "/travel",
+      "destination": "/seo/travel.html"
+    },
+    {
+      "source": "/consultancy",
+      "destination": "/seo/consultancy.html"
+    },
+    {
+      "source": "/data-analysis",
+      "destination": "/seo/data-analysis.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/seo/contact.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/seller-agreement",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/subscription",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/logistics",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/logistics/delivery",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/logistics/history",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/logistics/packaging",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/logistics/sourcing",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/logistics/supply-chain",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/marketplace",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/e-library",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/entertainment",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/entertainment/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/training-center",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/training-center/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/global-initiative",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/messages",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/global-initiative/apply",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/travel/plan",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/travel/trip/:token",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/consultancy/request",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/consultancy/r/:token",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/data-analysis/request",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/data-analysis/r/:token",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/research",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/research/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/staff",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/staff/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/seller",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/cart",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/my-orders",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/driver",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/insights",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/track/:trackingNumber",
+      "destination": "/app.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=(), payment=()" },
-        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=(), payment=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        }
       ]
     },
     {
       "source": "/(travel/trip|consultancy/r|data-analysis/r)/(.*)",
       "headers": [
-        { "key": "Referrer-Policy", "value": "no-referrer" },
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/(app.html|404.html|seo/.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
       ]
     }
   ]

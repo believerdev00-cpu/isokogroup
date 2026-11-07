@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
+import AccountCheckFailed from "@/components/AccountCheckFailed";
 import Footer from "@/components/Footer";
 import SubscriptionPayment from "@/components/SubscriptionPayment";
 import TrialCountdown from "@/components/TrialCountdown";
@@ -21,7 +22,7 @@ const PLANS: Plan[] = ["trial", "week", "monthly", "seller"];
 // too: someone signed out because their access ended lands here and sees why.
 const Subscription = () => {
   const { user, loading: authLoading } = useAuth();
-  const { loading: subLoading, isActive, status, plan, ended, pricing, accessUntil, paymentPending, renewalStatus, periodStartedAt, sellerPath } = useSubscription();
+  const { loading: subLoading, checkFailed, refresh, isActive, isExempt, status, plan, ended, pricing, accessUntil, paymentPending, renewalStatus, periodStartedAt, sellerPath } = useSubscription();
   const [params] = useSearchParams();
   const company = useSiteSettings();
   // the plan a signed-in customer tapped (the cards at the top are the only cards on the page)
@@ -53,6 +54,33 @@ const Subscription = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-10 w-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+      </div>
+    );
+  }
+
+  // We don't know where this account stands (it may be an admin, or already paid): don't ask for money
+  if (user && checkFailed) return <AccountCheckFailed onRetry={refresh} />;
+
+  // Admins are never charged: no plans, no payment form
+  if (user && isExempt) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <section className="py-12 sm:py-20">
+          <div className="container max-w-2xl">
+            <Card>
+              <CardContent className="space-y-4 pt-6 text-center">
+                <CheckCircle className="mx-auto h-12 w-12 text-green-600" aria-hidden />
+                <h1 className="text-3xl font-display font-bold">Admin account</h1>
+                <p className="text-muted-foreground">Full access, free of charge. No subscription or payment is needed.</p>
+                <Button asChild>
+                  <Link to="/admin">Go to the admin desk</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+        <Footer />
       </div>
     );
   }

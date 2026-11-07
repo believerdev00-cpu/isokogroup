@@ -74,6 +74,37 @@ describe("knowing whether someone is an admin", () => {
     expect(result.current.isAdmin).toBe(false);
   });
 
+  // The fault that sent the real admin away: every attempt failed ("JWT issued at
+  // future"), the hook stopped loading, and "not an admin" followed. Callers must
+  // be able to tell "no" from "could not find out".
+  it("reports a failed check once the attempts run out, and grants nothing", async () => {
+    auth.value = { user: USER, session: { access_token: "tok" }, loading: false };
+    db.result = { data: null, error: { code: "PGRST303", message: "JWT issued at future" } };
+    const { result } = renderHook(() => useIsAdmin(), { wrapper });
+    await waitFor(() => expect(result.current.failed).toBe(true), { timeout: 10000 });
+    expect(result.current.isAdmin).toBe(false);
+    expect(result.current.loading).toBe(false);
+  }, 15000);
+
+  it("recovers when asking again works", async () => {
+    auth.value = { user: USER, session: { access_token: "tok" }, loading: false };
+    db.result = { data: null, error: { message: "JWT issued at future" } };
+    const { result } = renderHook(() => useIsAdmin(), { wrapper });
+    await waitFor(() => expect(result.current.failed).toBe(true), { timeout: 10000 });
+    db.result = { data: { role: "admin" }, error: null };
+    await result.current.retry();
+    await waitFor(() => expect(result.current.isAdmin).toBe(true));
+    expect(result.current.failed).toBe(false);
+  }, 15000);
+
+  it("does not call a real no a failed check", async () => {
+    auth.value = { user: USER, session: { access_token: "tok" }, loading: false };
+    db.result = { data: null, error: null };
+    const { result } = renderHook(() => useIsAdmin(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.failed).toBe(false);
+  });
+
   it("settles immediately for someone who is signed out", () => {
     auth.value = { user: null, session: null, loading: false };
     const { result } = renderHook(() => useIsAdmin(), { wrapper });

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, Re
 import { supabase } from "@/integrations/supabase/client";
 import { storedProblem } from "@/lib/uploadVerify";
 import { useAuth } from "@/lib/auth";
+import { refreshIfTokenExpired } from "@/lib/authRecovery";
 import { toast } from "@/hooks/use-toast";
 
 // Billing: a new account gets a 10-minute free trial on its first sign-in, then
@@ -101,6 +102,10 @@ type SubscriptionContextType = {
   subscription: Subscription | null;
   loading: boolean;
   isActive: boolean;
+  /** Signed in, but the server could not tell us this account's state: not the same as having no access */
+  checkFailed: boolean;
+  /** An admin: free, unlimited access, with no trial, plans or payments to show */
+  isExempt: boolean;
   status: SubscriptionStatus;
   /** the current (or last) period: trial, 7 days or monthly */
   plan: Plan | null;
@@ -144,6 +149,20 @@ const TRIAL_WARNINGS: [number, string][] = [
 
 const SubscriptionContext = createContext<SubscriptionContextType>({} as SubscriptionContextType);
 
+// A passing fault shouldn't reach the person: wait this long between attempts
+const STATE_RETRY_DELAYS_MS = [1000, 3000];
+
+/** This visitor's state from the server. Throws only after the attempts run out. */
+async function readServerState(): Promise<ServerState> {
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await (supabase as any).rpc("subscription_state");
+    if (!error) return data as ServerState;
+    if (attempt >= STATE_RETRY_DELAYS_MS.length) throw error;
+    await refreshIfTokenExpired(error);
+    await new Promise((resolve) => setTimeout(resolve, STATE_RETRY_DELAYS_MS[attempt]));
+  }
+}
+
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading, signOut } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -159,21 +178,25 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   currentUser.current = userId;
   // Did this person have access earlier in this visit? (then losing it signs them out)
   const hadAccess = useRef<string | null>(null);
+  // Whose answer `state` holds, and whether the last check left us with none for this person
+  const stateOwner = useRef<string | null | undefined>(undefined);
+  const [checkFailed, setCheckFailed] = useState(false);
 
   const fetchSub = useCallback(async () => {
     const forUser = user?.id ?? null;
     try {
-      const { data: s, error } = await (supabase as any).rpc("subscription_state");
-      if (error) throw error;
-      let next = s as ServerState;
+      let next = await readServerState();
       // First sign-in of a new account: its free trial starts now (once per account)
-      if (user && next.signed_in && next.status === "none" && trialAsked.current !== user.id) {
+      // (Admins are exempt from billing, so they never start one.)
+      if (user && next.signed_in && !next.exempt && next.status === "none" && trialAsked.current !== user.id) {
         trialAsked.current = user.id;
         await (supabase as any).rpc("start_trial");
         const again = await (supabase as any).rpc("subscription_state");
         if (!again.error) next = again.data as ServerState;
       }
       if (currentUser.current !== forUser) return; // signed in or out meanwhile: a newer check is coming
+      stateOwner.current = forUser;
+      setCheckFailed(false);
       setState(next);
       // the end of access on this device's clock, from the server's "seconds left"
       setAccessUntil(next.seconds_left != null ? new Date(Date.now() + next.seconds_left * 1000) : null);
@@ -191,6 +214,14 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (e) {
       console.error("subscription check failed", e);
+      // An earlier answer for this person still stands (the database enforces access
+      // regardless). With none, say so, and never keep the previous visitor's.
+      if (currentUser.current === forUser && stateOwner.current !== forUser) {
+        setState(null);
+        setAccessUntil(null);
+        setSubscription(null);
+        setCheckFailed(true);
+      }
     } finally {
       if (currentUser.current === forUser) {
         setStateFor(forUser);
@@ -318,6 +349,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         subscription,
         loading: loading || authLoading || stateFor !== userId,
         isActive,
+        checkFailed: checkFailed && !!user,
+        isExempt: state?.exempt === true,
         status,
         plan: state?.plan ?? null,
         ended: state?.ended ?? null,

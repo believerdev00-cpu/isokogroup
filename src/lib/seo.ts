@@ -1,12 +1,13 @@
 import { useEffect } from "react";
+import { absoluteUrl, fullTitle, SITE_NAME } from "./seoPages";
 
 // Page metadata for search engines and link previews, set from the page that
 // knows it (the site is a single-page app, so the <head> is updated at run
 // time). Everything is restored when the page goes away, so the next page
-// starts from the site defaults in index.html.
+// starts from the site defaults in index.html. Public pages also get their
+// metadata in their own HTML at build time: see seoPages.ts.
 
-export const SITE_ORIGIN = "https://www.isokogroups.com";
-export const SITE_NAME = "ISOKO GROUP";
+export { absoluteUrl, SITE_NAME, SITE_ORIGIN } from "./seoPages";
 const JSONLD_ID = "seo-jsonld";
 
 export type SeoOptions = {
@@ -19,9 +20,6 @@ export type SeoOptions = {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   noindex?: boolean;
 };
-
-/** "https://www.isokogroups.com/research/x" from "/research/x" (absolute addresses are kept) */
-export const absoluteUrl = (pathOrUrl: string) => (/^https?:\/\//.test(pathOrUrl) ? pathOrUrl : `${SITE_ORIGIN}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`);
 
 type Restore = () => void;
 
@@ -60,7 +58,7 @@ function setLink(rel: string, href: string | undefined, restores: Restore[]) {
 /** Applies the metadata now and returns a function that puts everything back. Used by useSeo; exported for tests. */
 export function applySeo(o: SeoOptions): Restore {
   const restores: Restore[] = [];
-  const title = o.title.includes(SITE_NAME) ? o.title : `${o.title} · ${SITE_NAME}`;
+  const title = fullTitle(o.title);
   const beforeTitle = document.title;
   document.title = title;
   restores.push(() => { document.title = beforeTitle; });

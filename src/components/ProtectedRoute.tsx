@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useSubscription } from "@/lib/subscription";
 import SubscriptionRequired from "@/components/SubscriptionRequired";
+import AccountCheckFailed from "@/components/AccountCheckFailed";
 import { TrialBanner } from "@/components/TrialCountdown";
 
 /**
@@ -15,7 +16,7 @@ import { TrialBanner } from "@/components/TrialCountdown";
 const ProtectedRoute = ({ children, requireAccess = true }: { children: ReactNode; requireAccess?: boolean }) => {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
-  const { isActive, loading: subLoading, reason } = useSubscription();
+  const { isActive, loading: subLoading, reason, checkFailed, refresh } = useSubscription();
 
   if (authLoading || subLoading) {
     return (
@@ -26,6 +27,8 @@ const ProtectedRoute = ({ children, requireAccess = true }: { children: ReactNod
   }
   // Remember where they were going, so signing in brings them back there
   if (!user) return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  // The check itself failed: that says nothing about their access, so no prices, and no page either
+  if (requireAccess && checkFailed) return <AccountCheckFailed onRetry={refresh} />;
   // The free trial or the month ran out (checked live): the page locks
   if (requireAccess && !isActive && reason) return <SubscriptionRequired reason={reason} />;
 

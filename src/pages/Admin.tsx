@@ -21,7 +21,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import CouriersAdmin from "@/components/admin/CouriersAdmin";
-import SubscriptionPaymentsAdmin from "@/components/admin/SubscriptionPaymentsAdmin";
+import AdminUsers from "@/components/admin/AdminUsers";
+import AccountCheckFailed from "@/components/AccountCheckFailed";
 import SiteSettingsAdmin from "@/components/admin/SiteSettingsAdmin";
 import TrainingCenterAdmin from "@/components/admin/TrainingCenterAdmin";
 import ServiceStaffAdmin from "@/components/admin/ServiceStaffAdmin";
@@ -48,7 +49,7 @@ const COLORS = ["hsl(0, 85%, 50%)", "hsl(0, 0%, 20%)", "hsl(0, 85%, 65%)", "hsl(
 const Admin = () => {
   const { t } = useI18n();
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, loading: roleLoading } = useIsAdmin();
+  const { isAdmin, loading: roleLoading, failed: roleCheckFailed, retry: retryRoleCheck } = useIsAdmin();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -58,6 +59,7 @@ const Admin = () => {
   const [logisticsRequests, setLogisticsRequests] = useState<any[]>([]);
   const [packagingRequests, setPackagingRequests] = useState<any[]>([]);
   const [sellerApplications, setSellerApplications] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("my");
   const [entertainment, setEntertainment] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
   const [softwareBookings, setSoftwareBookings] = useState<any[]>([]);
@@ -143,6 +145,8 @@ const Admin = () => {
 
   if (authLoading || roleLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
+  // No answer is not a "no": an admin stays here and can try again. Nothing below shows.
+  if (roleCheckFailed) return <AccountCheckFailed onRetry={retryRoleCheck} />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
@@ -509,7 +513,7 @@ const Admin = () => {
             ))}
           </div>
 
-          <Tabs defaultValue="my" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex flex-wrap h-auto gap-1">
               <TabsTrigger value="my">My Dashboard</TabsTrigger>
               <TabsTrigger value="data">Data Analysis</TabsTrigger>
@@ -658,42 +662,12 @@ const Admin = () => {
             </TabsContent>
 
             <TabsContent value="users" className="space-y-6">
-              <SubscriptionPaymentsAdmin />
-              <Card>
-                <CardHeader><CardTitle>{t("admin.users")} Management ({profiles.length})</CardTitle></CardHeader>
-                <CardContent>
-                  {profiles.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">No users registered yet.</p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Business</TableHead>
-                          <TableHead>Phone</TableHead>
-                          <TableHead>Joined</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {profiles.map((u) => (
-                          <TableRow key={u.id}>
-                            <TableCell className="font-medium">{u.full_name || "—"}</TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.role === "seller" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                                {u.role}
-                              </span>
-                            </TableCell>
-                            <TableCell>{u.business_name || "—"}</TableCell>
-                            <TableCell>{u.phone || "—"}</TableCell>
-                            <TableCell>{new Date(u.created_at).toLocaleDateString()}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
+              <AdminUsers
+                profiles={profiles}
+                title={t("admin.users")}
+                sellerApplications={sellerApplications}
+                onOpenSellers={() => setActiveTab("sellers")}
+              />
             </TabsContent>
 
             {/* Sellers / Applications */}

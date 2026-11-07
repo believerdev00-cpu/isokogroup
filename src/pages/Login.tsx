@@ -35,7 +35,7 @@ const Login = () => {
   const from = (location.state as { from?: string } | null)?.from;
   // /login?tab=register opens on the Register tab (the Register buttons in the header link here)
   const [params] = useSearchParams();
-  const { isActive, loading: subLoading } = useSubscription();
+  const { isActive, checkFailed, loading: subLoading } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [tab, setTab] = useState(params.get("tab") === "register" ? "register" : "login");
@@ -64,11 +64,12 @@ const Login = () => {
     const id = window.setTimeout(
       // Back to the page they came from (a member page shows its own subscription
       // wall if access has ended); otherwise home, or Subscription when access ended.
-      () => navigate(sellerRegistrant ? from ?? "/become-seller" : from ?? (isActive ? "/" : "/subscription"), { replace: true }),
+      // (A failed check isn't ended access, so it doesn't lead to the prices.)
+      () => navigate(sellerRegistrant ? from ?? "/become-seller" : from ?? (isActive || checkFailed ? "/" : "/subscription"), { replace: true }),
       success ? 1200 : 0,
     );
     return () => window.clearTimeout(id);
-  }, [authLoading, subLoading, user, isActive, from, success, navigate]);
+  }, [authLoading, subLoading, user, isActive, checkFailed, from, success, navigate]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
