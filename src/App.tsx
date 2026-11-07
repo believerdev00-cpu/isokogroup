@@ -16,6 +16,7 @@ import { SiteSettingsProvider } from "@/lib/siteSettings";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ConsentBanner from "@/components/ConsentBanner";
 import FeedbackButton from "@/components/FeedbackButton";
+import RouteSeo from "@/components/RouteSeo";
 import { Analytics } from "@/lib/analytics";
 import Index from "./pages/Index";
 import Logistics from "./pages/Logistics";
@@ -85,6 +86,8 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                {/* Title, description and canonical address for every address (src/lib/seoPages.ts) */}
+                <RouteSeo />
                 {/* Google tag: only with VITE_GOOGLE_TAG_ID and the visitor's consent */}
                 <Analytics />
                 <ConsentBanner />
